@@ -1001,7 +1001,8 @@ export default {
       availableQuota: '可转返利额度',
       frozenQuota: '冻结中',
       frozenQuotaHint: '新产生的返利正在冻结期中',
-      totalQuota: '历史返利额度'
+      totalQuota: '历史返利额度',
+      levelRebate: '{level} 级累计收益'
     },
     transfer: {
       title: '返利额度转余额',
@@ -1019,6 +1020,33 @@ export default {
         username: '用户名',
         rebate: '返利明细',
         joinedAt: '注册时间'
+      }
+    },
+    levelDetails: {
+      title: '三级返佣明细',
+      subtitle: '按返佣层级查看贡献用户、金额与冻结状态',
+      levelTab: '{level} 级',
+      levelLabel: '{level} 级',
+      empty: '暂无{level}返佣记录',
+      directChain: '直接邀请',
+      viaUser: '来自 {user}',
+      noChain: '链路未记录',
+      orderCount: '{count} 单',
+      stats: {
+        invitees: '贡献用户',
+        total: '累计返佣',
+        frozen: '冻结中',
+        available: '可用返佣'
+      },
+      columns: {
+        user: '用户',
+        chain: '链路来源',
+        joinedAt: '注册时间',
+        orders: '订单数',
+        total: '返佣金额',
+        frozen: '冻结金额',
+        available: '可用金额',
+        lastRebate: '最近返佣'
       }
     },
     tips: {
@@ -1681,6 +1709,15 @@ export default {
         affCode: '邀请码',
         order: '订单',
         totalRebate: '累计返利',
+        allLevels: '全部层级',
+        action: '流水类型',
+        actions: {
+          accrue: '返利发放',
+          refund_clawback: '退款冲减',
+        },
+        level: '层级',
+        levelOption: '{level} 级',
+        ratePercent: '比例快照',
         orderAmount: '充值金额',
         payAmount: '支付金额',
         rebateAmount: '返利金额',
@@ -5032,6 +5069,9 @@ export default {
           enabledHint: '关闭后用户菜单中的邀请页面入口隐藏、注册时忽略邀请码、新充值不再产生返利。已有返利额度仍可转入余额。',
           rebateRate: '全局返利比例',
           rebateRateHint: '充值后返给邀请人的默认比例（0-100%，例如填写 10 表示返利 10%）。',
+          levelRates: '三级返佣比例',
+          levelRateLabel: '{level} 级返佣',
+          levelRatesHint: '1 级可被用户专属比例覆盖；2/3 级使用这里的全局比例。',
           freezeHours: '返利冻结期（小时）',
           freezeHoursDesc: '新产生的返利将在冻结期内无法提现。0 = 不冻结。',
           durationDays: '返利有效期（天）',
@@ -5415,6 +5455,7 @@ export default {
         helpImagePlaceholder: '上传或输入图片链接',
         helpTextPlaceholder: '输入帮助说明文本...',
         providerEasypay: '易支付',
+        providerDulupay: '嘟噜支付',
         providerAlipay: '支付宝官方',
         providerWxpay: '微信官方',
         providerStripe: 'Stripe',
@@ -5429,6 +5470,8 @@ export default {
         validationTypesRequired: '请至少选择一种支持的支付方式',
         validationFieldRequired: '{field} 不能为空',
         field_apiBase: 'API 基础地址',
+        field_merchantPrivateKey: '商户私钥',
+        field_platformPublicKey: '平台公钥',
         field_notifyUrl: '异步通知地址',
         field_returnUrl: '同步跳转地址',
         callbackBaseUrl: '回调基础地址',
@@ -6327,6 +6370,7 @@ export default {
     createOrder: '确认支付',
     methods: {
       easypay: '易支付',
+      dulupay: '嘟噜支付',
       alipay: '支付宝',
       wxpay: '微信支付',
       stripe: 'Stripe',

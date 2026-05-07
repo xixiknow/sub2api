@@ -248,6 +248,12 @@ func parseAffiliateRecordFilter(c *gin.Context, page, pageSize int) service.Affi
 		SortBy:   c.Query("sort_by"),
 		SortDesc: c.Query("sort_order") != "asc",
 	}
+	if level, err := strconv.Atoi(strings.TrimSpace(c.Query("level"))); err == nil && level > 0 {
+		if level > service.AffiliateLevelsMax {
+			level = service.AffiliateLevelsMax
+		}
+		filter.Level = level
+	}
 	if filter.PageSize > 100 {
 		filter.PageSize = 100
 	}

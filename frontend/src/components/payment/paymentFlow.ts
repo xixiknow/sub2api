@@ -15,6 +15,7 @@ const VISIBLE_METHOD_ALIASES = {
   wxpay: 'wxpay',
   wxpay_direct: 'wxpay',
   stripe: 'stripe',
+  dulupay: '',
 } as const
 
 export type VisiblePaymentMethod = 'alipay' | 'wxpay' | 'stripe'

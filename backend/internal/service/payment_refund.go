@@ -383,8 +383,44 @@ func (s *PaymentService) markRefundOk(ctx context.Context, p *RefundPlan) (*Refu
 	if err != nil {
 		return nil, fmt.Errorf("mark refund: %w", err)
 	}
-	s.writeAuditLog(ctx, p.OrderID, "REFUND_SUCCESS", "admin", map[string]any{"refundAmount": p.RefundAmount, "reason": p.Reason, "balanceDeducted": p.BalanceToDeduct, "force": p.Force})
+	affiliateClawbackAmount := s.clawbackAffiliateRebateAfterRefund(ctx, p)
+	detail := map[string]any{
+		"refundAmount":            p.RefundAmount,
+		"reason":                  p.Reason,
+		"balanceDeducted":         p.BalanceToDeduct,
+		"force":                   p.Force,
+		"affiliateClawbackAmount": affiliateClawbackAmount,
+	}
+	s.writeAuditLog(ctx, p.OrderID, "REFUND_SUCCESS", "admin", detail)
 	return &RefundResult{Success: true, BalanceDeducted: p.BalanceToDeduct, SubDaysDeducted: p.SubDaysToDeduct}, nil
+}
+
+func (s *PaymentService) clawbackAffiliateRebateAfterRefund(ctx context.Context, p *RefundPlan) float64 {
+	if s == nil || s.affiliateService == nil || p == nil || p.Order == nil {
+		return 0
+	}
+	if p.Order.ID <= 0 || p.Order.Amount <= 0 || p.RefundAmount <= 0 {
+		return 0
+	}
+	result, err := s.affiliateService.ClawbackRebateForOrder(ctx, p.Order.ID, p.RefundAmount, p.Order.Amount)
+	if err != nil {
+		slog.Error("affiliate clawback failed after refund", "orderID", p.Order.ID, "error", err)
+		s.writeAuditLog(ctx, p.Order.ID, "AFFILIATE_CLAWBACK_FAILED", "system", map[string]any{
+			"refundAmount": p.RefundAmount,
+			"orderAmount":  p.Order.Amount,
+			"error":        psErrMsg(err),
+		})
+		return 0
+	}
+	if result.TotalAmount > 0 {
+		s.writeAuditLog(ctx, p.Order.ID, "AFFILIATE_CLAWBACK_SUCCESS", "system", map[string]any{
+			"amount":       result.TotalAmount,
+			"refundAmount": p.RefundAmount,
+			"orderAmount":  p.Order.Amount,
+			"userIDs":      result.UserIDs,
+		})
+	}
+	return result.TotalAmount
 }
 
 func (s *PaymentService) RollbackRefund(ctx context.Context, p *RefundPlan, gErr error) bool {

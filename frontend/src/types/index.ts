@@ -133,6 +133,35 @@ export interface AffiliateInvitee {
   total_rebate: number
 }
 
+export interface AffiliateLevelRebateSummary {
+  level: number
+  rebate_amount: number
+}
+
+export interface AffiliateLevelInvitee {
+  user_id: number
+  email: string
+  username: string
+  joined_at?: string
+  total_rebate: number
+  frozen_rebate: number
+  available_rebate: number
+  order_count: number
+  last_rebate_at?: string
+  parent_user_id?: number | null
+  parent_email?: string
+  parent_username?: string
+}
+
+export interface AffiliateLevelDetail {
+  level: number
+  invitee_count: number
+  total_rebate: number
+  frozen_rebate: number
+  available_rebate: number
+  invitees: AffiliateLevelInvitee[]
+}
+
 export interface UserAffiliateDetail {
   user_id: number
   aff_code: string
@@ -143,6 +172,8 @@ export interface UserAffiliateDetail {
   aff_history_quota: number
   /** 当前用户作为邀请人时实际生效的返利比例（专属覆盖全局）。0-100。 */
   effective_rebate_rate_percent: number
+  level_rebates: AffiliateLevelRebateSummary[]
+  level_details: AffiliateLevelDetail[]
   invitees: AffiliateInvitee[]
 }
 

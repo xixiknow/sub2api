@@ -997,7 +997,8 @@ export default {
       availableQuota: 'Available Rebate Quota',
       frozenQuota: 'Frozen',
       frozenQuotaHint: 'Recently earned rebates pending release',
-      totalQuota: 'Historical Rebate Quota'
+      totalQuota: 'Historical Rebate Quota',
+      levelRebate: 'Level {level} Earnings'
     },
     transfer: {
       title: 'Transfer Rebate Quota',
@@ -1015,6 +1016,33 @@ export default {
         username: 'Username',
         rebate: 'Rebate',
         joinedAt: 'Joined At'
+      }
+    },
+    levelDetails: {
+      title: 'Three-Level Rebate Details',
+      subtitle: 'Review contributing users, rebate amounts, and frozen status by level',
+      levelTab: 'Level {level}',
+      levelLabel: 'level {level}',
+      empty: 'No {level} rebate records yet',
+      directChain: 'Direct invite',
+      viaUser: 'Via {user}',
+      noChain: 'Chain not recorded',
+      orderCount: '{count} orders',
+      stats: {
+        invitees: 'Contributors',
+        total: 'Total Rebates',
+        frozen: 'Frozen',
+        available: 'Available'
+      },
+      columns: {
+        user: 'User',
+        chain: 'Chain',
+        joinedAt: 'Joined At',
+        orders: 'Orders',
+        total: 'Rebate',
+        frozen: 'Frozen',
+        available: 'Available',
+        lastRebate: 'Last Rebate'
       }
     },
     tips: {
@@ -1660,6 +1688,15 @@ export default {
         affCode: 'Invite Code',
         order: 'Order',
         totalRebate: 'Total Rebate',
+        allLevels: 'All Levels',
+        action: 'Ledger Type',
+        actions: {
+          accrue: 'Rebate Accrual',
+          refund_clawback: 'Refund Clawback',
+        },
+        level: 'Level',
+        levelOption: 'Level {level}',
+        ratePercent: 'Rate Snapshot',
         orderAmount: 'Top-up Amount',
         payAmount: 'Paid Amount',
         rebateAmount: 'Rebate Amount',
@@ -4869,6 +4906,9 @@ export default {
           enabledHint: 'When off, the affiliate menu is hidden, the aff parameter is ignored at signup, and new recharges generate no rebate. Existing rebate balances can still be transferred.',
           rebateRate: 'Global Rebate Rate',
           rebateRateHint: 'Default percentage given back to the inviter on recharges (0-100, e.g. 10 = 10%).',
+          levelRates: 'Three-Level Rebate Rates',
+          levelRateLabel: 'Level {level}',
+          levelRatesHint: 'Level 1 can be overridden per user; levels 2 and 3 use these global rates.',
           freezeHours: 'Rebate Freeze Period (hours)',
           freezeHoursDesc: 'New rebates will be frozen for this period before becoming available for withdrawal. 0 = no freeze.',
           durationDays: 'Rebate Duration (days)',
@@ -5254,6 +5294,7 @@ export default {
         helpImagePlaceholder: 'Upload or enter image URL',
         helpTextPlaceholder: 'Enter help text...',
         providerEasypay: 'EasyPay',
+        providerDulupay: 'Dulupay',
         providerAlipay: 'Alipay (Direct)',
         providerWxpay: 'WeChat Pay (Direct)',
         providerStripe: 'Stripe',
@@ -5268,6 +5309,8 @@ export default {
         validationTypesRequired: 'Please select at least one supported payment type',
         validationFieldRequired: '{field} is required',
         field_apiBase: 'API Base URL',
+        field_merchantPrivateKey: 'Merchant Private Key',
+        field_platformPublicKey: 'Platform Public Key',
         field_notifyUrl: 'Notify URL',
         field_returnUrl: 'Return URL',
         callbackBaseUrl: 'Callback Base URL',
@@ -6142,6 +6185,7 @@ export default {
     createOrder: 'Confirm Payment',
     methods: {
       easypay: 'EasyPay',
+      dulupay: 'Dulupay',
       alipay: 'Alipay',
       wxpay: 'WeChat Pay',
       stripe: 'Stripe',

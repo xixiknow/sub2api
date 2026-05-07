@@ -4311,6 +4311,37 @@
 
               <div>
                 <label class="input-label">
+                  {{ t('admin.settings.features.affiliate.levelRates') }}
+                </label>
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <div
+                    v-for="level in [1, 2, 3]"
+                    :key="level"
+                    class="rounded-xl border border-gray-200 bg-gray-50/80 p-3 dark:border-dark-700 dark:bg-dark-900/60"
+                  >
+                    <label class="mb-2 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.levelRateLabel', { level }) }}
+                    </label>
+                    <div class="relative">
+                      <input
+                        v-model.number="form.affiliate_level_rates[level - 1]"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        class="input pr-8"
+                      />
+                      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">
+                  {{ t('admin.settings.features.affiliate.levelRatesHint') }}
+                </p>
+              </div>
+
+              <div>
+                <label class="input-label">
                   {{ t('admin.settings.features.affiliate.freezeHours') }}
                 </label>
                 <input
@@ -5798,6 +5829,7 @@ type SettingsForm = Omit<
   oidc_connect_client_secret: string;
   force_email_on_third_party_signup: boolean;
   openai_advanced_scheduler_enabled: boolean;
+  affiliate_level_rates: number[];
 };
 
 const form = reactive<SettingsForm>({
@@ -5811,7 +5843,8 @@ const form = reactive<SettingsForm>({
   totp_encryption_key_configured: false,
   default_balance: 0,
   affiliate_rebate_rate: 20,
-  affiliate_rebate_freeze_hours: 0,
+  affiliate_level_rates: [20, 5, 2],
+  affiliate_rebate_freeze_hours: 168,
   affiliate_rebate_duration_days: 0,
   affiliate_rebate_per_invitee_cap: 0,
   default_concurrency: 1,
@@ -6456,6 +6489,14 @@ function parseTablePageSizeOptionsInput(raw: string): number[] | null {
   return deduped;
 }
 
+function normalizeAffiliateLevelRates(values: unknown): number[] {
+  const defaults = [20, 5, 2];
+  const source = Array.isArray(values) ? values : [];
+  return defaults.map((fallback, index) =>
+    Math.min(100, Math.max(0, Number(source[index] ?? fallback) || 0)),
+  );
+}
+
 async function loadSettings() {
   loading.value = true;
   loadFailed.value = false;
@@ -6473,6 +6514,9 @@ async function loadSettings() {
     form.backend_mode_enabled = settings.backend_mode_enabled;
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
       settings.default_subscriptions,
+    );
+    form.affiliate_level_rates = normalizeAffiliateLevelRates(
+      settings.affiliate_level_rates,
     );
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
@@ -6759,6 +6803,9 @@ async function saveSettings() {
       affiliate_rebate_rate: Math.min(
         100,
         Math.max(0, Number(form.affiliate_rebate_rate) || 0),
+      ),
+      affiliate_level_rates: normalizeAffiliateLevelRates(
+        form.affiliate_level_rates,
       ),
       affiliate_rebate_freeze_hours: Math.max(0, Math.min(720, Number(form.affiliate_rebate_freeze_hours) || 0)),
       affiliate_rebate_duration_days: Math.max(0, Math.min(3650, Math.floor(Number(form.affiliate_rebate_duration_days) || 0))),
@@ -7466,6 +7513,7 @@ async function saveBetaPolicySettings() {
 
 const allPaymentTypes = computed(() => [
   { value: "easypay", label: t("payment.methods.easypay") },
+  { value: "dulupay", label: t("payment.methods.dulupay") },
   { value: "alipay", label: t("payment.methods.alipay") },
   { value: "wxpay", label: t("payment.methods.wxpay") },
   { value: "stripe", label: t("payment.methods.stripe") },
@@ -7522,6 +7570,7 @@ const providerDialogRef = ref<InstanceType<
 
 const providerKeyOptions = computed(() => [
   { value: "easypay", label: t("admin.settings.payment.providerEasypay") },
+  { value: "dulupay", label: t("admin.settings.payment.providerDulupay") },
   { value: "alipay", label: t("admin.settings.payment.providerAlipay") },
   { value: "wxpay", label: t("admin.settings.payment.providerWxpay") },
   { value: "stripe", label: t("admin.settings.payment.providerStripe") },

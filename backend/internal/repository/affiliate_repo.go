@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -49,6 +50,116 @@ LEFT JOIN (
 ) matured ON matured.user_id = ua.user_id
 WHERE ua.user_id = $1
 LIMIT 1`
+
+const affiliateLevelDetailsSQL = `
+WITH level_one_direct AS (
+    SELECT 1::integer AS level,
+           ua.user_id AS source_user_id,
+           COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate,
+           COALESCE(SUM(
+               CASE
+                   WHEN ual.action = 'accrue' AND ual.frozen_until IS NOT NULL AND ual.frozen_until > NOW() THEN ual.amount
+                   WHEN ual.action = 'refund_clawback' AND EXISTS (
+                       SELECT 1
+                       FROM user_affiliate_ledger accrual
+                       WHERE accrual.action = 'accrue'
+                         AND accrual.user_id = ual.user_id
+                         AND accrual.source_order_id = ual.source_order_id
+                         AND COALESCE(accrual.source_user_id, 0) = COALESCE(ual.source_user_id, 0)
+                         AND COALESCE(accrual.level, 1) = COALESCE(ual.level, 1)
+                         AND accrual.frozen_until IS NOT NULL
+                         AND accrual.frozen_until > NOW()
+                   ) THEN ual.amount
+                   ELSE 0
+               END
+           ), 0)::double precision AS frozen_rebate,
+           COUNT(DISTINCT ual.source_order_id)::integer AS order_count,
+           MAX(ual.created_at) AS last_rebate_at
+    FROM user_affiliates ua
+    LEFT JOIN user_affiliate_ledger ual
+           ON ual.user_id = $1
+          AND ual.source_user_id = ua.user_id
+          AND COALESCE(ual.level, 1) = 1
+          AND ual.action IN ('accrue', 'refund_clawback')
+    WHERE ua.inviter_id = $1
+    GROUP BY ua.user_id
+),
+ledger_downline AS (
+    SELECT COALESCE(ual.level, 1)::integer AS level,
+           ual.source_user_id,
+           COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate,
+           COALESCE(SUM(
+               CASE
+                   WHEN ual.action = 'accrue' AND ual.frozen_until IS NOT NULL AND ual.frozen_until > NOW() THEN ual.amount
+                   WHEN ual.action = 'refund_clawback' AND EXISTS (
+                       SELECT 1
+                       FROM user_affiliate_ledger accrual
+                       WHERE accrual.action = 'accrue'
+                         AND accrual.user_id = ual.user_id
+                         AND accrual.source_order_id = ual.source_order_id
+                         AND COALESCE(accrual.source_user_id, 0) = COALESCE(ual.source_user_id, 0)
+                         AND COALESCE(accrual.level, 1) = COALESCE(ual.level, 1)
+                         AND accrual.frozen_until IS NOT NULL
+                         AND accrual.frozen_until > NOW()
+                   ) THEN ual.amount
+                   ELSE 0
+               END
+           ), 0)::double precision AS frozen_rebate,
+           COUNT(DISTINCT ual.source_order_id)::integer AS order_count,
+           MAX(ual.created_at) AS last_rebate_at
+    FROM user_affiliate_ledger ual
+    WHERE ual.user_id = $1
+      AND ual.source_user_id IS NOT NULL
+      AND ual.action IN ('accrue', 'refund_clawback')
+      AND COALESCE(ual.level, 1) BETWEEN 2 AND 3
+    GROUP BY COALESCE(ual.level, 1), ual.source_user_id
+),
+grouped AS (
+    SELECT * FROM level_one_direct
+    UNION ALL
+    SELECT * FROM ledger_downline
+),
+level_summary AS (
+    SELECT level,
+           COUNT(*)::integer AS invitee_count,
+           COALESCE(SUM(total_rebate), 0)::double precision AS total_rebate,
+           COALESCE(SUM(frozen_rebate), 0)::double precision AS frozen_rebate,
+           COALESCE(SUM(total_rebate - frozen_rebate), 0)::double precision AS available_rebate
+    FROM grouped
+    GROUP BY level
+),
+ranked AS (
+    SELECT grouped.*,
+           ROW_NUMBER() OVER (
+               PARTITION BY level
+               ORDER BY total_rebate DESC, last_rebate_at DESC NULLS LAST, source_user_id DESC
+           ) AS rn
+    FROM grouped
+)
+SELECT ranked.level,
+       level_summary.invitee_count,
+       level_summary.total_rebate,
+       level_summary.frozen_rebate,
+       level_summary.available_rebate,
+       ranked.source_user_id,
+       COALESCE(source_user.email, ''),
+       COALESCE(source_user.username, ''),
+       source_user.created_at,
+       ranked.total_rebate,
+       ranked.frozen_rebate,
+       (ranked.total_rebate - ranked.frozen_rebate)::double precision AS available_rebate,
+       ranked.order_count,
+       ranked.last_rebate_at,
+       parent.id,
+       COALESCE(parent.email, ''),
+       COALESCE(parent.username, '')
+FROM ranked
+JOIN level_summary ON level_summary.level = ranked.level
+JOIN users source_user ON source_user.id = ranked.source_user_id
+LEFT JOIN user_affiliates source_aff ON source_aff.user_id = source_user.id
+LEFT JOIN users parent ON parent.id = source_aff.inviter_id
+WHERE ranked.rn <= $2
+ORDER BY ranked.level ASC, ranked.total_rebate DESC, ranked.last_rebate_at DESC NULLS LAST, ranked.source_user_id DESC`
 
 type affiliateQueryExecer interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
@@ -114,14 +225,53 @@ func (r *affiliateRepository) BindInviter(ctx context.Context, userID, inviterID
 	return bound, nil
 }
 
-func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64) (bool, error) {
+func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64, level int, ratePercent float64) (bool, error) {
 	if amount <= 0 {
 		return false, nil
+	}
+	if level <= 0 {
+		level = 1
 	}
 
 	var applied bool
 	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
-		// freezeHours > 0: add to frozen quota; == 0: add to available quota directly
+		var rows *sql.Rows
+		var err error
+		if freezeHours > 0 {
+			rows, err = txClient.QueryContext(txCtx, `
+INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, frozen_until, level, rate_percent, created_at, updated_at)
+VALUES ($1, 'accrue', $2, $3, $4, NOW() + make_interval(hours => $5), $6, $7, NOW(), NOW())
+ON CONFLICT DO NOTHING
+RETURNING id`,
+				inviterID, amount, inviteeUserID, nullableInt64Arg(sourceOrderID), freezeHours, level, ratePercent)
+		} else {
+			rows, err = txClient.QueryContext(txCtx, `
+INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, level, rate_percent, created_at, updated_at)
+VALUES ($1, 'accrue', $2, $3, $4, $5, $6, NOW(), NOW())
+ON CONFLICT DO NOTHING
+RETURNING id`,
+				inviterID, amount, inviteeUserID, nullableInt64Arg(sourceOrderID), level, ratePercent)
+		}
+		if err != nil {
+			return fmt.Errorf("insert affiliate accrue ledger: %w", err)
+		}
+		var ledgerID int64
+		if !rows.Next() {
+			_ = rows.Close()
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			applied = false
+			return nil
+		}
+		if err := rows.Scan(&ledgerID); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
 		var updateSQL string
 		if freezeHours > 0 {
 			updateSQL = "UPDATE user_affiliates SET aff_frozen_quota = aff_frozen_quota + $1, aff_history_quota = aff_history_quota + $1, updated_at = NOW() WHERE user_id = $2"
@@ -134,23 +284,7 @@ func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, invite
 		}
 		affected, _ := res.RowsAffected()
 		if affected == 0 {
-			applied = false
-			return nil
-		}
-
-		if freezeHours > 0 {
-			if _, err = txClient.ExecContext(txCtx, `
-INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, frozen_until, created_at, updated_at)
-VALUES ($1, 'accrue', $2, $3, $4, NOW() + make_interval(hours => $5), NOW(), NOW())`,
-				inviterID, amount, inviteeUserID, nullableInt64Arg(sourceOrderID), freezeHours); err != nil {
-				return fmt.Errorf("insert affiliate accrue ledger: %w", err)
-			}
-		} else {
-			if _, err = txClient.ExecContext(txCtx, `
-INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, created_at, updated_at)
-VALUES ($1, 'accrue', $2, $3, $4, NOW(), NOW())`, inviterID, amount, inviteeUserID, nullableInt64Arg(sourceOrderID)); err != nil {
-				return fmt.Errorf("insert affiliate accrue ledger: %w", err)
-			}
+			return service.ErrAffiliateProfileNotFound
 		}
 
 		applied = true
@@ -162,10 +296,114 @@ VALUES ($1, 'accrue', $2, $3, $4, NOW(), NOW())`, inviterID, amount, inviteeUser
 	return applied, nil
 }
 
+func (r *affiliateRepository) GetLevelRebateSummary(ctx context.Context, userID int64) ([]service.AffiliateLevelRebateSummary, error) {
+	client := clientFromContext(ctx, r.client)
+	rows, err := client.QueryContext(ctx, `
+SELECT COALESCE(level, 1)::integer AS level,
+       COALESCE(SUM(amount), 0)::double precision
+FROM user_affiliate_ledger
+WHERE user_id = $1
+  AND action IN ('accrue', 'refund_clawback')
+GROUP BY COALESCE(level, 1)
+ORDER BY level ASC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query affiliate level rebate summary: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	out := make([]service.AffiliateLevelRebateSummary, 0, service.AffiliateLevelsMax)
+	for rows.Next() {
+		var item service.AffiliateLevelRebateSummary
+		if err := rows.Scan(&item.Level, &item.RebateAmount); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (r *affiliateRepository) GetLevelDetails(ctx context.Context, userID int64, limitPerLevel int) ([]service.AffiliateLevelDetail, error) {
+	if limitPerLevel <= 0 {
+		limitPerLevel = 100
+	}
+	client := clientFromContext(ctx, r.client)
+	rows, err := client.QueryContext(ctx, affiliateLevelDetailsSQL, userID, limitPerLevel)
+	if err != nil {
+		return nil, fmt.Errorf("query affiliate level details: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	byLevel := make(map[int]*service.AffiliateLevelDetail, service.AffiliateLevelsMax)
+	for rows.Next() {
+		var (
+			level          int
+			item           service.AffiliateLevelInvitee
+			joinedAt       time.Time
+			lastRebateAt   sql.NullTime
+			parentID       sql.NullInt64
+			parentEmail    string
+			parentUsername string
+		)
+		var detail service.AffiliateLevelDetail
+		if err := rows.Scan(
+			&level,
+			&detail.InviteeCount,
+			&detail.TotalRebate,
+			&detail.FrozenRebate,
+			&detail.AvailableRebate,
+			&item.UserID,
+			&item.Email,
+			&item.Username,
+			&joinedAt,
+			&item.TotalRebate,
+			&item.FrozenRebate,
+			&item.AvailableRebate,
+			&item.OrderCount,
+			&lastRebateAt,
+			&parentID,
+			&parentEmail,
+			&parentUsername,
+		); err != nil {
+			return nil, err
+		}
+		detail.Level = level
+		item.JoinedAt = &joinedAt
+		if lastRebateAt.Valid {
+			item.LastRebateAt = &lastRebateAt.Time
+		}
+		if parentID.Valid {
+			item.ParentUserID = &parentID.Int64
+			item.ParentEmail = parentEmail
+			item.ParentUsername = parentUsername
+		}
+
+		existing := byLevel[level]
+		if existing == nil {
+			detail.Invitees = make([]service.AffiliateLevelInvitee, 0, limitPerLevel)
+			byLevel[level] = &detail
+			existing = &detail
+		}
+		existing.Invitees = append(existing.Invitees, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	out := make([]service.AffiliateLevelDetail, 0, len(byLevel))
+	for level := 1; level <= service.AffiliateLevelsMax; level++ {
+		if detail := byLevel[level]; detail != nil {
+			out = append(out, *detail)
+		}
+	}
+	return out, nil
+}
+
 func (r *affiliateRepository) GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error) {
 	client := clientFromContext(ctx, r.client)
 	rows, err := client.QueryContext(ctx,
-		`SELECT COALESCE(SUM(amount), 0)::double precision FROM user_affiliate_ledger WHERE user_id = $1 AND source_user_id = $2 AND action = 'accrue'`,
+		`SELECT COALESCE(SUM(amount), 0)::double precision FROM user_affiliate_ledger WHERE user_id = $1 AND source_user_id = $2 AND action IN ('accrue', 'refund_clawback')`,
 		inviterID, inviteeUserID)
 	if err != nil {
 		return 0, fmt.Errorf("query accrued rebate from invitee: %w", err)
@@ -178,6 +416,200 @@ func (r *affiliateRepository) GetAccruedRebateFromInvitee(ctx context.Context, i
 		}
 	}
 	return total, rows.Close()
+}
+
+type affiliateAccrualClawbackRow struct {
+	UserID       int64
+	SourceUserID sql.NullInt64
+	Amount       float64
+	FrozenUntil  sql.NullTime
+	Level        int
+	RatePercent  float64
+}
+
+func (r *affiliateRepository) ClawbackQuotaForOrder(ctx context.Context, sourceOrderID int64, refundRatio float64) (service.AffiliateClawbackResult, error) {
+	if sourceOrderID <= 0 || refundRatio <= 0 || math.IsNaN(refundRatio) || math.IsInf(refundRatio, 0) {
+		return service.AffiliateClawbackResult{}, nil
+	}
+	if refundRatio > 1 {
+		refundRatio = 1
+	}
+
+	var result service.AffiliateClawbackResult
+	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		rows, err := txClient.QueryContext(txCtx, `
+SELECT ual.user_id,
+       ual.source_user_id,
+       ual.amount::double precision,
+       ual.frozen_until,
+       COALESCE(ual.level, 1)::integer,
+       COALESCE(ual.rate_percent, 0)::double precision
+FROM user_affiliate_ledger ual
+WHERE ual.action = 'accrue'
+  AND ual.source_order_id = $1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM user_affiliate_ledger clawback
+      WHERE clawback.action = 'refund_clawback'
+        AND clawback.source_order_id = ual.source_order_id
+        AND clawback.user_id = ual.user_id
+        AND COALESCE(clawback.source_user_id, 0) = COALESCE(ual.source_user_id, 0)
+        AND COALESCE(clawback.level, 1) = COALESCE(ual.level, 1)
+  )
+ORDER BY ual.id
+FOR UPDATE`, sourceOrderID)
+		if err != nil {
+			return fmt.Errorf("query affiliate accruals for clawback: %w", err)
+		}
+		defer func() { _ = rows.Close() }()
+
+		accruals := make([]affiliateAccrualClawbackRow, 0)
+		for rows.Next() {
+			var item affiliateAccrualClawbackRow
+			if err := rows.Scan(&item.UserID, &item.SourceUserID, &item.Amount, &item.FrozenUntil, &item.Level, &item.RatePercent); err != nil {
+				return err
+			}
+			accruals = append(accruals, item)
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
+		for _, accrual := range accruals {
+			amount := roundAffiliateLedgerAmount(accrual.Amount * refundRatio)
+			if amount <= 0 {
+				continue
+			}
+			if accrual.Level <= 0 {
+				accrual.Level = 1
+			}
+			if _, err := ensureUserAffiliateWithClient(txCtx, txClient, accrual.UserID); err != nil {
+				return err
+			}
+			applied, err := r.applyAffiliateClawback(txCtx, txClient, sourceOrderID, accrual, amount)
+			if err != nil {
+				return err
+			}
+			if applied {
+				result.TotalAmount = roundAffiliateLedgerAmount(result.TotalAmount + amount)
+				result.UserIDs = append(result.UserIDs, accrual.UserID)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return service.AffiliateClawbackResult{}, err
+	}
+	return result, nil
+}
+
+func (r *affiliateRepository) applyAffiliateClawback(ctx context.Context, client *dbent.Client, sourceOrderID int64, accrual affiliateAccrualClawbackRow, amount float64) (bool, error) {
+	rows, err := client.QueryContext(ctx, `
+SELECT ua.aff_quota::double precision,
+       ua.aff_frozen_quota::double precision,
+       ua.aff_history_quota::double precision,
+       u.balance::double precision
+FROM user_affiliates ua
+JOIN users u ON u.id = ua.user_id
+WHERE ua.user_id = $1
+FOR UPDATE`, accrual.UserID)
+	if err != nil {
+		return false, fmt.Errorf("lock affiliate balances for clawback: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	if !rows.Next() {
+		return false, service.ErrUserNotFound
+	}
+	var available, frozen, history, balance float64
+	if err := rows.Scan(&available, &frozen, &history, &balance); err != nil {
+		return false, err
+	}
+	if err := rows.Close(); err != nil {
+		return false, err
+	}
+
+	remaining := amount
+	reduce := func(value *float64) {
+		if remaining <= 0 || *value <= 0 {
+			return
+		}
+		delta := math.Min(*value, remaining)
+		*value = roundAffiliateLedgerAmount(*value - delta)
+		remaining = roundAffiliateLedgerAmount(remaining - delta)
+	}
+	if accrual.FrozenUntil.Valid {
+		reduce(&frozen)
+		reduce(&available)
+	} else {
+		reduce(&available)
+		reduce(&frozen)
+	}
+	if remaining > 0 {
+		balance = roundAffiliateLedgerAmount(balance - remaining)
+		remaining = 0
+	}
+	history = math.Max(0, roundAffiliateLedgerAmount(history-amount))
+
+	if _, err := client.ExecContext(ctx, `
+UPDATE user_affiliates
+SET aff_quota = $2,
+    aff_frozen_quota = $3,
+    aff_history_quota = $4,
+    updated_at = NOW()
+WHERE user_id = $1`, accrual.UserID, available, frozen, history); err != nil {
+		return false, fmt.Errorf("update affiliate balances for clawback: %w", err)
+	}
+	if _, err := client.ExecContext(ctx, `
+UPDATE users
+SET balance = $2,
+    updated_at = NOW()
+WHERE id = $1`, accrual.UserID, balance); err != nil {
+		return false, fmt.Errorf("update user balance for affiliate clawback: %w", err)
+	}
+
+	var sourceUserArg any
+	if accrual.SourceUserID.Valid {
+		sourceUserArg = accrual.SourceUserID.Int64
+	}
+	insertRows, err := client.QueryContext(ctx, `
+INSERT INTO user_affiliate_ledger (
+    user_id,
+    action,
+    amount,
+    source_user_id,
+    source_order_id,
+    balance_after,
+    aff_quota_after,
+    aff_frozen_quota_after,
+    aff_history_quota_after,
+    level,
+    rate_percent,
+    created_at,
+    updated_at
+)
+VALUES ($1, 'refund_clawback', $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+ON CONFLICT DO NOTHING
+RETURNING id`, accrual.UserID, -amount, sourceUserArg, sourceOrderID, balance, available, frozen, history, accrual.Level, accrual.RatePercent)
+	if err != nil {
+		return false, fmt.Errorf("insert affiliate clawback ledger: %w", err)
+	}
+	defer func() { _ = insertRows.Close() }()
+	if !insertRows.Next() {
+		return false, insertRows.Close()
+	}
+	var ledgerID int64
+	if err := insertRows.Scan(&ledgerID); err != nil {
+		return false, err
+	}
+	return true, insertRows.Close()
+}
+
+func roundAffiliateLedgerAmount(value float64) float64 {
+	return math.Round(value*1e8) / 1e8
 }
 
 func (r *affiliateRepository) ThawFrozenQuota(ctx context.Context, userID int64) (float64, error) {
@@ -357,7 +789,7 @@ LEFT JOIN users u ON u.id = ua.user_id
 LEFT JOIN user_affiliate_ledger ual
        ON ual.user_id = $1
       AND ual.source_user_id = ua.user_id
-      AND ual.action = 'accrue'
+      AND ual.action IN ('accrue', 'refund_clawback')
 WHERE ua.inviter_id = $1
 GROUP BY ua.user_id, u.email, u.username, ua.created_at
 ORDER BY ua.created_at DESC
@@ -426,7 +858,7 @@ JOIN user_affiliates inviter_aff ON inviter_aff.user_id = ua.inviter_id
 LEFT JOIN user_affiliate_ledger ual
        ON ual.user_id = ua.inviter_id
       AND ual.source_user_id = ua.user_id
-      AND ual.action = 'accrue'
+      AND ual.action IN ('accrue', 'refund_clawback')
 `+where+`
 GROUP BY ua.inviter_id, inviter.email, inviter.username, ua.user_id, invitee.email, invitee.username, inviter_aff.aff_code, ua.created_at
 `+orderBy+`
@@ -471,10 +903,14 @@ FROM user_affiliate_ledger ual
 JOIN payment_orders po ON po.id = ual.source_order_id
 JOIN users invitee ON invitee.id = ual.source_user_id
 JOIN users inviter ON inviter.id = ual.user_id
-WHERE ual.action = 'accrue'
+WHERE ual.action IN ('accrue', 'refund_clawback')
   AND ual.source_order_id IS NOT NULL`
 	if where != "" {
 		where = strings.Replace(where, "WHERE ", " AND ", 1)
+	}
+	if filter.Level > 0 {
+		args = append(args, filter.Level)
+		where += fmt.Sprintf(" AND COALESCE(ual.level, 1) = $%d", len(args))
 	}
 
 	total, err := queryAffiliateRecordCount(ctx, client, "SELECT COUNT(*) "+baseJoin+where, args...)
@@ -484,8 +920,11 @@ WHERE ual.action = 'accrue'
 
 	orderBy := buildAffiliateRecordOrderBy(filter, map[string]string{
 		"order":         "po.id",
+		"action":        "ual.action",
 		"inviter":       "inviter.email",
 		"invitee":       "invitee.email",
+		"level":         "COALESCE(ual.level, 1)",
+		"rate_percent":  "COALESCE(ual.rate_percent, 0)",
 		"order_amount":  "po.amount",
 		"pay_amount":    "po.pay_amount",
 		"rebate_amount": "ual.amount",
@@ -497,12 +936,15 @@ WHERE ual.action = 'accrue'
 	rows, err := client.QueryContext(ctx, `
 SELECT po.id,
        po.out_trade_no,
+       ual.action,
        ual.user_id,
        COALESCE(inviter.email, ''),
        COALESCE(inviter.username, ''),
        ual.source_user_id,
        COALESCE(invitee.email, ''),
        COALESCE(invitee.username, ''),
+       COALESCE(ual.level, 1)::integer,
+       COALESCE(ual.rate_percent, 0)::double precision,
        po.amount::double precision,
        po.pay_amount::double precision,
        ual.amount::double precision,
@@ -523,12 +965,15 @@ LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 		if err := rows.Scan(
 			&item.OrderID,
 			&item.OutTradeNo,
+			&item.Action,
 			&item.InviterID,
 			&item.InviterEmail,
 			&item.InviterUsername,
 			&item.InviteeID,
 			&item.InviteeEmail,
 			&item.InviteeUsername,
+			&item.Level,
+			&item.RatePercent,
 			&item.OrderAmount,
 			&item.PayAmount,
 			&item.RebateAmount,

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"strings"
@@ -79,6 +80,30 @@ type AffiliateInvitee struct {
 	TotalRebate float64    `json:"total_rebate"`
 }
 
+type AffiliateLevelInvitee struct {
+	UserID          int64      `json:"user_id"`
+	Email           string     `json:"email"`
+	Username        string     `json:"username"`
+	JoinedAt        *time.Time `json:"joined_at,omitempty"`
+	TotalRebate     float64    `json:"total_rebate"`
+	FrozenRebate    float64    `json:"frozen_rebate"`
+	AvailableRebate float64    `json:"available_rebate"`
+	OrderCount      int        `json:"order_count"`
+	LastRebateAt    *time.Time `json:"last_rebate_at,omitempty"`
+	ParentUserID    *int64     `json:"parent_user_id,omitempty"`
+	ParentEmail     string     `json:"parent_email,omitempty"`
+	ParentUsername  string     `json:"parent_username,omitempty"`
+}
+
+type AffiliateLevelDetail struct {
+	Level           int                     `json:"level"`
+	InviteeCount    int                     `json:"invitee_count"`
+	TotalRebate     float64                 `json:"total_rebate"`
+	FrozenRebate    float64                 `json:"frozen_rebate"`
+	AvailableRebate float64                 `json:"available_rebate"`
+	Invitees        []AffiliateLevelInvitee `json:"invitees"`
+}
+
 type AffiliateDetail struct {
 	UserID          int64   `json:"user_id"`
 	AffCode         string  `json:"aff_code"`
@@ -90,16 +115,31 @@ type AffiliateDetail struct {
 	// EffectiveRebateRatePercent 是当前用户作为邀请人时实际生效的返利比例：
 	// 优先用户自己的专属比例（aff_rebate_rate_percent），否则回退到全局比例。
 	// 用于在用户的 /affiliate 页面直观展示「分享后能拿到多少」。
-	EffectiveRebateRatePercent float64            `json:"effective_rebate_rate_percent"`
-	Invitees                   []AffiliateInvitee `json:"invitees"`
+	EffectiveRebateRatePercent float64                       `json:"effective_rebate_rate_percent"`
+	LevelRebates               []AffiliateLevelRebateSummary `json:"level_rebates"`
+	LevelDetails               []AffiliateLevelDetail        `json:"level_details"`
+	Invitees                   []AffiliateInvitee            `json:"invitees"`
+}
+
+type AffiliateLevelRebateSummary struct {
+	Level        int     `json:"level"`
+	RebateAmount float64 `json:"rebate_amount"`
+}
+
+type AffiliateClawbackResult struct {
+	TotalAmount float64 `json:"total_amount"`
+	UserIDs     []int64 `json:"user_ids"`
 }
 
 type AffiliateRepository interface {
 	EnsureUserAffiliate(ctx context.Context, userID int64) (*AffiliateSummary, error)
 	GetAffiliateByCode(ctx context.Context, code string) (*AffiliateSummary, error)
 	BindInviter(ctx context.Context, userID, inviterID int64) (bool, error)
-	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64) (bool, error)
+	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64, level int, ratePercent float64) (bool, error)
+	ClawbackQuotaForOrder(ctx context.Context, sourceOrderID int64, refundRatio float64) (AffiliateClawbackResult, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
+	GetLevelRebateSummary(ctx context.Context, userID int64) ([]AffiliateLevelRebateSummary, error)
+	GetLevelDetails(ctx context.Context, userID int64, limitPerLevel int) ([]AffiliateLevelDetail, error)
 	ThawFrozenQuota(ctx context.Context, userID int64) (float64, error)
 	TransferQuotaToBalance(ctx context.Context, userID int64) (float64, float64, error)
 	ListInvitees(ctx context.Context, inviterID int64, limit int) ([]AffiliateInvitee, error)
@@ -140,6 +180,7 @@ type AffiliateRecordFilter struct {
 	PageSize int
 	StartAt  *time.Time
 	EndAt    *time.Time
+	Level    int
 	SortBy   string
 	SortDesc bool
 }
@@ -159,12 +200,15 @@ type AffiliateInviteRecord struct {
 type AffiliateRebateRecord struct {
 	OrderID         int64     `json:"order_id"`
 	OutTradeNo      string    `json:"out_trade_no"`
+	Action          string    `json:"action"`
 	InviterID       int64     `json:"inviter_id"`
 	InviterEmail    string    `json:"inviter_email"`
 	InviterUsername string    `json:"inviter_username"`
 	InviteeID       int64     `json:"invitee_id"`
 	InviteeEmail    string    `json:"invitee_email"`
 	InviteeUsername string    `json:"invitee_username"`
+	Level           int       `json:"level"`
+	RatePercent     float64   `json:"rate_percent"`
 	OrderAmount     float64   `json:"order_amount"`
 	PayAmount       float64   `json:"pay_amount"`
 	RebateAmount    float64   `json:"rebate_amount"`
@@ -253,6 +297,14 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 	if err != nil {
 		return nil, err
 	}
+	levelRebates, err := s.repo.GetLevelRebateSummary(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	levelDetails, err := s.listLevelDetails(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	return &AffiliateDetail{
 		UserID:                     summary.UserID,
 		AffCode:                    summary.AffCode,
@@ -262,6 +314,8 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 		AffFrozenQuota:             summary.AffFrozenQuota,
 		AffHistoryQuota:            summary.AffHistoryQuota,
 		EffectiveRebateRatePercent: s.resolveRebateRatePercent(ctx, summary),
+		LevelRebates:               levelRebates,
+		LevelDetails:               levelDetails,
 		Invitees:                   invitees,
 	}, nil
 }
@@ -335,11 +389,6 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
 		return 0, nil
 	}
 
-	// 加载邀请人 profile，优先使用专属比例（覆盖全局）
-	inviterSummary, err := s.repo.EnsureUserAffiliate(ctx, *inviteeSummary.InviterID)
-	if err != nil {
-		return 0, err
-	}
 	// 有效期检查：超过返利有效期后不再产生返利
 	if s.settingService != nil {
 		if durationDays := s.settingService.GetAffiliateRebateDurationDays(ctx); durationDays > 0 {
@@ -349,39 +398,92 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
 		}
 	}
 
-	rebateRatePercent := s.resolveRebateRatePercent(ctx, inviterSummary)
-	rebate := roundTo(baseRechargeAmount*(rebateRatePercent/100), 8)
-	if rebate <= 0 {
-		return 0, nil
-	}
-
-	// 单人上限检查：精确截断到剩余额度
-	if s.settingService != nil {
-		if perInviteeCap := s.settingService.GetAffiliateRebatePerInviteeCap(ctx); perInviteeCap > 0 {
-			existing, err := s.repo.GetAccruedRebateFromInvitee(ctx, *inviteeSummary.InviterID, inviteeUserID)
-			if err != nil {
-				return 0, err
-			}
-			if existing >= perInviteeCap {
-				return 0, nil
-			}
-			if remaining := perInviteeCap - existing; rebate > remaining {
-				rebate = roundTo(remaining, 8)
-			}
-		}
-	}
-
 	var freezeHours int
 	if s.settingService != nil {
 		freezeHours = s.settingService.GetAffiliateRebateFreezeHours(ctx)
 	}
 
-	applied, err := s.repo.AccrueQuota(ctx, *inviteeSummary.InviterID, inviteeUserID, rebate, freezeHours, sourceOrderID)
+	levelRates := s.resolveLevelRebateRates(ctx)
+	currentInviterID := *inviteeSummary.InviterID
+	var totalRebate float64
+	for level := 1; level <= AffiliateLevelsMax && currentInviterID > 0; level++ {
+		inviterSummary, err := s.repo.EnsureUserAffiliate(ctx, currentInviterID)
+		if err != nil {
+			return 0, err
+		}
+		rebateRatePercent := levelRates[level-1]
+		if level == 1 {
+			rebateRatePercent = s.resolveRebateRatePercent(ctx, inviterSummary)
+		}
+		rebate := roundTo(baseRechargeAmount*(rebateRatePercent/100), 8)
+		if rebate > 0 {
+			rebate, err = s.applyPerInviteeCap(ctx, currentInviterID, inviteeUserID, rebate)
+			if err != nil {
+				return 0, err
+			}
+			if rebate > 0 {
+				applied, err := s.repo.AccrueQuota(ctx, currentInviterID, inviteeUserID, rebate, freezeHours, sourceOrderID, level, rebateRatePercent)
+				if err != nil {
+					return 0, err
+				}
+				if applied {
+					totalRebate = roundTo(totalRebate+rebate, 8)
+				}
+			}
+		}
+		if inviterSummary.InviterID == nil {
+			break
+		}
+		currentInviterID = *inviterSummary.InviterID
+	}
+	return totalRebate, nil
+}
+
+func (s *AffiliateService) ClawbackRebateForOrder(ctx context.Context, sourceOrderID int64, refundAmount, orderAmount float64) (AffiliateClawbackResult, error) {
+	var zero AffiliateClawbackResult
+	if s == nil || s.repo == nil {
+		return zero, nil
+	}
+	if sourceOrderID <= 0 || refundAmount <= 0 || orderAmount <= 0 ||
+		math.IsNaN(refundAmount) || math.IsInf(refundAmount, 0) ||
+		math.IsNaN(orderAmount) || math.IsInf(orderAmount, 0) {
+		return zero, nil
+	}
+	refundRatio := refundAmount / orderAmount
+	if refundRatio <= 0 || math.IsNaN(refundRatio) || math.IsInf(refundRatio, 0) {
+		return zero, nil
+	}
+	if refundRatio > 1 {
+		refundRatio = 1
+	}
+
+	result, err := s.repo.ClawbackQuotaForOrder(ctx, sourceOrderID, refundRatio)
+	if err != nil {
+		return zero, err
+	}
+	for _, userID := range uniquePositiveInt64s(result.UserIDs) {
+		s.invalidateAffiliateCaches(ctx, userID)
+	}
+	return result, nil
+}
+
+func (s *AffiliateService) applyPerInviteeCap(ctx context.Context, inviterID, inviteeUserID int64, rebate float64) (float64, error) {
+	if s == nil || s.settingService == nil {
+		return rebate, nil
+	}
+	perInviteeCap := s.settingService.GetAffiliateRebatePerInviteeCap(ctx)
+	if perInviteeCap <= 0 {
+		return rebate, nil
+	}
+	existing, err := s.repo.GetAccruedRebateFromInvitee(ctx, inviterID, inviteeUserID)
 	if err != nil {
 		return 0, err
 	}
-	if !applied {
+	if existing >= perInviteeCap {
 		return 0, nil
+	}
+	if remaining := perInviteeCap - existing; rebate > remaining {
+		return roundTo(remaining, 8), nil
 	}
 	return rebate, nil
 }
@@ -406,6 +508,29 @@ func (s *AffiliateService) globalRebateRatePercent(ctx context.Context) float64 
 		return AffiliateRebateRateDefault
 	}
 	return s.settingService.GetAffiliateRebateRatePercent(ctx)
+}
+
+func (s *AffiliateService) resolveLevelRebateRates(ctx context.Context) []float64 {
+	if s == nil || s.settingService == nil {
+		return defaultAffiliateLevelRates()
+	}
+	return s.settingService.GetAffiliateLevelRates(ctx)
+}
+
+func defaultAffiliateLevelRates() []float64 {
+	return []float64{20, 5, 2}
+}
+
+func parseAffiliateLevelRates(raw string) []float64 {
+	var values []float64
+	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &values); err != nil {
+		return defaultAffiliateLevelRates()
+	}
+	out := defaultAffiliateLevelRates()
+	for i := 0; i < len(values) && i < AffiliateLevelsMax; i++ {
+		out[i] = clampAffiliateRebateRate(values[i])
+	}
+	return out
 }
 
 func (s *AffiliateService) TransferAffiliateQuota(ctx context.Context, userID int64) (float64, float64, error) {
@@ -435,6 +560,41 @@ func (s *AffiliateService) listInvitees(ctx context.Context, inviterID int64) ([
 		invitees[i].Email = maskEmail(invitees[i].Email)
 	}
 	return invitees, nil
+}
+
+func (s *AffiliateService) listLevelDetails(ctx context.Context, userID int64) ([]AffiliateLevelDetail, error) {
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	details, err := s.repo.GetLevelDetails(ctx, userID, affiliateInviteesLimit)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeAffiliateLevelDetails(details), nil
+}
+
+func normalizeAffiliateLevelDetails(details []AffiliateLevelDetail) []AffiliateLevelDetail {
+	out := make([]AffiliateLevelDetail, AffiliateLevelsMax)
+	for i := range out {
+		out[i] = AffiliateLevelDetail{
+			Level:    i + 1,
+			Invitees: make([]AffiliateLevelInvitee, 0),
+		}
+	}
+	for _, detail := range details {
+		if detail.Level <= 0 || detail.Level > AffiliateLevelsMax {
+			continue
+		}
+		if detail.Invitees == nil {
+			detail.Invitees = make([]AffiliateLevelInvitee, 0)
+		}
+		for i := range detail.Invitees {
+			detail.Invitees[i].Email = maskEmail(detail.Invitees[i].Email)
+			detail.Invitees[i].ParentEmail = maskEmail(detail.Invitees[i].ParentEmail)
+		}
+		out[detail.Level-1] = detail
+	}
+	return out
 }
 
 func roundTo(v float64, scale int) float64 {
@@ -486,6 +646,25 @@ func (s *AffiliateService) invalidateAffiliateCaches(ctx context.Context, userID
 			logger.LegacyPrintf("service.affiliate", "[Affiliate] Failed to invalidate billing cache for user %d: %v", userID, err)
 		}
 	}
+}
+
+func uniquePositiveInt64s(values []int64) []int64 {
+	if len(values) == 0 {
+		return nil
+	}
+	seen := make(map[int64]struct{}, len(values))
+	out := make([]int64, 0, len(values))
+	for _, value := range values {
+		if value <= 0 {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
 }
 
 // =========================
