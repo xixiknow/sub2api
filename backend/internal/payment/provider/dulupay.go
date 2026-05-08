@@ -240,7 +240,7 @@ func (d *Dulupay) QueryOrder(ctx context.Context, tradeNo string) (*payment.Quer
 	if !dulupayCodeOK(resp.Code) {
 		return nil, fmt.Errorf("dulupay query error: %s", strings.TrimSpace(resp.Msg))
 	}
-	status := payment.ProviderStatusPending
+	var status string
 	switch strings.TrimSpace(fmt.Sprint(resp.Status)) {
 	case dulupayStatusPaid:
 		status = payment.ProviderStatusPaid
@@ -546,11 +546,11 @@ func chunkBase64(s string, n int) string {
 	}
 	var b strings.Builder
 	for len(s) > n {
-		b.WriteString(s[:n])
-		b.WriteByte('\n')
+		_, _ = b.WriteString(s[:n])
+		_ = b.WriteByte('\n')
 		s = s[n:]
 	}
-	b.WriteString(s)
+	_, _ = b.WriteString(s)
 	return b.String()
 }
 
