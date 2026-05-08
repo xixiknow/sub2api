@@ -200,6 +200,33 @@ func (h *UserHandler) TransferAffiliateQuota(c *gin.Context) {
 	})
 }
 
+type PurchaseAffiliateRegistrationSeatsRequest struct {
+	Quantity int `json:"quantity" binding:"required,min=1,max=1000"`
+}
+
+// PurchaseAffiliateRegistrationSeats purchases registration seats for the current user's affiliate code.
+// POST /api/v1/user/aff/registration-seats
+func (h *UserHandler) PurchaseAffiliateRegistrationSeats(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	var req PurchaseAffiliateRegistrationSeatsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	result, err := h.affiliateService.PurchaseRegistrationSeats(c.Request.Context(), subject.UserID, req.Quantity)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
 type StartIdentityBindingRequest struct {
 	Provider   string `json:"provider" binding:"required"`
 	RedirectTo string `json:"redirect_to"`

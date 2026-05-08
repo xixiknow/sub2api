@@ -15,7 +15,8 @@ import type {
   NotifyEmailEntry,
   UserAuthProvider,
   UserAffiliateDetail,
-  AffiliateTransferResponse
+  AffiliateTransferResponse,
+  AffiliateRegistrationSeatPurchaseResponse
 } from '@/types'
 
 /**
@@ -185,6 +186,16 @@ export async function transferAffiliateQuota(): Promise<AffiliateTransferRespons
   return data
 }
 
+export async function purchaseAffiliateRegistrationSeats(
+  quantity: number
+): Promise<AffiliateRegistrationSeatPurchaseResponse> {
+  const { data } = await apiClient.post<AffiliateRegistrationSeatPurchaseResponse>(
+    '/user/aff/registration-seats',
+    { quantity }
+  )
+  return data
+}
+
 export const userAPI = {
   getProfile,
   updateProfile,
@@ -199,7 +210,8 @@ export const userAPI = {
   buildOAuthBindingStartURL,
   startOAuthBinding,
   getAffiliateDetail,
-  transferAffiliateQuota
+  transferAffiliateQuota,
+  purchaseAffiliateRegistrationSeats
 }
 
 export default userAPI

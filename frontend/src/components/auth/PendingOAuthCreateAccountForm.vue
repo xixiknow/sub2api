@@ -103,6 +103,7 @@ export type PendingOAuthCreateAccountPayload = {
 
 const props = defineProps<{
   initialEmail: string
+  initialInvitationCode?: string
   testIdPrefix: string
   isSubmitting: boolean
   errorMessage?: string
@@ -136,6 +137,14 @@ watch(
   () => props.initialEmail,
   value => {
     email.value = value || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.initialInvitationCode,
+  value => {
+    invitationCode.value = value || ''
   },
   { immediate: true }
 )

@@ -98,6 +98,157 @@
           </div>
         </div>
 
+        <div class="grid gap-4 xl:grid-cols-[1.12fr_0.88fr]">
+          <div class="card p-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-terra-ink dark:text-white">
+                  {{ t('affiliate.registrationSeats.title') }}
+                </h3>
+                <p class="mt-1 text-sm text-terra-muted dark:text-dark-400">
+                  {{ t('affiliate.registrationSeats.description') }}
+                </p>
+              </div>
+              <div
+                class="inline-flex w-fit items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                :class="seatLinkUsable
+                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-200 dark:ring-emerald-800/50'
+                  : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/25 dark:text-amber-200 dark:ring-amber-800/50'"
+              >
+                <Icon :name="seatLinkUsable ? 'checkCircle' : 'exclamationTriangle'" size="sm" />
+                <span>{{ seatLinkUsable ? t('affiliate.registrationSeats.statusAvailable') : t('affiliate.registrationSeats.statusEmpty') }}</span>
+              </div>
+            </div>
+
+            <div class="mt-5 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-lg border border-terra-line/80 bg-terra-surface px-4 py-3 dark:border-dark-700 dark:bg-dark-900/70">
+                <p class="text-xs font-medium text-terra-muted dark:text-dark-400">
+                  {{ t('affiliate.registrationSeats.available') }}
+                </p>
+                <p class="mt-1 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
+                  {{ formatCount(seatStats.available) }}
+                </p>
+              </div>
+              <div class="rounded-lg border border-terra-line/80 bg-terra-surface px-4 py-3 dark:border-dark-700 dark:bg-dark-900/70">
+                <p class="text-xs font-medium text-terra-muted dark:text-dark-400">
+                  {{ t('affiliate.registrationSeats.used') }}
+                </p>
+                <p class="mt-1 text-2xl font-semibold text-terra-ink dark:text-dark-100">
+                  {{ formatCount(seatStats.used) }}
+                </p>
+              </div>
+              <div class="rounded-lg border border-terra-line/80 bg-terra-surface px-4 py-3 dark:border-dark-700 dark:bg-dark-900/70">
+                <p class="text-xs font-medium text-terra-muted dark:text-dark-400">
+                  {{ t('affiliate.registrationSeats.total') }}
+                </p>
+                <p class="mt-1 text-2xl font-semibold text-terra-ink dark:text-dark-100">
+                  {{ formatCount(seatStats.total) }}
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70">
+              <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <div class="grid gap-3 sm:grid-cols-[minmax(150px,220px)_minmax(0,1fr)]">
+                  <div>
+                    <label for="registration-seat-quantity" class="text-xs font-semibold text-terra-muted dark:text-dark-400">
+                      {{ t('affiliate.registrationSeats.quantity') }}
+                    </label>
+                    <input
+                      id="registration-seat-quantity"
+                      v-model.number="seatQuantity"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      step="1"
+                      class="mt-2 h-10 w-full rounded-lg border border-terra-line bg-white px-3 text-sm font-semibold text-terra-ink outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-dark-700 dark:bg-dark-800 dark:text-white"
+                      @blur="normalizeSeatQuantity"
+                    />
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <p class="text-xs font-semibold text-terra-muted dark:text-dark-400">
+                        {{ t('affiliate.registrationSeats.cost') }}
+                      </p>
+                      <p class="mt-2 text-sm font-semibold text-terra-ink dark:text-dark-100">
+                        {{ formatCurrency(seatCost) }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-semibold text-terra-muted dark:text-dark-400">
+                        {{ t('affiliate.registrationSeats.expectedCost') }}
+                      </p>
+                      <p class="mt-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
+                        {{ formatCurrency(seatExpectedCost) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="btn btn-primary justify-center"
+                  :disabled="purchasingSeats || !canPurchaseSeats"
+                  @click="purchaseRegistrationSeats"
+                >
+                  <Icon v-if="purchasingSeats" name="refresh" size="sm" class="animate-spin" />
+                  <Icon v-else name="plus" size="sm" />
+                  <span>{{ purchasingSeats ? t('affiliate.registrationSeats.purchasing') : t('affiliate.registrationSeats.purchase') }}</span>
+                </button>
+              </div>
+              <p class="mt-3 text-xs text-terra-muted dark:text-dark-400">
+                {{ t('affiliate.registrationSeats.balanceHint', { balance: formatCurrency(currentBalance) }) }}
+              </p>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <h3 class="text-base font-semibold text-terra-ink dark:text-white">
+              {{ t('affiliate.levelRules.title') }}
+            </h3>
+            <p class="mt-1 text-sm text-terra-muted dark:text-dark-400">
+              {{ t('affiliate.levelRules.description') }}
+            </p>
+
+            <div class="mt-5 space-y-3">
+              <div
+                v-for="rule in effectiveLevelRates"
+                :key="rule.level"
+                class="rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex min-w-0 items-start gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100 dark:bg-primary-900/25 dark:text-primary-200 dark:ring-primary-800/50">
+                      {{ rule.level }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-semibold text-terra-ink dark:text-white">
+                        {{ t('affiliate.levelRules.levelTitle', { level: rule.level }) }}
+                      </p>
+                      <p class="mt-0.5 text-xs text-terra-muted dark:text-dark-400">
+                        {{ levelRuleHint(rule.level) }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="shrink-0 text-right">
+                    <p class="text-lg font-semibold text-primary-700 dark:text-primary-300">
+                      {{ formatPercent(rule.rate_percent) }}%
+                    </p>
+                    <span
+                      class="mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                      :class="rule.source === 'exclusive'
+                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-200 dark:ring-emerald-800/50'
+                        : 'bg-terra-elevated text-terra-muted ring-1 ring-terra-line dark:bg-dark-800 dark:text-dark-300 dark:ring-dark-700'"
+                    >
+                      {{ levelRateSourceLabel(rule.source) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="card p-6">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -285,8 +436,10 @@ const { copyToClipboard } = useClipboard()
 
 const loading = ref(true)
 const transferring = ref(false)
+const purchasingSeats = ref(false)
 const detail = ref<UserAffiliateDetail | null>(null)
 const activeLevel = ref(1)
+const seatQuantity = ref(1)
 
 const inviteLink = computed(() => {
   if (!detail.value) return ''
@@ -308,6 +461,31 @@ const levelRebateSummaries = computed(() => {
     level,
     rebate_amount: rows.find((item) => item.level === level)?.rebate_amount ?? 0,
   }))
+})
+
+const seatStats = computed(() => ({
+  total: detail.value?.registration_seat_total ?? 0,
+  used: detail.value?.registration_seat_used ?? 0,
+  available: detail.value?.registration_seat_available ?? 0,
+}))
+
+const seatCost = computed(() => detail.value?.registration_seat_cost ?? 0)
+const normalizedSeatQuantityValue = computed(() => normalizeQuantityValue(seatQuantity.value))
+const seatExpectedCost = computed(() => normalizedSeatQuantityValue.value * seatCost.value)
+const currentBalance = computed(() => authStore.user?.balance ?? 0)
+const seatLinkUsable = computed(() => seatStats.value.available > 0)
+const canPurchaseSeats = computed(() => normalizedSeatQuantityValue.value > 0 && normalizedSeatQuantityValue.value <= 1000)
+
+const effectiveLevelRates = computed(() => {
+  const rows = detail.value?.effective_level_rates ?? []
+  return [1, 2, 3].map((level) => {
+    const existing = rows.find((item) => item.level === level)
+    return {
+      level,
+      rate_percent: existing?.rate_percent ?? (level === 1 ? (detail.value?.effective_rebate_rate_percent ?? 0) : 0),
+      source: existing?.source ?? 'global',
+    }
+  })
 })
 
 const levelDetails = computed<AffiliateLevelDetail[]>(() => {
@@ -358,8 +536,36 @@ function formatCount(value: number): string {
   return value.toLocaleString()
 }
 
+function formatPercent(value: number): string {
+  const rounded = Math.round(value * 100) / 100
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toString()
+}
+
 function formatOrderCount(value: number): string {
   return t('affiliate.levelDetails.orderCount', { count: formatCount(value) })
+}
+
+function normalizeQuantityValue(value: number): number {
+  const parsed = Math.floor(Number(value))
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 0
+  }
+  return Math.min(parsed, 1000)
+}
+
+function normalizeSeatQuantity(): void {
+  const normalized = normalizeQuantityValue(seatQuantity.value)
+  seatQuantity.value = normalized > 0 ? normalized : 1
+}
+
+function levelRateSourceLabel(source: string): string {
+  return source === 'exclusive'
+    ? t('affiliate.levelRules.sourceExclusive')
+    : t('affiliate.levelRules.sourceGlobal')
+}
+
+function levelRuleHint(level: number): string {
+  return t(`affiliate.levelRules.level${level}Hint`)
 }
 
 function fallbackUserLabel(item: AffiliateLevelInvitee): string {
@@ -419,6 +625,39 @@ async function transferQuota(): Promise<void> {
     appStore.showError(extractApiErrorMessage(error, t('affiliate.transferFailed')))
   } finally {
     transferring.value = false
+  }
+}
+
+async function purchaseRegistrationSeats(): Promise<void> {
+  normalizeSeatQuantity()
+  const quantity = normalizeQuantityValue(seatQuantity.value)
+  if (quantity <= 0 || purchasingSeats.value) {
+    appStore.showError(t('affiliate.registrationSeats.invalidQuantity'))
+    return
+  }
+
+  purchasingSeats.value = true
+  const expectedCost = seatExpectedCost.value
+  try {
+    const resp = await userAPI.purchaseAffiliateRegistrationSeats(quantity)
+    if (detail.value) {
+      detail.value.registration_seat_cost = resp.registration_seat_cost
+      detail.value.registration_seat_total = resp.registration_seat_total
+      detail.value.registration_seat_used = resp.registration_seat_used
+      detail.value.registration_seat_available = resp.registration_seat_available
+    }
+    appStore.showSuccess(t('affiliate.registrationSeats.purchaseSuccess', {
+      count: formatCount(quantity),
+      amount: formatCurrency(expectedCost),
+    }))
+    await Promise.all([
+      loadAffiliateDetail(true),
+      authStore.refreshUser().catch(() => undefined),
+    ])
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('affiliate.registrationSeats.purchaseFailed')))
+  } finally {
+    purchasingSeats.value = false
   }
 }
 

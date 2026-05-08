@@ -20,17 +20,18 @@ const (
 
 // Affiliate rebate settings
 const (
-	AffiliateRebateRateDefault          = 20.0
-	AffiliateLevelRatesDefault          = "[20,5,2]"
-	AffiliateLevelsMax                  = 3
-	AffiliateRebateRateMin              = 0.0
-	AffiliateRebateRateMax              = 100.0
-	AffiliateEnabledDefault             = false // 邀请返利总开关默认关闭
-	AffiliateRebateFreezeHoursDefault   = 168   // 默认冻结 7 天
-	AffiliateRebateFreezeHoursMax       = 720   // 最大 30 天
-	AffiliateRebateDurationDaysDefault  = 0     // 0 = 永久有效
-	AffiliateRebateDurationDaysMax      = 3650  // ~10 年
-	AffiliateRebatePerInviteeCapDefault = 0.0   // 0 = 无上限
+	AffiliateRebateRateDefault           = 20.0
+	AffiliateLevelRatesDefault           = "[20,5,2]"
+	AffiliateLevelsMax                   = 3
+	AffiliateRebateRateMin               = 0.0
+	AffiliateRebateRateMax               = 100.0
+	AffiliateEnabledDefault              = false // 邀请返利总开关默认关闭
+	AffiliateRebateFreezeHoursDefault    = 168   // 默认冻结 7 天
+	AffiliateRebateFreezeHoursMax        = 720   // 最大 30 天
+	AffiliateRebateDurationDaysDefault   = 0     // 0 = 永久有效
+	AffiliateRebateDurationDaysMax       = 3650  // ~10 年
+	AffiliateRebatePerInviteeCapDefault  = 0.0   // 0 = 无上限
+	AffiliateRegistrationSeatCostDefault = 1.0   // 每个注册名额默认消耗 1 余额
 )
 
 // Platform constants
@@ -110,6 +111,7 @@ const (
 	SettingKeyAffiliateRebateFreezeHours       = "affiliate_rebate_freeze_hours"       // 返利冻结期（小时，0=不冻结）
 	SettingKeyAffiliateRebateDurationDays      = "affiliate_rebate_duration_days"      // 返利有效期（天，0=永久）
 	SettingKeyAffiliateRebatePerInviteeCap     = "affiliate_rebate_per_invitee_cap"    // 单人返利上限（0=无上限）
+	SettingKeyAffiliateRegistrationSeatCost    = "affiliate_registration_seat_cost"    // 返佣注册链接注册名额单价
 
 	// 邮件服务设置
 	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址

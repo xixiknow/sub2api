@@ -450,13 +450,15 @@ export default {
     promoCodeAlreadyUsed: 'You have already used this promo code',
     promoCodeValidating: 'Promo code is being validated, please wait',
     promoCodeInvalidCannotRegister: 'Invalid promo code. Please check and try again or clear the promo code field',
-    invitationCodeLabel: 'Invitation Code',
-    invitationCodePlaceholder: 'Enter invitation code',
-    invitationCodeRequired: 'Invitation code is required',
-    invitationCodeValid: 'Invitation code is valid',
-    invitationCodeInvalid: 'Invalid or used invitation code',
-    invitationCodeValidating: 'Validating invitation code...',
-    invitationCodeInvalidCannotRegister: 'Invalid invitation code. Please check and try again',
+    invitationCodeLabel: 'Registration Invite Code',
+    invitationCodePlaceholder: 'Enter registration invite code',
+    invitationCodeRequired: 'Registration invite code is required',
+    invitationCodeValid: 'Registration invite code is valid',
+    invitationCodeValidWithSeats: 'Registration invite code is valid, {seats} seats available',
+    invitationCodeInvalid: 'Invalid or used registration invite code',
+    invitationCodeValidating: 'Validating registration invite code...',
+    invitationCodeInvalidCannotRegister: 'Invalid registration invite code. Please check and try again',
+    registrationInviteSeatsEmpty: 'Invite seats are used up. Ask the inviter to add seats or use another registration invite code.',
     oauthOrContinue: 'or continue with email',
     linuxdo: {
       signIn: 'Continue with Linux.do',
@@ -981,7 +983,7 @@ export default {
 
   affiliate: {
     title: 'Affiliate Rebates',
-    description: 'Invite new users and convert your rebate quota into account balance',
+    description: 'Manage your affiliate code, registration seats, and rebate quota',
     yourCode: 'Your Affiliate Code',
     inviteLink: 'Invite Link',
     copyCode: 'Copy Code',
@@ -992,13 +994,41 @@ export default {
     transferFailed: 'Failed to transfer affiliate quota',
     stats: {
       rebateRate: 'My Rebate Rate',
-      rebateRateHint: 'What you earn each time an invitee recharges',
+      rebateRateHint: 'What you earn when a level-1 invitee recharges',
       invitedUsers: 'Invited Users',
       availableQuota: 'Available Rebate Quota',
       frozenQuota: 'Frozen',
       frozenQuotaHint: 'Recently earned rebates pending release',
       totalQuota: 'Historical Rebate Quota',
       levelRebate: 'Level {level} Earnings'
+    },
+    registrationSeats: {
+      title: 'Registration Invite Seats',
+      description: 'Your affiliate code also works as a registration invite code; each new registration consumes 1 seat.',
+      available: 'Available',
+      used: 'Used',
+      total: 'Total',
+      cost: 'Seat Cost',
+      quantity: 'Quantity',
+      expectedCost: 'Estimated Cost',
+      purchase: 'Buy Seats',
+      purchasing: 'Buying...',
+      statusAvailable: 'Invite link can register users',
+      statusEmpty: 'No seats left',
+      balanceHint: 'Current balance: {balance}. Purchases are deducted immediately.',
+      invalidQuantity: 'Enter a valid purchase quantity',
+      purchaseSuccess: 'Purchased {count} registration invite seats for {amount}',
+      purchaseFailed: 'Failed to purchase registration invite seats'
+    },
+    levelRules: {
+      title: 'Three-Level Rebate Rules',
+      description: 'These effective rates apply to future rebate orders. Level 1 can use an admin-assigned exclusive rate.',
+      levelTitle: 'Level {level} Rebate',
+      level1Hint: 'Generated when users you directly invite recharge.',
+      level2Hint: 'Generated when users invited by your level-1 users recharge.',
+      level3Hint: 'Generated when users invited by your level-2 users recharge.',
+      sourceExclusive: 'Exclusive',
+      sourceGlobal: 'Global'
     },
     transfer: {
       title: 'Transfer Rebate Quota',
@@ -1048,8 +1078,8 @@ export default {
     tips: {
       title: 'How It Works',
       line1: 'Share your affiliate code or invite link with new users.',
-      line2: 'When invitees recharge, you receive {rate} of the recharge as rebate quota.',
-      line3: 'Transfer rebate quota to balance at any time.',
+      line2: 'When level-1 invitees recharge, you receive {rate} as rebate quota.',
+      line3: 'Invite links need available registration seats; each successful registration consumes 1 seat.',
       line4: 'Newly earned rebates may have a waiting period before they can be transferred.'
     }
   },

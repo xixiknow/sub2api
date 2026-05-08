@@ -25,7 +25,8 @@ import (
 const (
 	dulupayDefaultAPIBase  = "https://api.dulupay.com"
 	dulupayHTTPTimeout     = 10 * time.Second
-	dulupaySignTypeRSA     = "SHA256WithRSA"
+	dulupaySignTypeRSA     = "RSA"
+	dulupaySignTypeSHA256  = "SHA256WithRSA"
 	dulupayDefaultMethod   = "web"
 	dulupayDevicePC        = "pc"
 	dulupayDeviceMobile    = "mobile"
@@ -115,13 +116,19 @@ func (d *Dulupay) CreatePayment(ctx context.Context, req payment.CreatePaymentRe
 		return nil, fmt.Errorf("dulupay create: %w", err)
 	}
 	var resp struct {
-		Code     any    `json:"code"`
-		Msg      string `json:"msg"`
-		TradeNo  string `json:"trade_no"`
-		PayType  string `json:"pay_type"`
-		PayInfo  string `json:"pay_info"`
-		Sign     string `json:"sign"`
-		SignType string `json:"sign_type"`
+		Code         any    `json:"code"`
+		Msg          string `json:"msg"`
+		TradeNo      string `json:"trade_no"`
+		PayType      string `json:"pay_type"`
+		PayInfo      string `json:"pay_info"`
+		PayURL       string `json:"payurl"`
+		PayURLAlt    string `json:"pay_url"`
+		QRCode       string `json:"qrcode"`
+		QRCodeAlt    string `json:"qr_code"`
+		URLScheme    string `json:"urlscheme"`
+		URLSchemeAlt string `json:"url_scheme"`
+		Sign         string `json:"sign"`
+		SignType     string `json:"sign_type"`
 	}
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("dulupay parse create: %w", err)
@@ -131,25 +138,73 @@ func (d *Dulupay) CreatePayment(ctx context.Context, req payment.CreatePaymentRe
 	}
 
 	result := &payment.CreatePaymentResponse{TradeNo: strings.TrimSpace(resp.TradeNo)}
-	payType := strings.ToLower(strings.TrimSpace(resp.PayType))
-	payInfo := strings.TrimSpace(resp.PayInfo)
+	dulupayApplyTypedPaymentInfo(result, resp.PayType, resp.PayInfo)
+	dulupayApplyDirectPaymentFields(result, resp.PayURL, resp.PayURLAlt, resp.QRCode, resp.QRCodeAlt, resp.URLScheme, resp.URLSchemeAlt)
+	return result, nil
+}
+
+func dulupayApplyTypedPaymentInfo(result *payment.CreatePaymentResponse, payType, payInfo string) {
+	if result == nil {
+		return
+	}
+	payType = strings.ToLower(strings.TrimSpace(payType))
+	payInfo = strings.TrimSpace(payInfo)
+	if payInfo == "" {
+		return
+	}
 	switch payType {
 	case "qrcode":
-		result.QRCode = payInfo
-	case "jump", "urlscheme", "jsapi":
-		result.PayURL = payInfo
+		dulupaySetQRCode(result, payInfo)
+	case "jump":
+		dulupaySetPayURL(result, payInfo)
+	case "urlscheme", "jsapi":
+		dulupaySetPayURL(result, payInfo)
 	case "html":
-		result.PayURL = dulupayHTMLPayURL(payInfo)
+		dulupaySetPayURL(result, dulupayHTMLPayURL(payInfo))
 	default:
-		if strings.HasPrefix(strings.ToLower(payInfo), "http://") ||
-			strings.HasPrefix(strings.ToLower(payInfo), "https://") ||
-			strings.Contains(payInfo, "://") {
-			result.PayURL = payInfo
+		if dulupayLooksLikeURL(payInfo) {
+			dulupaySetPayURL(result, payInfo)
 		} else {
-			result.QRCode = payInfo
+			dulupaySetQRCode(result, payInfo)
 		}
 	}
-	return result, nil
+}
+
+func dulupayApplyDirectPaymentFields(result *payment.CreatePaymentResponse, payURL, payURLAlt, qrCode, qrCodeAlt, urlScheme, urlSchemeAlt string) {
+	if result == nil {
+		return
+	}
+	dulupaySetQRCode(result, qrCode)
+	dulupaySetQRCode(result, qrCodeAlt)
+	dulupaySetPayURL(result, payURL)
+	dulupaySetPayURL(result, payURLAlt)
+	dulupaySetPayURL(result, urlScheme)
+	dulupaySetPayURL(result, urlSchemeAlt)
+}
+
+func dulupaySetPayURL(result *payment.CreatePaymentResponse, payURL string) {
+	payURL = strings.TrimSpace(payURL)
+	if result == nil || payURL == "" {
+		return
+	}
+	if result.PayURL == "" {
+		result.PayURL = payURL
+	}
+}
+
+func dulupaySetQRCode(result *payment.CreatePaymentResponse, qrCode string) {
+	qrCode = strings.TrimSpace(qrCode)
+	if result == nil || qrCode == "" || result.QRCode != "" {
+		return
+	}
+	result.QRCode = qrCode
+}
+
+func dulupayLooksLikeURL(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return strings.HasPrefix(value, "http://") ||
+		strings.HasPrefix(value, "https://") ||
+		strings.Contains(value, "://")
 }
 
 func (d *Dulupay) QueryOrder(ctx context.Context, tradeNo string) (*payment.QueryOrderResponse, error) {
@@ -407,7 +462,7 @@ func dulupayVerifySign(params map[string]string, key *rsa.PublicKey, sign string
 
 func dulupaySignTypeSupported(signType string) bool {
 	signType = strings.TrimSpace(signType)
-	return strings.EqualFold(signType, dulupaySignTypeRSA) || strings.EqualFold(signType, "RSA")
+	return strings.EqualFold(signType, dulupaySignTypeRSA) || strings.EqualFold(signType, dulupaySignTypeSHA256)
 }
 
 func dulupaySignContent(params map[string]string) string {

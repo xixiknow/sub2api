@@ -104,6 +104,7 @@ func (s *AuthService) RegisterOAuthEmailAccount(
 	verifyCode string,
 	invitationCode string,
 	signupSource string,
+	affiliateCode ...string,
 ) (*TokenPair, *User, error) {
 	if s == nil {
 		return nil, nil, ErrServiceUnavailable
@@ -123,7 +124,11 @@ func (s *AuthService) RegisterOAuthEmailAccount(
 		return nil, nil, err
 	}
 
-	if _, err := s.validateOAuthRegistrationInvitation(ctx, invitationCode); err != nil {
+	registrationAffiliateCode := ""
+	if len(affiliateCode) > 0 {
+		registrationAffiliateCode = affiliateCode[0]
+	}
+	if _, err := s.resolveRegistrationInvitation(ctx, invitationCode, registrationAffiliateCode, ErrInvitationCodeRequired); err != nil {
 		return nil, nil, err
 	}
 
@@ -182,20 +187,22 @@ func (s *AuthService) FinalizeOAuthEmailAccount(
 	}
 
 	signupSource = normalizeOAuthSignupSource(signupSource)
-	invitationRedeemCode, err := s.validateOAuthRegistrationInvitation(ctx, invitationCode)
+	registrationInvite, err := s.resolveRegistrationInvitation(ctx, invitationCode, affiliateCode, ErrInvitationCodeRequired)
 	if err != nil {
 		return err
 	}
-	if invitationRedeemCode != nil {
-		if err := s.useOAuthRegistrationInvitation(ctx, invitationRedeemCode.ID, user.ID); err != nil {
-			return ErrInvitationCodeInvalid
+	if registrationInvite != nil {
+		if err := s.applyRegistrationInvitation(ctx, registrationInvite, user.ID); err != nil {
+			return err
 		}
 	}
 
 	s.updateOAuthSignupSource(ctx, user.ID, signupSource)
 	grantPlan := s.resolveSignupGrantPlan(ctx, signupSource)
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
-	s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
+	if registrationInvite == nil || registrationInvite.CodeType != RegistrationCodeTypeAffiliate {
+		s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
+	}
 	return nil
 }
 
@@ -225,6 +232,14 @@ func (s *AuthService) restoreOAuthRegistrationInvitation(ctx context.Context, in
 	invitationCode = strings.TrimSpace(invitationCode)
 	if invitationCode == "" || userID <= 0 {
 		return nil
+	}
+	if s.affiliateService != nil && s.affiliateService.repo != nil {
+		affCode := strings.ToUpper(invitationCode)
+		if isValidAffiliateCodeFormat(affCode) {
+			if _, err := s.affiliateService.repo.GetRegistrationInviteByCode(ctx, affCode); err == nil {
+				return s.affiliateService.RestoreRegistrationInviteSeat(ctx, affCode, userID)
+			}
+		}
 	}
 
 	redeemCode, err := s.loadOAuthRegistrationInvitation(ctx, invitationCode)

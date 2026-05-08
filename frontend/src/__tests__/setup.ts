@@ -3,7 +3,54 @@
  * 提供全局 mock 和测试工具
  */
 import { config } from '@vue/test-utils'
-import { vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>()
+
+  return {
+    get length() {
+      return store.size
+    },
+    clear() {
+      store.clear()
+    },
+    getItem(key: string) {
+      return store.has(key) ? store.get(key)! : null
+    },
+    key(index: number) {
+      return Array.from(store.keys())[index] ?? null
+    },
+    removeItem(key: string) {
+      store.delete(key)
+    },
+    setItem(key: string, value: string) {
+      store.set(key, String(value))
+    },
+  }
+}
+
+function installStorage(name: 'localStorage' | 'sessionStorage'): void {
+  Object.defineProperty(globalThis, name, {
+    value: createMemoryStorage(),
+    configurable: true,
+  })
+}
+
+function installBrowserStorage(): void {
+  installStorage('localStorage')
+  installStorage('sessionStorage')
+}
+
+installBrowserStorage()
+
+beforeEach(() => {
+  installBrowserStorage()
+})
+
+afterEach(() => {
+  installBrowserStorage()
+})
 
 // Mock requestIdleCallback (Safari < 15 不支持)
 if (typeof globalThis.requestIdleCallback === 'undefined') {

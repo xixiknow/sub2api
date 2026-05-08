@@ -13,19 +13,22 @@ import (
 )
 
 var (
-	ErrAffiliateProfileNotFound = infraerrors.NotFound("AFFILIATE_PROFILE_NOT_FOUND", "affiliate profile not found")
-	ErrAffiliateCodeInvalid     = infraerrors.BadRequest("AFFILIATE_CODE_INVALID", "invalid affiliate code")
-	ErrAffiliateCodeTaken       = infraerrors.Conflict("AFFILIATE_CODE_TAKEN", "affiliate code already in use")
-	ErrAffiliateAlreadyBound    = infraerrors.Conflict("AFFILIATE_ALREADY_BOUND", "affiliate inviter already bound")
-	ErrAffiliateQuotaEmpty      = infraerrors.BadRequest("AFFILIATE_QUOTA_EMPTY", "no affiliate quota available to transfer")
+	ErrAffiliateProfileNotFound        = infraerrors.NotFound("AFFILIATE_PROFILE_NOT_FOUND", "affiliate profile not found")
+	ErrAffiliateCodeInvalid            = infraerrors.BadRequest("AFFILIATE_CODE_INVALID", "invalid affiliate code")
+	ErrAffiliateCodeTaken              = infraerrors.Conflict("AFFILIATE_CODE_TAKEN", "affiliate code already in use")
+	ErrAffiliateAlreadyBound           = infraerrors.Conflict("AFFILIATE_ALREADY_BOUND", "affiliate inviter already bound")
+	ErrAffiliateQuotaEmpty             = infraerrors.BadRequest("AFFILIATE_QUOTA_EMPTY", "no affiliate quota available to transfer")
+	ErrRegistrationInviteSeatsEmpty    = infraerrors.BadRequest("REGISTRATION_INVITE_SEATS_EMPTY", "registration invite seats are used up")
+	ErrRegistrationSeatQuantityInvalid = infraerrors.BadRequest("REGISTRATION_SEAT_QUANTITY_INVALID", "registration seat quantity is invalid")
 )
 
 const (
 	affiliateInviteesLimit = 100
 	// AffiliateCodeMinLength / AffiliateCodeMaxLength bound both system-generated
 	// 12-char codes and admin-customized codes (e.g. "VIP2026").
-	AffiliateCodeMinLength = 4
-	AffiliateCodeMaxLength = 32
+	AffiliateCodeMinLength               = 4
+	AffiliateCodeMaxLength               = 32
+	AffiliateRegistrationSeatPurchaseMax = 1000
 )
 
 // affiliateCodeValidChar accepts uppercase letters, digits, underscore and dash.
@@ -59,17 +62,19 @@ func isValidAffiliateCodeFormat(code string) bool {
 }
 
 type AffiliateSummary struct {
-	UserID               int64     `json:"user_id"`
-	AffCode              string    `json:"aff_code"`
-	AffCodeCustom        bool      `json:"aff_code_custom"`
-	AffRebateRatePercent *float64  `json:"aff_rebate_rate_percent,omitempty"`
-	InviterID            *int64    `json:"inviter_id,omitempty"`
-	AffCount             int       `json:"aff_count"`
-	AffQuota             float64   `json:"aff_quota"`
-	AffFrozenQuota       float64   `json:"aff_frozen_quota"`
-	AffHistoryQuota      float64   `json:"aff_history_quota"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	UserID                int64     `json:"user_id"`
+	AffCode               string    `json:"aff_code"`
+	AffCodeCustom         bool      `json:"aff_code_custom"`
+	AffRebateRatePercent  *float64  `json:"aff_rebate_rate_percent,omitempty"`
+	InviterID             *int64    `json:"inviter_id,omitempty"`
+	AffCount              int       `json:"aff_count"`
+	AffQuota              float64   `json:"aff_quota"`
+	AffFrozenQuota        float64   `json:"aff_frozen_quota"`
+	AffHistoryQuota       float64   `json:"aff_history_quota"`
+	RegistrationSeatTotal int       `json:"registration_seat_total"`
+	RegistrationSeatUsed  int       `json:"registration_seat_used"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
 }
 
 type AffiliateInvitee struct {
@@ -104,18 +109,45 @@ type AffiliateLevelDetail struct {
 	Invitees        []AffiliateLevelInvitee `json:"invitees"`
 }
 
+type AffiliateLevelRateRule struct {
+	Level       int     `json:"level"`
+	RatePercent float64 `json:"rate_percent"`
+	Source      string  `json:"source"`
+}
+
+type AffiliateRegistrationInvite struct {
+	UserID                    int64  `json:"user_id"`
+	AffCode                   string `json:"aff_code"`
+	RegistrationSeatTotal     int    `json:"registration_seat_total"`
+	RegistrationSeatUsed      int    `json:"registration_seat_used"`
+	RegistrationSeatAvailable int    `json:"registration_seat_available"`
+}
+
+type AffiliateRegistrationSeatPurchaseResult struct {
+	BalanceAfter              float64 `json:"balance"`
+	RegistrationSeatCost      float64 `json:"registration_seat_cost"`
+	RegistrationSeatTotal     int     `json:"registration_seat_total"`
+	RegistrationSeatUsed      int     `json:"registration_seat_used"`
+	RegistrationSeatAvailable int     `json:"registration_seat_available"`
+}
+
 type AffiliateDetail struct {
-	UserID          int64   `json:"user_id"`
-	AffCode         string  `json:"aff_code"`
-	InviterID       *int64  `json:"inviter_id,omitempty"`
-	AffCount        int     `json:"aff_count"`
-	AffQuota        float64 `json:"aff_quota"`
-	AffFrozenQuota  float64 `json:"aff_frozen_quota"`
-	AffHistoryQuota float64 `json:"aff_history_quota"`
+	UserID                    int64   `json:"user_id"`
+	AffCode                   string  `json:"aff_code"`
+	InviterID                 *int64  `json:"inviter_id,omitempty"`
+	AffCount                  int     `json:"aff_count"`
+	AffQuota                  float64 `json:"aff_quota"`
+	AffFrozenQuota            float64 `json:"aff_frozen_quota"`
+	AffHistoryQuota           float64 `json:"aff_history_quota"`
+	RegistrationSeatCost      float64 `json:"registration_seat_cost"`
+	RegistrationSeatTotal     int     `json:"registration_seat_total"`
+	RegistrationSeatUsed      int     `json:"registration_seat_used"`
+	RegistrationSeatAvailable int     `json:"registration_seat_available"`
 	// EffectiveRebateRatePercent 是当前用户作为邀请人时实际生效的返利比例：
 	// 优先用户自己的专属比例（aff_rebate_rate_percent），否则回退到全局比例。
 	// 用于在用户的 /affiliate 页面直观展示「分享后能拿到多少」。
 	EffectiveRebateRatePercent float64                       `json:"effective_rebate_rate_percent"`
+	EffectiveLevelRates        []AffiliateLevelRateRule      `json:"effective_level_rates"`
 	LevelRebates               []AffiliateLevelRebateSummary `json:"level_rebates"`
 	LevelDetails               []AffiliateLevelDetail        `json:"level_details"`
 	Invitees                   []AffiliateInvitee            `json:"invitees"`
@@ -134,7 +166,11 @@ type AffiliateClawbackResult struct {
 type AffiliateRepository interface {
 	EnsureUserAffiliate(ctx context.Context, userID int64) (*AffiliateSummary, error)
 	GetAffiliateByCode(ctx context.Context, code string) (*AffiliateSummary, error)
+	GetRegistrationInviteByCode(ctx context.Context, code string) (*AffiliateRegistrationInvite, error)
 	BindInviter(ctx context.Context, userID, inviterID int64) (bool, error)
+	ConsumeRegistrationInviteSeat(ctx context.Context, code string, inviteeUserID int64) (*AffiliateRegistrationInvite, error)
+	RestoreRegistrationInviteSeat(ctx context.Context, code string, inviteeUserID int64) error
+	PurchaseRegistrationSeats(ctx context.Context, userID int64, quantity int, costPerSeat float64) (*AffiliateRegistrationSeatPurchaseResult, error)
 	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64, level int, ratePercent float64) (bool, error)
 	ClawbackQuotaForOrder(ctx context.Context, sourceOrderID int64, refundRatio float64) (AffiliateClawbackResult, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
@@ -313,14 +349,90 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 		AffQuota:                   summary.AffQuota,
 		AffFrozenQuota:             summary.AffFrozenQuota,
 		AffHistoryQuota:            summary.AffHistoryQuota,
+		RegistrationSeatCost:       s.registrationSeatCost(ctx),
+		RegistrationSeatTotal:      summary.RegistrationSeatTotal,
+		RegistrationSeatUsed:       summary.RegistrationSeatUsed,
+		RegistrationSeatAvailable:  registrationSeatAvailable(summary.RegistrationSeatTotal, summary.RegistrationSeatUsed),
 		EffectiveRebateRatePercent: s.resolveRebateRatePercent(ctx, summary),
+		EffectiveLevelRates:        s.effectiveLevelRateRules(ctx, summary),
 		LevelRebates:               levelRebates,
 		LevelDetails:               levelDetails,
 		Invitees:                   invitees,
 	}, nil
 }
 
+func (s *AffiliateService) ValidateRegistrationInviteCode(ctx context.Context, rawCode string) (*AffiliateRegistrationInvite, error) {
+	code := strings.ToUpper(strings.TrimSpace(rawCode))
+	if code == "" || !isValidAffiliateCodeFormat(code) {
+		return nil, ErrAffiliateCodeInvalid
+	}
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	invite, err := s.repo.GetRegistrationInviteByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	if invite.RegistrationSeatAvailable <= 0 {
+		return nil, ErrRegistrationInviteSeatsEmpty
+	}
+	return invite, nil
+}
+
+func (s *AffiliateService) ConsumeRegistrationInviteSeat(ctx context.Context, rawCode string, inviteeUserID int64) (*AffiliateRegistrationInvite, error) {
+	code := strings.ToUpper(strings.TrimSpace(rawCode))
+	if code == "" || !isValidAffiliateCodeFormat(code) {
+		return nil, ErrAffiliateCodeInvalid
+	}
+	if inviteeUserID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.ConsumeRegistrationInviteSeat(ctx, code, inviteeUserID)
+}
+
+func (s *AffiliateService) RestoreRegistrationInviteSeat(ctx context.Context, rawCode string, inviteeUserID int64) error {
+	code := strings.ToUpper(strings.TrimSpace(rawCode))
+	if code == "" || inviteeUserID <= 0 || !isValidAffiliateCodeFormat(code) {
+		return nil
+	}
+	if s == nil || s.repo == nil {
+		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.RestoreRegistrationInviteSeat(ctx, code, inviteeUserID)
+}
+
+func (s *AffiliateService) PurchaseRegistrationSeats(ctx context.Context, userID int64, quantity int) (*AffiliateRegistrationSeatPurchaseResult, error) {
+	if userID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	if quantity <= 0 || quantity > AffiliateRegistrationSeatPurchaseMax {
+		return nil, ErrRegistrationSeatQuantityInvalid
+	}
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	cost := s.registrationSeatCost(ctx)
+	result, err := s.repo.PurchaseRegistrationSeats(ctx, userID, quantity, cost)
+	if err != nil {
+		return nil, err
+	}
+	result.RegistrationSeatCost = cost
+	s.invalidateAffiliateCaches(ctx, userID)
+	return result, nil
+}
+
 func (s *AffiliateService) BindInviterByCode(ctx context.Context, userID int64, rawCode string) error {
+	return s.bindInviterByCode(ctx, userID, rawCode, true)
+}
+
+func (s *AffiliateService) BindRegistrationInviterByCode(ctx context.Context, userID int64, rawCode string) error {
+	return s.bindInviterByCode(ctx, userID, rawCode, false)
+}
+
+func (s *AffiliateService) bindInviterByCode(ctx context.Context, userID int64, rawCode string, requireFeatureEnabled bool) error {
 	code := strings.ToUpper(strings.TrimSpace(rawCode))
 	if code == "" {
 		return nil
@@ -329,7 +441,7 @@ func (s *AffiliateService) BindInviterByCode(ctx context.Context, userID int64, 
 		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
 	}
 	// 总开关关闭时，注册阶段静默忽略 aff 参数（不报错，避免阻断注册流程）
-	if !s.IsEnabled(ctx) {
+	if requireFeatureEnabled && !s.IsEnabled(ctx) {
 		return nil
 	}
 	if !isValidAffiliateCodeFormat(code) {
@@ -515,6 +627,45 @@ func (s *AffiliateService) resolveLevelRebateRates(ctx context.Context) []float6
 		return defaultAffiliateLevelRates()
 	}
 	return s.settingService.GetAffiliateLevelRates(ctx)
+}
+
+func (s *AffiliateService) registrationSeatCost(ctx context.Context) float64 {
+	if s == nil || s.settingService == nil {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	return s.settingService.GetAffiliateRegistrationSeatCost(ctx)
+}
+
+func (s *AffiliateService) effectiveLevelRateRules(ctx context.Context, summary *AffiliateSummary) []AffiliateLevelRateRule {
+	levelRates := s.resolveLevelRebateRates(ctx)
+	out := make([]AffiliateLevelRateRule, AffiliateLevelsMax)
+	for i := 0; i < AffiliateLevelsMax; i++ {
+		rate := AffiliateRebateRateDefault
+		if i < len(levelRates) {
+			rate = levelRates[i]
+		}
+		source := "global"
+		if i == 0 {
+			rate = s.resolveRebateRatePercent(ctx, summary)
+			if summary != nil && summary.AffRebateRatePercent != nil {
+				source = "exclusive"
+			}
+		}
+		out[i] = AffiliateLevelRateRule{
+			Level:       i + 1,
+			RatePercent: clampAffiliateRebateRate(rate),
+			Source:      source,
+		}
+	}
+	return out
+}
+
+func registrationSeatAvailable(total, used int) int {
+	available := total - used
+	if available < 0 {
+		return 0
+	}
+	return available
 }
 
 func defaultAffiliateLevelRates() []float64 {

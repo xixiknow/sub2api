@@ -58,6 +58,9 @@ func TestDulupayCreatePaymentQRCode(t *testing.T) {
 		if params["pid"] != "pid-1" || params["out_trade_no"] != "sub2_100" || params["type"] != "alipay" {
 			t.Fatalf("unexpected params: %#v", params)
 		}
+		if params["sign_type"] != "RSA" {
+			t.Fatalf("sign_type = %q, want RSA", params["sign_type"])
+		}
 		if !dulupayVerifySign(params, &key.PublicKey, params["sign"]) {
 			t.Fatalf("provider request signature did not verify: %#v", params)
 		}
@@ -86,6 +89,94 @@ func TestDulupayCreatePaymentQRCode(t *testing.T) {
 		t.Fatalf("CreatePayment: %v", err)
 	}
 	if resp.TradeNo != "dp_1" || resp.QRCode != "https://pay.example/qr" || resp.PayURL != "" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+}
+
+func TestDulupayCreatePaymentJumpURL(t *testing.T) {
+	t.Parallel()
+
+	key := mustDulupayTestKey(t)
+	const payURL = "https://www.dulupay.com/pay/alipay/202010903/"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("ParseForm: %v", err)
+		}
+		params := dulupayFormToMap(r.PostForm)
+		if params["sign_type"] != "RSA" {
+			t.Fatalf("sign_type = %q, want RSA", params["sign_type"])
+		}
+		if !dulupayVerifySign(params, &key.PublicKey, params["sign"]) {
+			t.Fatalf("provider request signature did not verify: %#v", params)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"msg":"ok","trade_no":"dp_2","pay_type":"jump","pay_info":"` + payURL + `"}`))
+	}))
+	defer server.Close()
+
+	prov, err := NewDulupay("inst-1", map[string]string{
+		"pid":                "pid-1",
+		"merchantPrivateKey": dulupayPrivateKeyPEM(t, key),
+		"platformPublicKey":  dulupayPublicKeyPEM(t, &key.PublicKey),
+		"apiBase":            server.URL,
+	})
+	if err != nil {
+		t.Fatalf("NewDulupay: %v", err)
+	}
+	resp, err := prov.CreatePayment(context.Background(), payment.CreatePaymentRequest{
+		OrderID:     "sub2_101",
+		Amount:      "12.30",
+		PaymentType: payment.TypeAlipay,
+		Subject:     "Balance recharge",
+		ClientIP:    "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("CreatePayment: %v", err)
+	}
+	if resp.TradeNo != "dp_2" || resp.PayURL != payURL || resp.QRCode != "" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+}
+
+func TestDulupayCreatePaymentDirectFields(t *testing.T) {
+	t.Parallel()
+
+	key := mustDulupayTestKey(t)
+	const qrCode = "https://pay.example/direct-qr"
+	const payURL = "https://pay.example/direct-page"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("ParseForm: %v", err)
+		}
+		params := dulupayFormToMap(r.PostForm)
+		if !dulupayVerifySign(params, &key.PublicKey, params["sign"]) {
+			t.Fatalf("provider request signature did not verify: %#v", params)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":1,"msg":"ok","trade_no":"dp_3","payurl":"` + payURL + `","qrcode":"` + qrCode + `"}`))
+	}))
+	defer server.Close()
+
+	prov, err := NewDulupay("inst-1", map[string]string{
+		"pid":                "pid-1",
+		"merchantPrivateKey": dulupayPrivateKeyPEM(t, key),
+		"platformPublicKey":  dulupayPublicKeyPEM(t, &key.PublicKey),
+		"apiBase":            server.URL,
+	})
+	if err != nil {
+		t.Fatalf("NewDulupay: %v", err)
+	}
+	resp, err := prov.CreatePayment(context.Background(), payment.CreatePaymentRequest{
+		OrderID:     "sub2_102",
+		Amount:      "12.30",
+		PaymentType: payment.TypeAlipay,
+		Subject:     "Balance recharge",
+		ClientIP:    "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("CreatePayment: %v", err)
+	}
+	if resp.TradeNo != "dp_3" || resp.PayURL != payURL || resp.QRCode != qrCode {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 }

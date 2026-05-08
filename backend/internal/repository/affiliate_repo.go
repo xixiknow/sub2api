@@ -187,6 +187,255 @@ func (r *affiliateRepository) GetAffiliateByCode(ctx context.Context, code strin
 	return queryAffiliateByCode(ctx, client, code)
 }
 
+func (r *affiliateRepository) GetRegistrationInviteByCode(ctx context.Context, code string) (*service.AffiliateRegistrationInvite, error) {
+	client := clientFromContext(ctx, r.client)
+	return queryRegistrationInviteByCode(ctx, client, code)
+}
+
+func (r *affiliateRepository) ConsumeRegistrationInviteSeat(ctx context.Context, code string, inviteeUserID int64) (*service.AffiliateRegistrationInvite, error) {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	var invite *service.AffiliateRegistrationInvite
+	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		rows, err := txClient.QueryContext(txCtx, `
+UPDATE user_affiliates
+SET registration_seat_used = registration_seat_used + 1,
+    updated_at = NOW()
+WHERE aff_code = $1
+  AND registration_seat_total > registration_seat_used
+RETURNING user_id, aff_code, registration_seat_total, registration_seat_used`,
+			code,
+		)
+		if err != nil {
+			return fmt.Errorf("consume registration invite seat: %w", err)
+		}
+
+		if !rows.Next() {
+			_ = rows.Close()
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			existing, lookupErr := queryRegistrationInviteByCode(txCtx, txClient, code)
+			if lookupErr != nil {
+				return lookupErr
+			}
+			if existing.RegistrationSeatAvailable <= 0 {
+				return service.ErrRegistrationInviteSeatsEmpty
+			}
+			return service.ErrRegistrationInviteSeatsEmpty
+		}
+
+		var out service.AffiliateRegistrationInvite
+		if err := rows.Scan(
+			&out.UserID,
+			&out.AffCode,
+			&out.RegistrationSeatTotal,
+			&out.RegistrationSeatUsed,
+		); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+		out.RegistrationSeatAvailable = registrationSeatAvailable(out.RegistrationSeatTotal, out.RegistrationSeatUsed)
+
+		if _, err := txClient.ExecContext(txCtx, `
+INSERT INTO user_affiliate_registration_seat_ledger (
+    user_id,
+    action,
+    quantity,
+    amount,
+    source_user_id,
+    seat_total_after,
+    seat_used_after,
+    created_at,
+    updated_at
+) VALUES ($1, 'use', 1, 0, $2, $3, $4, NOW(), NOW())`,
+			out.UserID,
+			inviteeUserID,
+			out.RegistrationSeatTotal,
+			out.RegistrationSeatUsed,
+		); err != nil {
+			return fmt.Errorf("insert registration seat use ledger: %w", err)
+		}
+
+		invite = &out
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return invite, nil
+}
+
+func (r *affiliateRepository) RestoreRegistrationInviteSeat(ctx context.Context, code string, inviteeUserID int64) error {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		rows, err := txClient.QueryContext(txCtx, `
+UPDATE user_affiliates ua
+SET registration_seat_used = GREATEST(registration_seat_used - 1, 0),
+    updated_at = NOW()
+WHERE ua.aff_code = $1
+  AND ua.registration_seat_used > 0
+  AND EXISTS (
+      SELECT 1
+      FROM user_affiliate_registration_seat_ledger used
+      WHERE used.user_id = ua.user_id
+        AND used.action = 'use'
+        AND used.source_user_id = $2
+  )
+RETURNING ua.user_id, ua.registration_seat_total, ua.registration_seat_used`,
+			code,
+			inviteeUserID,
+		)
+		if err != nil {
+			return fmt.Errorf("restore registration invite seat: %w", err)
+		}
+
+		if !rows.Next() {
+			_ = rows.Close()
+			return rows.Err()
+		}
+
+		var ownerID int64
+		var seatTotal, seatUsed int
+		if err := rows.Scan(&ownerID, &seatTotal, &seatUsed); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
+		if _, err := txClient.ExecContext(txCtx, `
+INSERT INTO user_affiliate_registration_seat_ledger (
+    user_id,
+    action,
+    quantity,
+    amount,
+    source_user_id,
+    seat_total_after,
+    seat_used_after,
+    created_at,
+    updated_at
+) VALUES ($1, 'restore', 1, 0, $2, $3, $4, NOW(), NOW())`,
+			ownerID,
+			inviteeUserID,
+			seatTotal,
+			seatUsed,
+		); err != nil {
+			return fmt.Errorf("insert registration seat restore ledger: %w", err)
+		}
+		return nil
+	})
+}
+
+func (r *affiliateRepository) PurchaseRegistrationSeats(ctx context.Context, userID int64, quantity int, costPerSeat float64) (*service.AffiliateRegistrationSeatPurchaseResult, error) {
+	var result service.AffiliateRegistrationSeatPurchaseResult
+	amount := roundAffiliateLedgerAmount(float64(quantity) * costPerSeat)
+
+	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
+			return err
+		}
+
+		var balanceAfter float64
+		if amount > 0 {
+			rows, err := txClient.QueryContext(txCtx, `
+UPDATE users
+SET balance = balance - $1,
+    updated_at = NOW()
+WHERE id = $2
+  AND balance >= $1
+RETURNING balance::double precision`,
+				amount,
+				userID,
+			)
+			if err != nil {
+				return fmt.Errorf("deduct registration seat balance: %w", err)
+			}
+			if !rows.Next() {
+				_ = rows.Close()
+				if err := rows.Err(); err != nil {
+					return err
+				}
+				if _, err := queryUserBalance(txCtx, txClient, userID); err != nil {
+					return err
+				}
+				return service.ErrInsufficientBalance
+			}
+			if err := rows.Scan(&balanceAfter); err != nil {
+				_ = rows.Close()
+				return err
+			}
+			if err := rows.Close(); err != nil {
+				return err
+			}
+		} else {
+			balance, err := queryUserBalance(txCtx, txClient, userID)
+			if err != nil {
+				return err
+			}
+			balanceAfter = balance
+		}
+
+		rows, err := txClient.QueryContext(txCtx, `
+UPDATE user_affiliates
+SET registration_seat_total = registration_seat_total + $1,
+    updated_at = NOW()
+WHERE user_id = $2
+RETURNING registration_seat_total, registration_seat_used`,
+			quantity,
+			userID,
+		)
+		if err != nil {
+			return fmt.Errorf("increase registration seats: %w", err)
+		}
+		if !rows.Next() {
+			_ = rows.Close()
+			return service.ErrAffiliateProfileNotFound
+		}
+		if err := rows.Scan(&result.RegistrationSeatTotal, &result.RegistrationSeatUsed); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
+		result.BalanceAfter = balanceAfter
+		result.RegistrationSeatCost = costPerSeat
+		result.RegistrationSeatAvailable = registrationSeatAvailable(result.RegistrationSeatTotal, result.RegistrationSeatUsed)
+
+		if _, err := txClient.ExecContext(txCtx, `
+INSERT INTO user_affiliate_registration_seat_ledger (
+    user_id,
+    action,
+    quantity,
+    amount,
+    balance_after,
+    seat_total_after,
+    seat_used_after,
+    created_at,
+    updated_at
+) VALUES ($1, 'purchase', $2, $3, $4, $5, $6, NOW(), NOW())`,
+			userID,
+			quantity,
+			amount,
+			result.BalanceAfter,
+			result.RegistrationSeatTotal,
+			result.RegistrationSeatUsed,
+		); err != nil {
+			return fmt.Errorf("insert registration seat purchase ledger: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (r *affiliateRepository) BindInviter(ctx context.Context, userID, inviterID int64) (bool, error) {
 	var bound bool
 	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
@@ -1234,6 +1483,8 @@ SELECT user_id,
        aff_quota::double precision,
        aff_frozen_quota::double precision,
        aff_history_quota::double precision,
+       registration_seat_total,
+       registration_seat_used,
        created_at,
        updated_at
 FROM user_affiliates
@@ -1262,6 +1513,8 @@ WHERE user_id = $1`, userID)
 		&out.AffQuota,
 		&out.AffFrozenQuota,
 		&out.AffHistoryQuota,
+		&out.RegistrationSeatTotal,
+		&out.RegistrationSeatUsed,
 		&out.CreatedAt,
 		&out.UpdatedAt,
 	); err != nil {
@@ -1288,6 +1541,8 @@ SELECT user_id,
        aff_quota::double precision,
        aff_frozen_quota::double precision,
        aff_history_quota::double precision,
+       registration_seat_total,
+       registration_seat_used,
        created_at,
        updated_at
 FROM user_affiliates
@@ -1318,6 +1573,8 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 		&out.AffQuota,
 		&out.AffFrozenQuota,
 		&out.AffHistoryQuota,
+		&out.RegistrationSeatTotal,
+		&out.RegistrationSeatUsed,
 		&out.CreatedAt,
 		&out.UpdatedAt,
 	); err != nil {
@@ -1331,6 +1588,48 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 		out.AffRebateRatePercent = &v
 	}
 	return &out, nil
+}
+
+func queryRegistrationInviteByCode(ctx context.Context, client affiliateQueryExecer, code string) (*service.AffiliateRegistrationInvite, error) {
+	rows, err := client.QueryContext(ctx, `
+SELECT user_id,
+       aff_code,
+       registration_seat_total,
+       registration_seat_used
+FROM user_affiliates
+WHERE aff_code = $1
+LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		return nil, service.ErrAffiliateProfileNotFound
+	}
+
+	var out service.AffiliateRegistrationInvite
+	if err := rows.Scan(
+		&out.UserID,
+		&out.AffCode,
+		&out.RegistrationSeatTotal,
+		&out.RegistrationSeatUsed,
+	); err != nil {
+		return nil, err
+	}
+	out.RegistrationSeatAvailable = registrationSeatAvailable(out.RegistrationSeatTotal, out.RegistrationSeatUsed)
+	return &out, nil
+}
+
+func registrationSeatAvailable(total, used int) int {
+	available := total - used
+	if available < 0 {
+		return 0
+	}
+	return available
 }
 
 func queryUserBalance(ctx context.Context, client affiliateQueryExecer, userID int64) (float64, error) {

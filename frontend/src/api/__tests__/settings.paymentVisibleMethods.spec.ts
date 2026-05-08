@@ -40,6 +40,11 @@ describe('admin settings payment visible method helpers', () => {
         labelZh: '易支付支付宝',
         labelEn: 'EasyPay Alipay',
       },
+      {
+        value: 'dulupay_alipay',
+        labelZh: 'Dulupay 支付宝',
+        labelEn: 'Dulupay Alipay',
+      },
     ])
 
     expect(getPaymentVisibleMethodSourceOptions('wxpay')).toEqual([
@@ -57,6 +62,11 @@ describe('admin settings payment visible method helpers', () => {
         value: 'easypay_wxpay',
         labelZh: '易支付微信',
         labelEn: 'EasyPay WeChat Pay',
+      },
+      {
+        value: 'dulupay_wxpay',
+        labelZh: 'Dulupay 微信',
+        labelEn: 'Dulupay WeChat Pay',
       },
     ])
   })

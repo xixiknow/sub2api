@@ -162,6 +162,12 @@ export interface AffiliateLevelDetail {
   invitees: AffiliateLevelInvitee[]
 }
 
+export interface AffiliateLevelRateRule {
+  level: number
+  rate_percent: number
+  source: 'exclusive' | 'global' | string
+}
+
 export interface UserAffiliateDetail {
   user_id: number
   aff_code: string
@@ -170,8 +176,13 @@ export interface UserAffiliateDetail {
   aff_quota: number
   aff_frozen_quota: number
   aff_history_quota: number
+  registration_seat_cost: number
+  registration_seat_total: number
+  registration_seat_used: number
+  registration_seat_available: number
   /** 当前用户作为邀请人时实际生效的返利比例（专属覆盖全局）。0-100。 */
   effective_rebate_rate_percent: number
+  effective_level_rates: AffiliateLevelRateRule[]
   level_rebates: AffiliateLevelRebateSummary[]
   level_details: AffiliateLevelDetail[]
   invitees: AffiliateInvitee[]
@@ -180,6 +191,14 @@ export interface UserAffiliateDetail {
 export interface AffiliateTransferResponse {
   transferred_quota: number
   balance: number
+}
+
+export interface AffiliateRegistrationSeatPurchaseResponse {
+  balance: number
+  registration_seat_cost: number
+  registration_seat_total: number
+  registration_seat_used: number
+  registration_seat_available: number
 }
 
 export interface SendVerifyCodeRequest {

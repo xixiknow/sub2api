@@ -1620,6 +1620,22 @@ func (s *SettingService) GetAffiliateRebatePerInviteeCap(ctx context.Context) fl
 	return cap
 }
 
+// GetAffiliateRegistrationSeatCost 返回用户购买 1 个注册名额需要消耗的余额。
+func (s *SettingService) GetAffiliateRegistrationSeatCost(ctx context.Context) float64 {
+	if s == nil || s.settingRepo == nil {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRegistrationSeatCost)
+	if err != nil {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	cost, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+	if err != nil || cost < 0 || math.IsNaN(cost) || math.IsInf(cost, 0) {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	return cost
+}
+
 // IsPasswordResetEnabled 检查是否启用密码重置功能
 // 要求：必须同时开启邮件验证
 func (s *SettingService) IsPasswordResetEnabled(ctx context.Context) bool {
@@ -1867,6 +1883,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyAffiliateRebateFreezeHours:               strconv.Itoa(AffiliateRebateFreezeHoursDefault),
 		SettingKeyAffiliateRebateDurationDays:              strconv.Itoa(AffiliateRebateDurationDaysDefault),
 		SettingKeyAffiliateRebatePerInviteeCap:             strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
+		SettingKeyAffiliateRegistrationSeatCost:            strconv.FormatFloat(AffiliateRegistrationSeatCostDefault, 'f', 8, 64),
 		SettingKeyDefaultUserRPMLimit:                      "0",
 		SettingKeyDefaultSubscriptions:                     "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:            "0",

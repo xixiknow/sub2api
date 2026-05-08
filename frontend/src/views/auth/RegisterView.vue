@@ -156,7 +156,19 @@
             <div v-if="invitationValidation.valid" class="mt-2 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 dark:bg-green-900/20">
               <Icon name="checkCircle" size="sm" class="text-green-600 dark:text-green-400" />
               <span class="text-sm text-green-700 dark:text-green-400">
-                {{ t('auth.invitationCodeValid') }}
+                {{
+                  invitationValidation.availableSeats != null
+                    ? t('auth.invitationCodeValidWithSeats', { seats: invitationValidation.availableSeats })
+                    : t('auth.invitationCodeValid')
+                }}
+              </span>
+            </div>
+          </transition>
+          <transition name="fade">
+            <div v-if="invitationValidation.invalid" class="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 dark:bg-red-900/20">
+              <Icon name="exclamationCircle" size="sm" class="text-red-600 dark:text-red-400" />
+              <span class="text-sm text-red-700 dark:text-red-400">
+                {{ invitationValidation.message }}
               </span>
             </div>
           </transition>
@@ -351,6 +363,8 @@ const invitationValidating = ref<boolean>(false)
 const invitationValidation = reactive({
   valid: false,
   invalid: false,
+  codeType: '',
+  availableSeats: null as number | null,
   message: ''
 })
 let invitationValidateTimeout: ReturnType<typeof setTimeout> | null = null
@@ -390,6 +404,9 @@ function syncAffiliateReferralCode(): string {
   const code = resolveAffiliateReferralCode(route.query.aff, route.query.aff_code)
   if (code) {
     formData.aff_code = code
+    if (!formData.invitation_code.trim()) {
+      formData.invitation_code = code
+    }
   }
   return code
 }
@@ -426,6 +443,9 @@ onMounted(async () => {
       }
     }
     syncAffiliateReferralCode()
+    if (invitationCodeEnabled.value && formData.invitation_code.trim()) {
+      await validateInvitationCodeDebounced(formData.invitation_code.trim())
+    }
   } catch (error) {
     console.error('Failed to load public settings:', error)
   } finally {
@@ -437,6 +457,9 @@ watch(
   () => [route.query.aff, route.query.aff_code],
   () => {
     syncAffiliateReferralCode()
+    if (invitationCodeEnabled.value && formData.invitation_code.trim()) {
+      handleInvitationCodeInput()
+    }
   }
 )
 
@@ -530,6 +553,8 @@ function handleInvitationCodeInput(): void {
   // Clear previous validation
   invitationValidation.valid = false
   invitationValidation.invalid = false
+  invitationValidation.codeType = ''
+  invitationValidation.availableSeats = null
   invitationValidation.message = ''
   errors.invitation_code = ''
 
@@ -556,15 +581,21 @@ async function validateInvitationCodeDebounced(code: string): Promise<void> {
     if (result.valid) {
       invitationValidation.valid = true
       invitationValidation.invalid = false
+      invitationValidation.codeType = result.code_type || ''
+      invitationValidation.availableSeats = result.available_seats ?? null
       invitationValidation.message = ''
     } else {
       invitationValidation.valid = false
       invitationValidation.invalid = true
+      invitationValidation.codeType = result.code_type || ''
+      invitationValidation.availableSeats = result.available_seats ?? null
       invitationValidation.message = getInvitationErrorMessage(result.error_code)
     }
   } catch {
     invitationValidation.valid = false
     invitationValidation.invalid = true
+    invitationValidation.codeType = ''
+    invitationValidation.availableSeats = null
     invitationValidation.message = t('auth.invitationCodeInvalid')
   } finally {
     invitationValidating.value = false
@@ -581,6 +612,8 @@ function getInvitationErrorMessage(errorCode?: string): string {
       return t('auth.invitationCodeInvalid')
     case 'INVITATION_CODE_DISABLED':
       return t('auth.invitationCodeInvalid')
+    case 'REGISTRATION_INVITE_SEATS_EMPTY':
+      return t('auth.registrationInviteSeatsEmpty')
     default:
       return t('auth.invitationCodeInvalid')
   }
@@ -677,6 +710,13 @@ function validateForm(): boolean {
 async function handleRegister(): Promise<void> {
   // Clear previous error
   errorMessage.value = ''
+  const affCode = formData.aff_code.trim() || loadAffiliateReferralCode()
+  if (affCode) {
+    formData.aff_code = affCode
+    if (invitationCodeEnabled.value && !formData.invitation_code.trim()) {
+      formData.invitation_code = affCode
+    }
+  }
 
   // Validate form
   if (!validateForm()) {
@@ -724,10 +764,7 @@ async function handleRegister(): Promise<void> {
   isLoading.value = true
 
   try {
-    const affCode = formData.aff_code.trim() || loadAffiliateReferralCode()
-    if (affCode) {
-      formData.aff_code = affCode
-    }
+    const registrationCode = formData.invitation_code.trim() || (invitationCodeEnabled.value ? affCode : '')
 
     // If email verification is enabled, redirect to verification page
     if (emailVerifyEnabled.value) {
@@ -739,7 +776,7 @@ async function handleRegister(): Promise<void> {
           password: formData.password,
           turnstile_token: turnstileToken.value,
           promo_code: formData.promo_code || undefined,
-          invitation_code: formData.invitation_code || undefined,
+          invitation_code: registrationCode || undefined,
           ...(affCode ? { aff_code: affCode } : {})
         })
       )
@@ -755,7 +792,7 @@ async function handleRegister(): Promise<void> {
       password: formData.password,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
       promo_code: formData.promo_code || undefined,
-      invitation_code: formData.invitation_code || undefined,
+      invitation_code: registrationCode || undefined,
       ...(affCode ? { aff_code: affCode } : {})
     })
     clearAffiliateReferralCode()

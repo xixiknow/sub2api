@@ -507,57 +507,36 @@ type ValidateInvitationCodeRequest struct {
 
 // ValidateInvitationCodeResponse 验证邀请码响应
 type ValidateInvitationCodeResponse struct {
-	Valid     bool   `json:"valid"`
-	ErrorCode string `json:"error_code,omitempty"`
+	Valid          bool   `json:"valid"`
+	CodeType       string `json:"code_type,omitempty"`
+	AvailableSeats *int   `json:"available_seats,omitempty"`
+	ErrorCode      string `json:"error_code,omitempty"`
 }
 
 // ValidateInvitationCode 验证邀请码（公开接口，注册前调用）
 // POST /api/v1/auth/validate-invitation-code
 func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
-	// 检查邀请码功能是否启用
-	if h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(c.Request.Context()) {
-		response.Success(c, ValidateInvitationCodeResponse{
-			Valid:     false,
-			ErrorCode: "INVITATION_CODE_DISABLED",
-		})
-		return
-	}
-
 	var req ValidateInvitationCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
 
-	// 验证邀请码
-	redeemCode, err := h.redeemService.GetByCode(c.Request.Context(), req.Code)
-	if err != nil {
+	result := h.authService.ValidateRegistrationCode(c.Request.Context(), req.Code)
+	if result.Valid {
 		response.Success(c, ValidateInvitationCodeResponse{
-			Valid:     false,
-			ErrorCode: "INVITATION_CODE_NOT_FOUND",
-		})
-		return
-	}
-
-	// 检查类型和状态
-	if redeemCode.Type != service.RedeemTypeInvitation {
-		response.Success(c, ValidateInvitationCodeResponse{
-			Valid:     false,
-			ErrorCode: "INVITATION_CODE_INVALID",
-		})
-		return
-	}
-
-	if redeemCode.Status != service.StatusUnused {
-		response.Success(c, ValidateInvitationCodeResponse{
-			Valid:     false,
-			ErrorCode: "INVITATION_CODE_USED",
+			Valid:          true,
+			CodeType:       result.CodeType,
+			AvailableSeats: result.AvailableSeats,
 		})
 		return
 	}
 
 	response.Success(c, ValidateInvitationCodeResponse{
-		Valid: true,
+		Valid:          false,
+		CodeType:       result.CodeType,
+		AvailableSeats: result.AvailableSeats,
+		ErrorCode:      result.ErrorCode,
 	})
 }
 

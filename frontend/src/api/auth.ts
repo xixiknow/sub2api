@@ -493,6 +493,8 @@ export async function validatePromoCode(code: string): Promise<ValidatePromoCode
  */
 export interface ValidateInvitationCodeResponse {
   valid: boolean
+  code_type?: 'affiliate' | 'redeem' | string
+  available_seats?: number
   error_code?: string
 }
 
@@ -598,10 +600,11 @@ async function createPendingOAuthAccount(
   affiliateCode?: string
 ): Promise<PendingOAuthCreateAccountResponse> {
   const normalizedAffiliateCode = affiliateCode?.trim()
+  const normalizedInvitationCode = invitationCode.trim() || normalizedAffiliateCode || ''
   const { data } = await apiClient.post<PendingOAuthCreateAccountResponse>(
     `/auth/oauth/${provider}/complete-registration`,
     {
-      invitation_code: invitationCode,
+      invitation_code: normalizedInvitationCode,
       ...(normalizedAffiliateCode ? { aff_code: normalizedAffiliateCode } : {}),
       ...serializeOAuthAdoptionDecision(decision)
     }
