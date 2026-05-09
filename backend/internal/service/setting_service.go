@@ -1199,6 +1199,10 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
+	if settings.AffiliateRegistrationSeatCost < 0 {
+		settings.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
+	}
+	updates[SettingKeyAffiliateRegistrationSeatCost] = strconv.FormatFloat(settings.AffiliateRegistrationSeatCost, 'f', 8, 64)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -2035,6 +2039,13 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	}
 	if perInviteeCap, err := strconv.ParseFloat(settings[SettingKeyAffiliateRebatePerInviteeCap], 64); err == nil && perInviteeCap >= 0 {
 		result.AffiliateRebatePerInviteeCap = perInviteeCap
+	} else {
+		result.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
+	}
+	if seatCost, err := strconv.ParseFloat(settings[SettingKeyAffiliateRegistrationSeatCost], 64); err == nil && seatCost >= 0 {
+		result.AffiliateRegistrationSeatCost = seatCost
+	} else {
+		result.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 
