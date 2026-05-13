@@ -50,6 +50,9 @@ func RegisterAdminRoutes(
 		// 优惠码管理
 		registerPromoCodeRoutes(admin, h)
 
+		// 成长徽章与权益管理
+		registerGrowthRoutes(admin, h)
+
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
@@ -94,6 +97,19 @@ func RegisterAdminRoutes(
 
 		// 邀请返利（专属用户管理）
 		registerAffiliateRoutes(admin, h)
+	}
+}
+
+func registerGrowthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	growth := admin.Group("/growth")
+	{
+		growth.GET("/badges", h.Admin.Growth.ListBadges)
+		growth.POST("/badges/recompute", h.Admin.Growth.RecomputeBadges)
+		growth.GET("/benefit-rules", h.Admin.Growth.ListBenefitRules)
+		growth.POST("/benefit-rules", h.Admin.Growth.CreateBenefitRule)
+		growth.PUT("/benefit-rules/:id", h.Admin.Growth.UpdateBenefitRule)
+		growth.DELETE("/benefit-rules/:id", h.Admin.Growth.DeleteBenefitRule)
+		growth.GET("/users", h.Admin.Growth.ListUsers)
 	}
 }
 

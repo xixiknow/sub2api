@@ -19,6 +19,7 @@ type UserHandler struct {
 	emailService     *service.EmailService
 	emailCache       service.EmailCache
 	affiliateService *service.AffiliateService
+	growthService    *service.GrowthService
 }
 
 // NewUserHandler creates a new UserHandler
@@ -28,13 +29,19 @@ func NewUserHandler(
 	emailService *service.EmailService,
 	emailCache service.EmailCache,
 	affiliateService *service.AffiliateService,
+	growthService ...*service.GrowthService,
 ) *UserHandler {
+	var growth *service.GrowthService
+	if len(growthService) > 0 {
+		growth = growthService[0]
+	}
 	return &UserHandler{
 		userService:      userService,
 		authService:      authService,
 		emailService:     emailService,
 		emailCache:       emailCache,
 		affiliateService: affiliateService,
+		growthService:    growth,
 	}
 }
 
@@ -177,6 +184,48 @@ func (h *UserHandler) GetAffiliate(c *gin.Context) {
 		return
 	}
 	response.Success(c, detail)
+}
+
+// GetGrowth returns the current user's growth center state.
+// GET /api/v1/user/growth
+func (h *UserHandler) GetGrowth(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.growthService == nil {
+		response.InternalError(c, "growth service not configured")
+		return
+	}
+
+	status, err := h.growthService.GetStatus(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, status)
+}
+
+// MarkAffiliateTutorialDone marks the invite rebate tutorial task as complete.
+// POST /api/v1/user/growth/events/affiliate-tutorial-done
+func (h *UserHandler) MarkAffiliateTutorialDone(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.growthService == nil {
+		response.InternalError(c, "growth service not configured")
+		return
+	}
+
+	status, err := h.growthService.MarkAffiliateTutorialDone(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, status)
 }
 
 // TransferAffiliateQuota transfers all available affiliate quota into current balance.
