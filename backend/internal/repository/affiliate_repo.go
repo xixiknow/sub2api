@@ -187,6 +187,17 @@ func (r *affiliateRepository) GetAffiliateByCode(ctx context.Context, code strin
 	return queryAffiliateByCode(ctx, client, code)
 }
 
+// ResolveBadgeAffiliateRebateRate returns the best automatic badge rebate rate
+// for an inviter. Manual user-level affiliate rates are resolved in service
+// before this method is consulted.
+func (r *affiliateRepository) ResolveBadgeAffiliateRebateRate(ctx context.Context, userID int64) (*float64, error) {
+	if userID <= 0 {
+		return nil, nil
+	}
+	client := clientFromContext(ctx, r.client)
+	return resolveBadgeAffiliateRebateRate(ctx, client, userID)
+}
+
 func (r *affiliateRepository) GetRegistrationInviteByCode(ctx context.Context, code string) (*service.AffiliateRegistrationInvite, error) {
 	client := clientFromContext(ctx, r.client)
 	return queryRegistrationInviteByCode(ctx, client, code)
@@ -1062,6 +1073,45 @@ LIMIT $2`, inviterID, limit)
 		return nil, err
 	}
 	return invitees, nil
+}
+
+func (r *affiliateRepository) CountQualifiedInvitees(ctx context.Context, inviterID int64) (int, error) {
+	if inviterID <= 0 {
+		return 0, nil
+	}
+	client := clientFromContext(ctx, r.client)
+	rows, err := client.QueryContext(ctx, `
+SELECT COUNT(DISTINCT ua.user_id)::integer
+FROM user_affiliates ua
+WHERE ua.inviter_id = $1
+  AND EXISTS (
+      SELECT 1
+      FROM payment_orders po
+      WHERE po.user_id = ua.user_id
+        AND po.status IN ($2, $3, $4)
+        AND po.paid_at IS NOT NULL
+        AND po.pay_amount > 0
+  )`,
+		inviterID,
+		service.OrderStatusPaid,
+		service.OrderStatusRecharging,
+		service.OrderStatusCompleted,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("count qualified affiliate invitees: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var count int
+	if rows.Next() {
+		if err := rows.Scan(&count); err != nil {
+			return 0, fmt.Errorf("scan qualified affiliate invitees: %w", err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("read qualified affiliate invitees: %w", err)
+	}
+	return count, nil
 }
 
 func (r *affiliateRepository) ListAffiliateInviteRecords(ctx context.Context, filter service.AffiliateRecordFilter) ([]service.AffiliateInviteRecord, int64, error) {

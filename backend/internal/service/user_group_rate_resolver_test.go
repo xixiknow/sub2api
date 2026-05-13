@@ -12,9 +12,11 @@ import (
 type userGroupRateResolverRepoStub struct {
 	UserGroupRateRepository
 
-	rate  *float64
-	err   error
-	calls int
+	rate       *float64
+	badgeRate  *float64
+	err        error
+	calls      int
+	badgeCalls int
 }
 
 func (s *userGroupRateResolverRepoStub) GetByUserAndGroup(ctx context.Context, userID, groupID int64) (*float64, error) {
@@ -23,6 +25,11 @@ func (s *userGroupRateResolverRepoStub) GetByUserAndGroup(ctx context.Context, u
 		return nil, s.err
 	}
 	return s.rate, nil
+}
+
+func (s *userGroupRateResolverRepoStub) GetBadgeRateByUserAndGroup(ctx context.Context, userID, groupID int64) (*float64, error) {
+	s.badgeCalls++
+	return s.badgeRate, nil
 }
 
 func TestNewUserGroupRateResolver_Defaults(t *testing.T) {
@@ -80,4 +87,29 @@ func TestGatewayServiceGetUserGroupRateMultiplier_FallbacksAndUsesExistingResolv
 	got := svc.getUserGroupRateMultiplier(context.Background(), 101, 202, 1.2)
 	require.Equal(t, rate, got)
 	require.Equal(t, 1, repo.calls)
+}
+
+func TestUserGroupRateResolverResolve_ManualRateWinsOverBadgeRate(t *testing.T) {
+	manualRate := 1.4
+	badgeRate := 0.8
+	repo := &userGroupRateResolverRepoStub{rate: &manualRate, badgeRate: &badgeRate}
+	resolver := newUserGroupRateResolver(repo, nil, time.Minute, nil, "service.test")
+
+	got := resolver.Resolve(context.Background(), 101, 202, 1.2)
+
+	require.Equal(t, manualRate, got)
+	require.Equal(t, 1, repo.calls)
+	require.Equal(t, 0, repo.badgeCalls)
+}
+
+func TestUserGroupRateResolverResolve_UsesBadgeRateWhenManualMissing(t *testing.T) {
+	badgeRate := 0.82
+	repo := &userGroupRateResolverRepoStub{badgeRate: &badgeRate}
+	resolver := newUserGroupRateResolver(repo, nil, time.Minute, nil, "service.test")
+
+	got := resolver.Resolve(context.Background(), 101, 202, 1.2)
+
+	require.Equal(t, badgeRate, got)
+	require.Equal(t, 1, repo.calls)
+	require.Equal(t, 1, repo.badgeCalls)
 }

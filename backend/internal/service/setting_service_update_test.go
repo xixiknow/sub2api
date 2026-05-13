@@ -183,6 +183,22 @@ func TestSettingService_UpdateSettings_RegistrationEmailSuffixWhitelist_Normaliz
 	require.Equal(t, `["@example.com","@foo.bar"]`, repo.updates[SettingKeyRegistrationEmailSuffixWhitelist])
 }
 
+func TestSettingService_UpdateSettings_AffiliateRegistrationSeatCost_AllowsZero(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		AffiliateRegistrationSeatCost: 0,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "0.00000000", repo.updates[SettingKeyAffiliateRegistrationSeatCost])
+
+	parsed := svc.parseSettings(map[string]string{
+		SettingKeyAffiliateRegistrationSeatCost: "0.00000000",
+	})
+	require.Equal(t, 0.0, parsed.AffiliateRegistrationSeatCost)
+}
+
 func TestSettingService_UpdateSettings_RegistrationEmailSuffixWhitelist_Invalid(t *testing.T) {
 	repo := &settingUpdateRepoStub{}
 	svc := NewSettingService(repo, &config.Config{})

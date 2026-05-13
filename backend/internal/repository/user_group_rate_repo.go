@@ -151,6 +151,16 @@ func (r *userGroupRateRepository) GetByUserAndGroup(ctx context.Context, userID,
 	return &v, nil
 }
 
+// GetBadgeRateByUserAndGroup returns the best automatic badge group-rate benefit.
+// Manual user_group_rate_multipliers are intentionally resolved by the service
+// before this method is consulted.
+func (r *userGroupRateRepository) GetBadgeRateByUserAndGroup(ctx context.Context, userID, groupID int64) (*float64, error) {
+	if userID <= 0 || groupID <= 0 {
+		return nil, nil
+	}
+	return resolveBadgeGroupRate(ctx, r.sql, userID, groupID)
+}
+
 // GetRPMOverrideByUserAndGroup 获取用户在特定分组的 rpm_override（NULL 返回 nil）
 func (r *userGroupRateRepository) GetRPMOverrideByUserAndGroup(ctx context.Context, userID, groupID int64) (*int, error) {
 	query := `SELECT rpm_override FROM user_group_rate_multipliers WHERE user_id = $1 AND group_id = $2`

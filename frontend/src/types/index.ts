@@ -166,6 +166,8 @@ export interface AffiliateLevelRateRule {
   level: number
   rate_percent: number
   source: 'exclusive' | 'global' | string
+  unlocked?: boolean
+  unlock_invite_count?: number
 }
 
 export interface UserAffiliateDetail {
@@ -173,6 +175,7 @@ export interface UserAffiliateDetail {
   aff_code: string
   inviter_id?: number | null
   aff_count: number
+  qualified_aff_count?: number
   aff_quota: number
   aff_frozen_quota: number
   aff_history_quota: number
@@ -186,6 +189,21 @@ export interface UserAffiliateDetail {
   level_rebates: AffiliateLevelRebateSummary[]
   level_details: AffiliateLevelDetail[]
   invitees: AffiliateInvitee[]
+}
+
+export interface UserGrowthStatus {
+  community_joined: boolean
+  community_joined_at?: string | null
+  affiliate_tutorial_done: boolean
+  affiliate_tutorial_done_at?: string | null
+  badges?: Array<{
+    badge_id: string
+    name: string
+    title: string
+    tier: string
+    points: number
+    unlocked_at: string
+  }>
 }
 
 export interface AffiliateTransferResponse {
@@ -240,6 +258,8 @@ export interface PublicSettings {
   turnstile_site_key: string
   site_name: string
   site_logo: string
+  community_image_url: string
+  community_link_url: string
   site_subtitle: string
   api_base_url: string
   contact_info: string
@@ -1681,6 +1701,7 @@ export interface PromoCode {
   max_uses: number
   used_count: number
   status: 'active' | 'disabled'
+  purpose: 'general' | 'community_join'
   expires_at: string | null
   notes: string | null
   created_at: string
@@ -1700,6 +1721,7 @@ export interface CreatePromoCodeRequest {
   code?: string
   bonus_amount: number
   max_uses?: number
+  purpose?: 'general' | 'community_join'
   expires_at?: number | null
   notes?: string
 }
@@ -1709,6 +1731,7 @@ export interface UpdatePromoCodeRequest {
   bonus_amount?: number
   max_uses?: number
   status?: 'active' | 'disabled'
+  purpose?: 'general' | 'community_join'
   expires_at?: number | null
   notes?: string
 }

@@ -544,6 +544,7 @@ type PromoCode struct {
 	MaxUses     int        `json:"max_uses"`
 	UsedCount   int        `json:"used_count"`
 	Status      string     `json:"status"`
+	Purpose     string     `json:"purpose"`
 	ExpiresAt   *time.Time `json:"expires_at"`
 	Notes       string     `json:"notes"`
 	CreatedAt   time.Time  `json:"created_at"`

@@ -442,7 +442,17 @@ const handleRedeem = async () => {
   redeemResult.value = null
 
   try {
-    const result = await redeemAPI.redeem(redeemCode.value.trim())
+    const code = redeemCode.value.trim()
+    let result
+    try {
+      result = await redeemAPI.redeem(code)
+    } catch (redeemError: any) {
+      const status = redeemError?.response?.status ?? redeemError?.status
+      if (status !== 400 && status !== 404) {
+        throw redeemError
+      }
+      result = await redeemAPI.redeemPromo(code)
+    }
 
     redeemResult.value = result
 
@@ -464,11 +474,16 @@ const handleRedeem = async () => {
 
     // Refresh history
     await fetchHistory()
+    window.dispatchEvent(new CustomEvent('growth:center-refresh'))
 
     // Show success toast
     appStore.showSuccess(t('redeem.codeRedeemSuccess'))
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.detail || t('redeem.failedToRedeem')
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      error?.message ||
+      t('redeem.failedToRedeem')
 
     appStore.showError(t('redeem.redeemFailed'))
   } finally {

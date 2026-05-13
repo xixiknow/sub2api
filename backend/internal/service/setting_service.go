@@ -415,6 +415,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyTurnstileSiteKey,
 		SettingKeySiteName,
 		SettingKeySiteLogo,
+		SettingKeyCommunityImageURL,
+		SettingKeyCommunityLinkURL,
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
@@ -513,6 +515,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
+		CommunityImageURL:                strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
+		CommunityLinkURL:                 strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
@@ -658,6 +662,8 @@ type PublicSettingsInjectionPayload struct {
 	TurnstileSiteKey                 string          `json:"turnstile_site_key"`
 	SiteName                         string          `json:"site_name"`
 	SiteLogo                         string          `json:"site_logo"`
+	CommunityImageURL                string          `json:"community_image_url"`
+	CommunityLinkURL                 string          `json:"community_link_url"`
 	SiteSubtitle                     string          `json:"site_subtitle"`
 	APIBaseURL                       string          `json:"api_base_url"`
 	ContactInfo                      string          `json:"contact_info"`
@@ -714,6 +720,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		TurnstileSiteKey:                 settings.TurnstileSiteKey,
 		SiteName:                         settings.SiteName,
 		SiteLogo:                         settings.SiteLogo,
+		CommunityImageURL:                settings.CommunityImageURL,
+		CommunityLinkURL:                 settings.CommunityLinkURL,
 		SiteSubtitle:                     settings.SiteSubtitle,
 		APIBaseURL:                       settings.APIBaseURL,
 		ContactInfo:                      settings.ContactInfo,
@@ -1150,6 +1158,8 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// OEM设置
 	updates[SettingKeySiteName] = settings.SiteName
 	updates[SettingKeySiteLogo] = settings.SiteLogo
+	updates[SettingKeyCommunityImageURL] = strings.TrimSpace(settings.CommunityImageURL)
+	updates[SettingKeyCommunityLinkURL] = strings.TrimSpace(settings.CommunityLinkURL)
 	updates[SettingKeySiteSubtitle] = settings.SiteSubtitle
 	updates[SettingKeyAPIBaseURL] = settings.APIBaseURL
 	updates[SettingKeyContactInfo] = settings.ContactInfo
@@ -1199,7 +1209,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
-	if settings.AffiliateRegistrationSeatCost < 0 {
+	if settings.AffiliateRegistrationSeatCost < 0 || math.IsNaN(settings.AffiliateRegistrationSeatCost) || math.IsInf(settings.AffiliateRegistrationSeatCost, 0) {
 		settings.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
 	}
 	updates[SettingKeyAffiliateRegistrationSeatCost] = strconv.FormatFloat(settings.AffiliateRegistrationSeatCost, 'f', 8, 64)
@@ -1836,6 +1846,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyPromoCodeEnabled:                         "true", // 默认启用优惠码功能
 		SettingKeySiteName:                                 "Sub2API",
 		SettingKeySiteLogo:                                 "",
+		SettingKeyCommunityImageURL:                        "",
+		SettingKeyCommunityLinkURL:                         "",
 		SettingKeyPurchaseSubscriptionEnabled:              "false",
 		SettingKeyPurchaseSubscriptionURL:                  "",
 		SettingKeyTableDefaultPageSize:                     "20",
@@ -1979,6 +1991,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
+		CommunityImageURL:                strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
+		CommunityLinkURL:                 strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],

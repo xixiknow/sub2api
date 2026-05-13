@@ -14,12 +14,21 @@ import (
 )
 
 var (
-	ErrPromoCodeNotFound    = infraerrors.NotFound("PROMO_CODE_NOT_FOUND", "promo code not found")
-	ErrPromoCodeExpired     = infraerrors.BadRequest("PROMO_CODE_EXPIRED", "promo code has expired")
-	ErrPromoCodeDisabled    = infraerrors.BadRequest("PROMO_CODE_DISABLED", "promo code is disabled")
-	ErrPromoCodeMaxUsed     = infraerrors.BadRequest("PROMO_CODE_MAX_USED", "promo code has reached maximum uses")
-	ErrPromoCodeAlreadyUsed = infraerrors.Conflict("PROMO_CODE_ALREADY_USED", "you have already used this promo code")
-	ErrPromoCodeInvalid     = infraerrors.BadRequest("PROMO_CODE_INVALID", "invalid promo code")
+	ErrPromoCodeNotFound               = infraerrors.NotFound("PROMO_CODE_NOT_FOUND", "promo code not found")
+	ErrPromoCodeExpired                = infraerrors.BadRequest("PROMO_CODE_EXPIRED", "promo code has expired")
+	ErrPromoCodeDisabled               = infraerrors.BadRequest("PROMO_CODE_DISABLED", "promo code is disabled")
+	ErrPromoCodeMaxUsed                = infraerrors.BadRequest("PROMO_CODE_MAX_USED", "promo code has reached maximum uses")
+	ErrPromoCodeAlreadyUsed            = infraerrors.Conflict("PROMO_CODE_ALREADY_USED", "you have already used this promo code")
+	ErrPromoCodeInvalid                = infraerrors.BadRequest("PROMO_CODE_INVALID", "invalid promo code")
+	ErrPromoCodeStarterTasksIncomplete = infraerrors.Forbidden(
+		"STARTER_TASKS_INCOMPLETE",
+		"请先完成创建 API Key、首次调用和了解邀请返利，再兑换群福利码",
+	)
+)
+
+const (
+	PromoCodePurposeGeneral       = "general"
+	PromoCodePurposeCommunityJoin = "community_join"
 )
 
 // PromoService 优惠码服务
@@ -46,6 +55,12 @@ func NewPromoService(
 		entClient:            entClient,
 		authCacheInvalidator: authCacheInvalidator,
 	}
+}
+
+type PromoCodeApplyResult struct {
+	PromoCode    *PromoCode `json:"promo_code"`
+	BonusAmount  float64    `json:"bonus_amount"`
+	BalanceAfter float64    `json:"balance_after"`
 }
 
 // ValidatePromoCode 验证优惠码（注册前调用）
@@ -89,15 +104,30 @@ func (s *PromoService) validatePromoCodeStatus(promoCode *PromoCode) error {
 // ApplyPromoCode 应用优惠码（注册成功后调用）
 // 使用事务和行锁确保并发安全
 func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code string) error {
+	_, err := s.applyPromoCode(ctx, userID, code, false)
+	return err
+}
+
+// RedeemPromoCode applies a reusable welfare code for an existing signed-in user.
+// The promo code remains active until the admin disables or deletes it, while
+// promo_code_usages enforces that each user can redeem it only once.
+func (s *PromoService) RedeemPromoCode(ctx context.Context, userID int64, code string) (*PromoCodeApplyResult, error) {
+	return s.applyPromoCode(ctx, userID, code, true)
+}
+
+func (s *PromoService) applyPromoCode(ctx context.Context, userID int64, code string, enforceCommunityGate bool) (*PromoCodeApplyResult, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return nil
+		return nil, nil
+	}
+	if userID <= 0 {
+		return nil, ErrPromoCodeInvalid
 	}
 
 	// 开启事务
 	tx, err := s.entClient.Tx(ctx)
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return nil, fmt.Errorf("begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
@@ -106,26 +136,36 @@ func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code st
 	// 在事务中获取并锁定优惠码记录（FOR UPDATE）
 	promoCode, err := s.promoRepo.GetByCodeForUpdate(txCtx, code)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 在事务中验证优惠码状态
 	if err := s.validatePromoCodeStatus(promoCode); err != nil {
-		return err
+		return nil, err
 	}
 
 	// 在事务中检查用户是否已使用过此优惠码
 	existing, err := s.promoRepo.GetUsageByPromoCodeAndUser(txCtx, promoCode.ID, userID)
 	if err != nil {
-		return fmt.Errorf("check existing usage: %w", err)
+		return nil, fmt.Errorf("check existing usage: %w", err)
 	}
 	if existing != nil {
-		return ErrPromoCodeAlreadyUsed
+		return nil, ErrPromoCodeAlreadyUsed
+	}
+
+	if enforceCommunityGate && promoCode.Purpose == PromoCodePurposeCommunityJoin {
+		status, err := newGrowthServiceWithDB(tx.Client()).starterTaskGateStatus(txCtx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !status.communityWelfareReady() {
+			return nil, ErrPromoCodeStarterTasksIncomplete
+		}
 	}
 
 	// 增加用户余额
 	if err := s.userRepo.UpdateBalance(txCtx, userID, promoCode.BonusAmount); err != nil {
-		return fmt.Errorf("update user balance: %w", err)
+		return nil, fmt.Errorf("update user balance: %w", err)
 	}
 
 	// 创建使用记录
@@ -136,16 +176,16 @@ func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code st
 		UsedAt:      time.Now(),
 	}
 	if err := s.promoRepo.CreateUsage(txCtx, usage); err != nil {
-		return fmt.Errorf("create usage record: %w", err)
+		return nil, fmt.Errorf("create usage record: %w", err)
 	}
 
 	// 增加使用次数
 	if err := s.promoRepo.IncrementUsedCount(txCtx, promoCode.ID); err != nil {
-		return fmt.Errorf("increment used count: %w", err)
+		return nil, fmt.Errorf("increment used count: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
+		return nil, fmt.Errorf("commit transaction: %w", err)
 	}
 
 	s.invalidatePromoCaches(ctx, userID, promoCode.BonusAmount)
@@ -159,7 +199,16 @@ func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code st
 		}()
 	}
 
-	return nil
+	var balanceAfter float64
+	if user, err := s.userRepo.GetByID(ctx, userID); err == nil && user != nil {
+		balanceAfter = user.Balance
+	}
+
+	return &PromoCodeApplyResult{
+		PromoCode:    promoCode,
+		BonusAmount:  promoCode.BonusAmount,
+		BalanceAfter: balanceAfter,
+	}, nil
 }
 
 func (s *PromoService) invalidatePromoCaches(ctx context.Context, userID int64, bonusAmount float64) {
@@ -189,6 +238,7 @@ func (s *PromoService) Create(ctx context.Context, input *CreatePromoCodeInput) 
 			return nil, err
 		}
 	}
+	purpose := normalizePromoCodePurpose(input.Purpose)
 
 	promoCode := &PromoCode{
 		Code:        strings.ToUpper(code),
@@ -196,6 +246,7 @@ func (s *PromoService) Create(ctx context.Context, input *CreatePromoCodeInput) 
 		MaxUses:     input.MaxUses,
 		UsedCount:   0,
 		Status:      PromoCodeStatusActive,
+		Purpose:     purpose,
 		ExpiresAt:   input.ExpiresAt,
 		Notes:       input.Notes,
 	}
@@ -235,6 +286,9 @@ func (s *PromoService) Update(ctx context.Context, id int64, input *UpdatePromoC
 	if input.Status != nil {
 		promoCode.Status = *input.Status
 	}
+	if input.Purpose != nil {
+		promoCode.Purpose = normalizePromoCodePurpose(*input.Purpose)
+	}
 	if input.ExpiresAt != nil {
 		promoCode.ExpiresAt = input.ExpiresAt
 	}
@@ -247,6 +301,15 @@ func (s *PromoService) Update(ctx context.Context, id int64, input *UpdatePromoC
 	}
 
 	return promoCode, nil
+}
+
+func normalizePromoCodePurpose(purpose string) string {
+	switch strings.TrimSpace(purpose) {
+	case PromoCodePurposeCommunityJoin:
+		return PromoCodePurposeCommunityJoin
+	default:
+		return PromoCodePurposeGeneral
+	}
 }
 
 // Delete 删除优惠码

@@ -171,6 +171,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		OIDCConnectUserInfoUsernamePath:        settings.OIDCConnectUserInfoUsernamePath,
 		SiteName:                               settings.SiteName,
 		SiteLogo:                               settings.SiteLogo,
+		CommunityImageURL:                      settings.CommunityImageURL,
+		CommunityLinkURL:                       settings.CommunityLinkURL,
 		SiteSubtitle:                           settings.SiteSubtitle,
 		APIBaseURL:                             settings.APIBaseURL,
 		ContactInfo:                            settings.ContactInfo,
@@ -233,6 +235,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PaymentBalanceDisabled:                 paymentCfg.BalanceDisabled,
 		PaymentBalanceRechargeMultiplier:       paymentCfg.BalanceRechargeMultiplier,
 		PaymentRechargeFeeRate:                 paymentCfg.RechargeFeeRate,
+		PaymentRechargeBonusRules:              paymentCfg.RechargeBonusRules,
 		PaymentLoadBalanceStrat:                paymentCfg.LoadBalanceStrategy,
 		PaymentProductNamePrefix:               paymentCfg.ProductNamePrefix,
 		PaymentProductNameSuffix:               paymentCfg.ProductNameSuffix,
@@ -373,6 +376,8 @@ type UpdateSettingsRequest struct {
 	// OEM设置
 	SiteName                    string                `json:"site_name"`
 	SiteLogo                    string                `json:"site_logo"`
+	CommunityImageURL           string                `json:"community_image_url"`
+	CommunityLinkURL            string                `json:"community_link_url"`
 	SiteSubtitle                string                `json:"site_subtitle"`
 	APIBaseURL                  string                `json:"api_base_url"`
 	ContactInfo                 string                `json:"contact_info"`
@@ -468,21 +473,22 @@ type UpdateSettingsRequest struct {
 	AccountQuotaNotifyEmails    *[]dto.NotifyEmailEntry `json:"account_quota_notify_emails"`
 
 	// Payment configuration (integrated into settings, full replace)
-	PaymentEnabled                   *bool    `json:"payment_enabled"`
-	PaymentMinAmount                 *float64 `json:"payment_min_amount"`
-	PaymentMaxAmount                 *float64 `json:"payment_max_amount"`
-	PaymentDailyLimit                *float64 `json:"payment_daily_limit"`
-	PaymentOrderTimeoutMin           *int     `json:"payment_order_timeout_minutes"`
-	PaymentMaxPendingOrders          *int     `json:"payment_max_pending_orders"`
-	PaymentEnabledTypes              []string `json:"payment_enabled_types"`
-	PaymentBalanceDisabled           *bool    `json:"payment_balance_disabled"`
-	PaymentBalanceRechargeMultiplier *float64 `json:"payment_balance_recharge_multiplier"`
-	PaymentRechargeFeeRate           *float64 `json:"payment_recharge_fee_rate"`
-	PaymentLoadBalanceStrat          *string  `json:"payment_load_balance_strategy"`
-	PaymentProductNamePrefix         *string  `json:"payment_product_name_prefix"`
-	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
-	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
-	PaymentHelpText                  *string  `json:"payment_help_text"`
+	PaymentEnabled                   *bool                              `json:"payment_enabled"`
+	PaymentMinAmount                 *float64                           `json:"payment_min_amount"`
+	PaymentMaxAmount                 *float64                           `json:"payment_max_amount"`
+	PaymentDailyLimit                *float64                           `json:"payment_daily_limit"`
+	PaymentOrderTimeoutMin           *int                               `json:"payment_order_timeout_minutes"`
+	PaymentMaxPendingOrders          *int                               `json:"payment_max_pending_orders"`
+	PaymentEnabledTypes              []string                           `json:"payment_enabled_types"`
+	PaymentBalanceDisabled           *bool                              `json:"payment_balance_disabled"`
+	PaymentBalanceRechargeMultiplier *float64                           `json:"payment_balance_recharge_multiplier"`
+	PaymentRechargeFeeRate           *float64                           `json:"payment_recharge_fee_rate"`
+	PaymentRechargeBonusRules        []service.PaymentRechargeBonusRule `json:"payment_recharge_bonus_rules"`
+	PaymentLoadBalanceStrat          *string                            `json:"payment_load_balance_strategy"`
+	PaymentProductNamePrefix         *string                            `json:"payment_product_name_prefix"`
+	PaymentProductNameSuffix         *string                            `json:"payment_product_name_suffix"`
+	PaymentHelpImageURL              *string                            `json:"payment_help_image_url"`
+	PaymentHelpText                  *string                            `json:"payment_help_text"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -1217,6 +1223,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		OIDCConnectUserInfoUsernamePath:  req.OIDCConnectUserInfoUsernamePath,
 		SiteName:                         req.SiteName,
 		SiteLogo:                         req.SiteLogo,
+		CommunityImageURL:                req.CommunityImageURL,
+		CommunityLinkURL:                 req.CommunityLinkURL,
 		SiteSubtitle:                     req.SiteSubtitle,
 		APIBaseURL:                       req.APIBaseURL,
 		ContactInfo:                      req.ContactInfo,
@@ -1442,6 +1450,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			BalanceDisabled:           req.PaymentBalanceDisabled,
 			BalanceRechargeMultiplier: req.PaymentBalanceRechargeMultiplier,
 			RechargeFeeRate:           req.PaymentRechargeFeeRate,
+			RechargeBonusRules:        req.PaymentRechargeBonusRules,
 			LoadBalanceStrategy:       req.PaymentLoadBalanceStrat,
 			ProductNamePrefix:         req.PaymentProductNamePrefix,
 			ProductNameSuffix:         req.PaymentProductNameSuffix,
@@ -1557,6 +1566,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		OIDCConnectUserInfoUsernamePath:        updatedSettings.OIDCConnectUserInfoUsernamePath,
 		SiteName:                               updatedSettings.SiteName,
 		SiteLogo:                               updatedSettings.SiteLogo,
+		CommunityImageURL:                      updatedSettings.CommunityImageURL,
+		CommunityLinkURL:                       updatedSettings.CommunityLinkURL,
 		SiteSubtitle:                           updatedSettings.SiteSubtitle,
 		APIBaseURL:                             updatedSettings.APIBaseURL,
 		ContactInfo:                            updatedSettings.ContactInfo,
@@ -1618,6 +1629,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentBalanceDisabled:                 updatedPaymentCfg.BalanceDisabled,
 		PaymentBalanceRechargeMultiplier:       updatedPaymentCfg.BalanceRechargeMultiplier,
 		PaymentRechargeFeeRate:                 updatedPaymentCfg.RechargeFeeRate,
+		PaymentRechargeBonusRules:              updatedPaymentCfg.RechargeBonusRules,
 		PaymentLoadBalanceStrat:                updatedPaymentCfg.LoadBalanceStrategy,
 		PaymentProductNamePrefix:               updatedPaymentCfg.ProductNamePrefix,
 		PaymentProductNameSuffix:               updatedPaymentCfg.ProductNameSuffix,
@@ -1651,6 +1663,7 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentOrderTimeoutMin != nil || req.PaymentMaxPendingOrders != nil ||
 		req.PaymentEnabledTypes != nil || req.PaymentBalanceDisabled != nil ||
 		req.PaymentBalanceRechargeMultiplier != nil || req.PaymentRechargeFeeRate != nil ||
+		req.PaymentRechargeBonusRules != nil ||
 		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
 		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
 		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
@@ -1865,6 +1878,12 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.SiteLogo != after.SiteLogo {
 		changed = append(changed, "site_logo")
+	}
+	if before.CommunityImageURL != after.CommunityImageURL {
+		changed = append(changed, "community_image_url")
+	}
+	if before.CommunityLinkURL != after.CommunityLinkURL {
+		changed = append(changed, "community_link_url")
 	}
 	if before.SiteSubtitle != after.SiteSubtitle {
 		changed = append(changed, "site_subtitle")

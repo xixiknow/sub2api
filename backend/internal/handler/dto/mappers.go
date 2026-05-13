@@ -770,6 +770,7 @@ func PromoCodeFromService(pc *service.PromoCode) *PromoCode {
 		MaxUses:     pc.MaxUses,
 		UsedCount:   pc.UsedCount,
 		Status:      pc.Status,
+		Purpose:     pc.Purpose,
 		ExpiresAt:   pc.ExpiresAt,
 		Notes:       pc.Notes,
 		CreatedAt:   pc.CreatedAt,

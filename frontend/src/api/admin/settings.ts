@@ -11,6 +11,15 @@ export interface DefaultSubscriptionSetting {
   validity_days: number;
 }
 
+export interface PaymentRechargeBonusRule {
+  id?: string;
+  name?: string;
+  min_amount: number;
+  bonus_amount?: number;
+  bonus_percent?: number;
+  disabled?: boolean;
+}
+
 export type AuthSourceType = "email" | "linuxdo" | "oidc" | "wechat";
 
 export interface AuthSourceDefaultsValue {
@@ -357,6 +366,8 @@ export interface SystemSettings {
   // OEM settings
   site_name: string;
   site_logo: string;
+  community_image_url: string;
+  community_link_url: string;
   site_subtitle: string;
   api_base_url: string;
   contact_info: string;
@@ -471,6 +482,7 @@ export interface SystemSettings {
   payment_balance_disabled: boolean;
   payment_balance_recharge_multiplier: number;
   payment_recharge_fee_rate: number;
+  payment_recharge_bonus_rules: PaymentRechargeBonusRule[];
   payment_load_balance_strategy: string;
   payment_product_name_prefix: string;
   payment_product_name_suffix: string;
@@ -550,6 +562,8 @@ export interface UpdateSettingsRequest {
   force_email_on_third_party_signup?: boolean;
   site_name?: string;
   site_logo?: string;
+  community_image_url?: string;
+  community_link_url?: string;
   site_subtitle?: string;
   api_base_url?: string;
   contact_info?: string;
@@ -642,6 +656,7 @@ export interface UpdateSettingsRequest {
   payment_balance_disabled?: boolean;
   payment_balance_recharge_multiplier?: number;
   payment_recharge_fee_rate?: number;
+  payment_recharge_bonus_rules?: PaymentRechargeBonusRule[];
   payment_load_balance_strategy?: string;
   payment_product_name_prefix?: string;
   payment_product_name_suffix?: string;

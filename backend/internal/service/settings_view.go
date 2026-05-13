@@ -91,6 +91,8 @@ type SystemSettings struct {
 
 	SiteName                    string
 	SiteLogo                    string
+	CommunityImageURL           string
+	CommunityLinkURL            string
 	SiteSubtitle                string
 	APIBaseURL                  string
 	ContactInfo                 string
@@ -104,17 +106,17 @@ type SystemSettings struct {
 	CustomMenuItems             string // JSON array of custom menu items
 	CustomEndpoints             string // JSON array of custom endpoints
 
-	DefaultConcurrency           int
-	DefaultBalance               float64
-	AffiliateEnabled             bool
-	AffiliateRebateRate          float64
-	AffiliateLevelRates          []float64
-	AffiliateRebateFreezeHours   int
-	AffiliateRebateDurationDays  int
-	AffiliateRebatePerInviteeCap float64
+	DefaultConcurrency            int
+	DefaultBalance                float64
+	AffiliateEnabled              bool
+	AffiliateRebateRate           float64
+	AffiliateLevelRates           []float64
+	AffiliateRebateFreezeHours    int
+	AffiliateRebateDurationDays   int
+	AffiliateRebatePerInviteeCap  float64
 	AffiliateRegistrationSeatCost float64
-	DefaultUserRPMLimit          int
-	DefaultSubscriptions         []DefaultSubscriptionSetting
+	DefaultUserRPMLimit           int
+	DefaultSubscriptions          []DefaultSubscriptionSetting
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -196,6 +198,8 @@ type PublicSettings struct {
 	TurnstileSiteKey                 string
 	SiteName                         string
 	SiteLogo                         string
+	CommunityImageURL                string
+	CommunityLinkURL                 string
 	SiteSubtitle                     string
 	APIBaseURL                       string
 	ContactInfo                      string

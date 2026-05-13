@@ -98,8 +98,183 @@
           </div>
         </div>
 
+        <div class="card overflow-hidden">
+          <div class="border-b border-terra-line px-6 py-5 dark:border-dark-700">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300">
+                  <Icon name="lightbulb" size="xs" />
+                  {{ t('affiliate.rebateGuide.eyebrow') }}
+                </p>
+                <h3 class="mt-2 text-base font-semibold text-terra-ink dark:text-white">
+                  {{ t('affiliate.rebateGuide.title') }}
+                </h3>
+                <p class="mt-1 max-w-2xl text-sm leading-6 text-terra-muted dark:text-dark-400">
+                  {{ t('affiliate.rebateGuide.subtitle') }}
+                </p>
+              </div>
+              <div class="grid w-full max-w-sm grid-cols-2 gap-2 rounded-lg border border-terra-line bg-terra-surface p-2 dark:border-dark-700 dark:bg-dark-900/70">
+                <div class="rounded-md px-3 py-2">
+                  <p class="text-xs font-medium text-terra-muted dark:text-dark-400">
+                    {{ t('affiliate.rebateGuide.invitedLabel') }}
+                  </p>
+                  <p class="mt-1 text-lg font-semibold text-terra-ink dark:text-white">
+                    {{ formatCount(qualifiedInviteCount) }}
+                  </p>
+                  <p class="mt-0.5 text-xs text-terra-muted dark:text-dark-400">
+                    {{ t('affiliate.rebateGuide.totalInvites', { count: formatCount(detail.aff_count) }) }}
+                  </p>
+                </div>
+                <div class="rounded-md bg-white px-3 py-2 shadow-glass-sm dark:bg-dark-800">
+                  <p class="text-xs font-medium text-terra-muted dark:text-dark-400">
+                    {{ t('affiliate.rebateGuide.finalGoalLabel') }}
+                  </p>
+                  <p class="mt-1 text-lg font-semibold text-primary-700 dark:text-primary-300">
+                    {{ formatCount(level3UnlockThreshold) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-[0.92fr_1.08fr]">
+            <div class="border-b border-terra-line p-6 dark:border-dark-700 lg:border-b-0 lg:border-r">
+              <div class="flex items-center justify-between gap-3">
+                <h4 class="text-sm font-semibold text-terra-ink dark:text-white">
+                  {{ t('affiliate.rebateGuide.mechanicsTitle') }}
+                </h4>
+                <span class="text-xs font-medium text-terra-muted dark:text-dark-400">
+                  {{ t('affiliate.rebateGuide.autoSettle') }}
+                </span>
+              </div>
+
+              <div class="mt-4 space-y-4">
+                <div
+                  v-for="item in rebateMechanismItems"
+                  :key="item.level"
+                  class="flex gap-3"
+                >
+                  <div
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
+                    :class="item.unlocked
+                      ? 'bg-primary-50 text-primary-700 ring-1 ring-primary-100 dark:bg-primary-900/25 dark:text-primary-200 dark:ring-primary-800/50'
+                      : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 dark:bg-dark-800 dark:text-dark-400 dark:ring-dark-700'"
+                  >
+                    {{ item.level }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="font-medium text-terra-ink dark:text-white">{{ item.title }}</p>
+                      <span
+                        class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                        :class="item.unlocked
+                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-200 dark:ring-emerald-800/50'
+                          : 'bg-gray-100 text-gray-600 ring-1 ring-gray-200 dark:bg-dark-800 dark:text-dark-300 dark:ring-dark-700'"
+                      >
+                        {{ item.statusLabel }}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-sm leading-6 text-terra-muted dark:text-dark-400">
+                      {{ item.description }}
+                    </p>
+                    <p class="mt-1 text-xs font-semibold text-primary-700 dark:text-primary-300">
+                      {{ item.rateLabel }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70">
+                <p class="text-sm font-semibold text-terra-ink dark:text-white">
+                  {{ t('affiliate.rebateGuide.flowTitle') }}
+                </p>
+                <div class="mt-3 grid gap-2 sm:grid-cols-4">
+                  <div
+                    v-for="step in rebateFlowItems"
+                    :key="step"
+                    class="min-w-0 rounded-md bg-white px-3 py-2 text-xs font-medium text-terra-muted shadow-glass-sm dark:bg-dark-800 dark:text-dark-300"
+                  >
+                    {{ step }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-6">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h4 class="text-sm font-semibold text-terra-ink dark:text-white">
+                    {{ t('affiliate.rebateGuide.progressTitle') }}
+                  </h4>
+                  <p class="mt-1 text-sm text-terra-muted dark:text-dark-400">
+                    {{ t('affiliate.rebateGuide.progressSubtitle') }}
+                  </p>
+                </div>
+                <div class="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-800 ring-1 ring-primary-100 dark:bg-primary-900/25 dark:text-primary-200 dark:ring-primary-800/50">
+                  <span v-if="nextLockedProgress">
+                    {{ t('affiliate.rebateGuide.nextGoal', {
+                      level: nextLockedProgress.level,
+                      count: formatCount(nextLockedProgress.remaining),
+                    }) }}
+                  </span>
+                  <span v-else>{{ t('affiliate.rebateGuide.allUnlocked') }}</span>
+                </div>
+              </div>
+
+              <div class="mt-5 space-y-4">
+                <div
+                  v-for="row in unlockProgressRows"
+                  :key="row.level"
+                  class="rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70"
+                >
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="font-semibold text-terra-ink dark:text-white">{{ row.title }}</p>
+                        <span
+                          class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                          :class="row.unlocked
+                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-200 dark:ring-emerald-800/50'
+                            : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/25 dark:text-amber-200 dark:ring-amber-800/50'"
+                        >
+                          <Icon :name="row.unlocked ? 'checkCircle' : 'lock'" size="xs" />
+                          {{ row.statusLabel }}
+                        </span>
+                      </div>
+                      <p class="mt-1 text-sm leading-6 text-terra-muted dark:text-dark-400">
+                        {{ row.requirementLabel }}
+                      </p>
+                    </div>
+                    <div class="shrink-0 text-left sm:text-right">
+                      <p class="text-lg font-semibold text-primary-700 dark:text-primary-300">
+                        {{ row.rateLabel }}
+                      </p>
+                      <p class="text-xs text-terra-muted dark:text-dark-400">
+                        {{ levelRateSourceLabel(row.source) }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <div class="flex items-center justify-between text-xs text-terra-muted dark:text-dark-400">
+                      <span>{{ row.progressLabel }}</span>
+                      <span>{{ row.progressText }}</span>
+                    </div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-800">
+                      <div
+                        class="h-full rounded-full transition-all"
+                        :class="row.unlocked ? 'bg-emerald-500' : 'bg-primary-500'"
+                        :style="{ width: `${row.progressPercent}%` }"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid gap-4 xl:grid-cols-[1.12fr_0.88fr]">
-          <div class="card p-6">
+          <div class="card p-6 xl:col-span-2">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 class="text-base font-semibold text-terra-ink dark:text-white">
@@ -120,7 +295,23 @@
               </div>
             </div>
 
-            <div class="mt-5 grid gap-3 sm:grid-cols-3">
+            <div v-if="registrationSeatsFree" class="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                  <Icon name="checkCircle" size="sm" />
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-100">
+                    {{ t('affiliate.registrationSeats.freeModeTitle') }}
+                  </p>
+                  <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-200">
+                    {{ t('affiliate.registrationSeats.freeModeDescription') }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="mt-5 grid gap-3 sm:grid-cols-3">
               <div class="rounded-lg border border-terra-line/80 bg-terra-surface px-4 py-3 dark:border-dark-700 dark:bg-dark-900/70">
                 <p class="text-xs font-medium text-terra-muted dark:text-dark-400">
                   {{ t('affiliate.registrationSeats.available') }}
@@ -147,7 +338,7 @@
               </div>
             </div>
 
-            <div class="mt-5 rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70">
+            <div v-if="!registrationSeatsFree" class="mt-5 rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70">
               <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <div class="grid gap-3 sm:grid-cols-[minmax(150px,220px)_minmax(0,1fr)]">
                   <div>
@@ -202,51 +393,6 @@
             </div>
           </div>
 
-          <div class="card p-6">
-            <h3 class="text-base font-semibold text-terra-ink dark:text-white">
-              {{ t('affiliate.levelRules.title') }}
-            </h3>
-            <p class="mt-1 text-sm text-terra-muted dark:text-dark-400">
-              {{ t('affiliate.levelRules.description') }}
-            </p>
-
-            <div class="mt-5 space-y-3">
-              <div
-                v-for="rule in effectiveLevelRates"
-                :key="rule.level"
-                class="rounded-lg border border-terra-line bg-terra-surface p-4 dark:border-dark-700 dark:bg-dark-900/70"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex min-w-0 items-start gap-3">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100 dark:bg-primary-900/25 dark:text-primary-200 dark:ring-primary-800/50">
-                      {{ rule.level }}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="font-semibold text-terra-ink dark:text-white">
-                        {{ t('affiliate.levelRules.levelTitle', { level: rule.level }) }}
-                      </p>
-                      <p class="mt-0.5 text-xs text-terra-muted dark:text-dark-400">
-                        {{ levelRuleHint(rule.level) }}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="shrink-0 text-right">
-                    <p class="text-lg font-semibold text-primary-700 dark:text-primary-300">
-                      {{ formatPercent(rule.rate_percent) }}%
-                    </p>
-                    <span
-                      class="mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold"
-                      :class="rule.source === 'exclusive'
-                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-200 dark:ring-emerald-800/50'
-                        : 'bg-terra-elevated text-terra-muted ring-1 ring-terra-line dark:bg-dark-800 dark:text-dark-300 dark:ring-dark-700'"
-                    >
-                      {{ levelRateSourceLabel(rule.source) }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div class="card p-6">
@@ -413,16 +559,76 @@
         </div>
       </template>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="tutorialDialogOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+        @click.self="closeGrowthTutorial"
+      >
+        <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-dark-900">
+          <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-dark-700">
+            <div>
+              <h3 class="text-base font-semibold text-gray-900 dark:text-white">邀请返利教学</h3>
+              <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">了解规则即可完成新人任务</p>
+            </div>
+            <button
+              type="button"
+              class="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-800 dark:hover:text-dark-200"
+              @click="closeGrowthTutorial"
+            >
+              <Icon name="x" size="sm" :stroke-width="2" />
+            </button>
+          </div>
+          <div class="space-y-3 p-5 text-sm text-gray-600 dark:text-dark-300">
+            <div class="rounded-xl border border-primary-100 bg-primary-50 p-4 dark:border-primary-900/50 dark:bg-primary-900/20">
+              <p class="font-semibold text-primary-800 dark:text-primary-200">你的邀请链接在本页上方；规则和升级进度已在本页集中展示。</p>
+              <p class="mt-2 leading-6 text-primary-700 dark:text-primary-300">
+                一级返利默认生效；二级、三级会按有效邀请人数自动解锁，只有完成真实支付的直属用户才计入进度。
+              </p>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800/70">
+                <p class="text-xs text-gray-500 dark:text-dark-400">第 1 步</p>
+                <p class="mt-1 font-semibold text-gray-900 dark:text-white">复制链接</p>
+              </div>
+              <div class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800/70">
+                <p class="text-xs text-gray-500 dark:text-dark-400">第 2 步</p>
+                <p class="mt-1 font-semibold text-gray-900 dark:text-white">邀请注册</p>
+              </div>
+              <div class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800/70">
+                <p class="text-xs text-gray-500 dark:text-dark-400">第 3 步</p>
+                <p class="mt-1 font-semibold text-gray-900 dark:text-white">充值返利</p>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 border-t border-gray-100 px-5 py-4 dark:border-dark-700">
+            <button type="button" class="btn btn-secondary" @click="closeGrowthTutorial">稍后</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              :disabled="confirmingGrowthTutorial"
+              @click="confirmGrowthTutorial"
+            >
+              <Icon v-if="confirmingGrowthTutorial" name="refresh" size="sm" class="animate-spin" />
+              <Icon v-else name="check" size="sm" />
+              <span>{{ confirmingGrowthTutorial ? '确认中' : '我已了解' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import userAPI from '@/api/user'
-import type { AffiliateLevelDetail, AffiliateLevelInvitee, UserAffiliateDetail } from '@/types'
+import type { AffiliateLevelDetail, AffiliateLevelInvitee, AffiliateLevelRateRule, UserAffiliateDetail } from '@/types'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useClipboard } from '@/composables/useClipboard'
@@ -430,6 +636,8 @@ import { formatCurrency, formatDateTime } from '@/utils/format'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const { copyToClipboard } = useClipboard()
@@ -440,6 +648,37 @@ const purchasingSeats = ref(false)
 const detail = ref<UserAffiliateDetail | null>(null)
 const activeLevel = ref(1)
 const seatQuantity = ref(1)
+const tutorialDialogOpen = ref(false)
+const confirmingGrowthTutorial = ref(false)
+
+const fallbackLevelUnlockThresholds: Record<number, number> = {
+  1: 0,
+  2: 3,
+  3: 10,
+}
+
+interface RebateMechanismItem {
+  level: number
+  title: string
+  description: string
+  statusLabel: string
+  rateLabel: string
+  unlocked: boolean
+}
+
+interface UnlockProgressRow {
+  level: number
+  title: string
+  source: string
+  rateLabel: string
+  unlocked: boolean
+  remaining: number
+  progressPercent: number
+  progressLabel: string
+  progressText: string
+  requirementLabel: string
+  statusLabel: string
+}
 
 const inviteLink = computed(() => {
   if (!detail.value) return ''
@@ -470,23 +709,95 @@ const seatStats = computed(() => ({
 }))
 
 const seatCost = computed(() => detail.value?.registration_seat_cost ?? 0)
+const registrationSeatsFree = computed(() => seatCost.value <= 0)
 const normalizedSeatQuantityValue = computed(() => normalizeQuantityValue(seatQuantity.value))
 const seatExpectedCost = computed(() => normalizedSeatQuantityValue.value * seatCost.value)
 const currentBalance = computed(() => authStore.user?.balance ?? 0)
-const seatLinkUsable = computed(() => seatStats.value.available > 0)
-const canPurchaseSeats = computed(() => normalizedSeatQuantityValue.value > 0 && normalizedSeatQuantityValue.value <= 1000)
+const seatLinkUsable = computed(() => registrationSeatsFree.value || seatStats.value.available > 0)
+const canPurchaseSeats = computed(() => !registrationSeatsFree.value && normalizedSeatQuantityValue.value > 0 && normalizedSeatQuantityValue.value <= 1000)
+const qualifiedInviteCount = computed(() => detail.value?.qualified_aff_count ?? 0)
 
-const effectiveLevelRates = computed(() => {
+const effectiveLevelRates = computed<AffiliateLevelRateRule[]>(() => {
   const rows = detail.value?.effective_level_rates ?? []
+  const invitedCount = qualifiedInviteCount.value
   return [1, 2, 3].map((level) => {
     const existing = rows.find((item) => item.level === level)
+    const threshold = normalizeUnlockThreshold(existing?.unlock_invite_count ?? fallbackLevelUnlockThresholds[level] ?? 0)
+    const unlocked = existing?.unlocked ?? (level <= 1 || invitedCount >= threshold)
     return {
       level,
       rate_percent: existing?.rate_percent ?? (level === 1 ? (detail.value?.effective_rebate_rate_percent ?? 0) : 0),
-      source: existing?.source ?? 'global',
+      source: existing?.source ?? (unlocked ? 'global' : 'locked'),
+      unlocked,
+      unlock_invite_count: threshold,
     }
   })
 })
+
+const level3UnlockThreshold = computed(() => levelUnlockThreshold(3))
+
+const unlockProgressRows = computed<UnlockProgressRow[]>(() => {
+  const invitedCount = qualifiedInviteCount.value
+  return effectiveLevelRates.value.map((rule) => {
+    const threshold = normalizeUnlockThreshold(rule.unlock_invite_count ?? fallbackLevelUnlockThresholds[rule.level] ?? 0)
+    const unlocked = isLevelUnlocked(rule.level)
+    const remaining = Math.max(0, threshold - invitedCount)
+    const progressPercent = rule.level <= 1 || threshold <= 0
+      ? 100
+      : Math.min(100, Math.max(0, (invitedCount / threshold) * 100))
+    const cappedProgressCount = rule.level <= 1 ? 1 : Math.min(invitedCount, threshold)
+
+    return {
+      level: rule.level,
+      title: t('affiliate.levelRules.levelTitle', { level: rule.level }),
+      source: rule.source,
+      rateLabel: unlocked
+        ? t('affiliate.rebateGuide.rateValue', { rate: `${formatPercent(rule.rate_percent)}%` })
+        : t('affiliate.rebateGuide.lockedRateLabel'),
+      unlocked,
+      remaining,
+      progressPercent,
+      progressLabel: rule.level <= 1
+        ? t('affiliate.rebateGuide.alwaysOnProgress')
+        : t('affiliate.rebateGuide.inviteProgress'),
+      progressText: rule.level <= 1
+        ? t('affiliate.rebateGuide.availableNow')
+        : t('affiliate.rebateGuide.progressValue', {
+            current: formatCount(cappedProgressCount),
+            target: formatCount(threshold),
+          }),
+      requirementLabel: rule.level <= 1
+        ? t('affiliate.rebateGuide.level1Requirement')
+        : t('affiliate.rebateGuide.levelUnlockRequirement', {
+            level: rule.level,
+            count: formatCount(threshold),
+          }),
+      statusLabel: unlocked
+        ? t('affiliate.rebateGuide.unlocked')
+        : t('affiliate.rebateGuide.locked'),
+    }
+  })
+})
+
+const nextLockedProgress = computed(() => unlockProgressRows.value.find((row) => !row.unlocked) ?? null)
+
+const rebateMechanismItems = computed<RebateMechanismItem[]>(() => (
+  unlockProgressRows.value.map((row) => ({
+    level: row.level,
+    title: rebateMechanismTitle(row.level),
+    description: rebateMechanismDescription(row.level),
+    statusLabel: row.statusLabel,
+    rateLabel: row.rateLabel,
+    unlocked: row.unlocked,
+  }))
+))
+
+const rebateFlowItems = computed(() => [
+  t('affiliate.rebateGuide.flowInvite'),
+  t('affiliate.rebateGuide.flowRecharge'),
+  t('affiliate.rebateGuide.flowFreeze'),
+  t('affiliate.rebateGuide.flowTransfer'),
+])
 
 const levelDetails = computed<AffiliateLevelDetail[]>(() => {
   const rows = detail.value?.level_details ?? []
@@ -545,6 +856,26 @@ function formatOrderCount(value: number): string {
   return t('affiliate.levelDetails.orderCount', { count: formatCount(value) })
 }
 
+function normalizeUnlockThreshold(value: number): number {
+  const parsed = Math.floor(Number(value))
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+function levelUnlockThreshold(level: number): number {
+  const rule = effectiveLevelRates.value.find((item) => item.level === level)
+  return normalizeUnlockThreshold(rule?.unlock_invite_count ?? fallbackLevelUnlockThresholds[level] ?? 0)
+}
+
+function isLevelUnlocked(level: number): boolean {
+  if (level <= 1) return true
+  const rule = effectiveLevelRates.value.find((item) => item.level === level)
+  if (typeof rule?.unlocked === 'boolean') {
+    return rule.unlocked
+  }
+  const threshold = levelUnlockThreshold(level)
+  return threshold > 0 && qualifiedInviteCount.value >= threshold
+}
+
 function normalizeQuantityValue(value: number): number {
   const parsed = Math.floor(Number(value))
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -559,13 +890,39 @@ function normalizeSeatQuantity(): void {
 }
 
 function levelRateSourceLabel(source: string): string {
-  return source === 'exclusive'
-    ? t('affiliate.levelRules.sourceExclusive')
-    : t('affiliate.levelRules.sourceGlobal')
+  if (source === 'exclusive') {
+    return t('affiliate.levelRules.sourceExclusive')
+  }
+  if (source === 'locked') {
+    return t('affiliate.levelRules.sourceLocked')
+  }
+  return t('affiliate.levelRules.sourceGlobal')
 }
 
-function levelRuleHint(level: number): string {
-  return t(`affiliate.levelRules.level${level}Hint`)
+function rebateMechanismTitle(level: number): string {
+  switch (level) {
+    case 1:
+      return t('affiliate.rebateGuide.level1Title')
+    case 2:
+      return t('affiliate.rebateGuide.level2Title')
+    case 3:
+      return t('affiliate.rebateGuide.level3Title')
+    default:
+      return t('affiliate.levelRules.levelTitle', { level })
+  }
+}
+
+function rebateMechanismDescription(level: number): string {
+  switch (level) {
+    case 1:
+      return t('affiliate.rebateGuide.level1Description')
+    case 2:
+      return t('affiliate.rebateGuide.level2Description')
+    case 3:
+      return t('affiliate.rebateGuide.level3Description')
+    default:
+      return ''
+  }
 }
 
 function fallbackUserLabel(item: AffiliateLevelInvitee): string {
@@ -661,7 +1018,40 @@ async function purchaseRegistrationSeats(): Promise<void> {
   }
 }
 
+function maybeOpenGrowthTutorial(): void {
+  if (route.query.growth_tutorial === '1') {
+    tutorialDialogOpen.value = true
+  }
+}
+
+function closeGrowthTutorial(): void {
+  tutorialDialogOpen.value = false
+}
+
+async function confirmGrowthTutorial(): Promise<void> {
+  if (confirmingGrowthTutorial.value) return
+  confirmingGrowthTutorial.value = true
+  try {
+    await userAPI.markAffiliateTutorialDone()
+    tutorialDialogOpen.value = false
+    window.dispatchEvent(new CustomEvent('growth:center-refresh'))
+    appStore.showSuccess('新人任务已完成')
+    const query = { ...route.query }
+    delete query.growth_tutorial
+    await router.replace({ query })
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, '确认失败，请稍后重试'))
+  } finally {
+    confirmingGrowthTutorial.value = false
+  }
+}
+
+watch(() => route.query.growth_tutorial, () => {
+  maybeOpenGrowthTutorial()
+})
+
 onMounted(() => {
   void loadAffiliateDetail()
+  maybeOpenGrowthTutorial()
 })
 </script>

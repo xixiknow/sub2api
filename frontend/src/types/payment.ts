@@ -24,6 +24,26 @@ export type OrderType = 'balance' | 'subscription'
 
 // ==================== Configuration ====================
 
+export interface PaymentRechargeBonusRule {
+  id?: string
+  name?: string
+  min_amount: number
+  bonus_amount?: number
+  bonus_percent?: number
+  disabled?: boolean
+}
+
+export interface PaymentRechargeBonusSnapshot {
+  rule_id?: string
+  rule_name?: string
+  min_amount: number
+  bonus_amount: number
+  bonus_percent?: number
+  payment_amount: number
+  base_amount: number
+  credited_amount: number
+}
+
 export interface PaymentConfig {
   payment_enabled: boolean
   min_amount: number
@@ -33,6 +53,7 @@ export interface PaymentConfig {
   order_timeout_minutes: number
   balance_disabled: boolean
   balance_recharge_multiplier: number
+  recharge_bonus_rules?: PaymentRechargeBonusRule[]
   enabled_payment_types: PaymentType[]
   help_image_url: string
   help_text: string
@@ -65,6 +86,7 @@ export interface CheckoutInfoResponse {
   balance_disabled: boolean
   balance_recharge_multiplier: number
   recharge_fee_rate: number
+  recharge_bonus_rules: PaymentRechargeBonusRule[]
   help_text: string
   help_image_url: string
   stripe_publishable_key: string
@@ -189,6 +211,8 @@ export interface CreateOrderResult {
   client_secret?: string
   pay_amount: number
   fee_rate: number
+  bonus_amount?: number
+  bonus?: PaymentRechargeBonusSnapshot
   expires_at: string
   result_type?: CreateOrderResultType
   payment_type?: string

@@ -2,7 +2,12 @@
   <!-- Row 1: Core Stats -->
   <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
     <!-- Balance -->
-    <div v-if="!isSimple" class="card p-4">
+    <div
+      v-if="!isSimple"
+      id="dashboard-balance-card"
+      tabindex="-1"
+      class="card p-4 outline-none transition-shadow focus:ring-2 focus:ring-emerald-300 dark:focus:ring-emerald-800"
+    >
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-emerald-100 p-2 dark:bg-emerald-900/30">
           <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

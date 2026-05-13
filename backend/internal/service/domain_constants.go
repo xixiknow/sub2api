@@ -20,8 +20,8 @@ const (
 
 // Affiliate rebate settings
 const (
-	AffiliateRebateRateDefault           = 20.0
-	AffiliateLevelRatesDefault           = "[20,5,2]"
+	AffiliateRebateRateDefault           = 5.0
+	AffiliateLevelRatesDefault           = "[5,1,0.5]"
 	AffiliateLevelsMax                   = 3
 	AffiliateRebateRateMin               = 0.0
 	AffiliateRebateRateMax               = 100.0
@@ -32,6 +32,8 @@ const (
 	AffiliateRebateDurationDaysMax       = 3650  // ~10 年
 	AffiliateRebatePerInviteeCapDefault  = 0.0   // 0 = 无上限
 	AffiliateRegistrationSeatCostDefault = 1.0   // 每个注册名额默认消耗 1 余额
+	AffiliateLevel2UnlockInviteCount     = 3     // 邀请达到 3 人后解锁二级返现
+	AffiliateLevel3UnlockInviteCount     = 10    // 邀请达到 10 人后解锁三级返现
 )
 
 // Platform constants
@@ -181,6 +183,8 @@ const (
 	// OEM设置
 	SettingKeySiteName                    = "site_name"                     // 网站名称
 	SettingKeySiteLogo                    = "site_logo"                     // 网站Logo (base64)
+	SettingKeyCommunityImageURL           = "community_image_url"           // 社群展示图片（base64 data URL 或图片 URL）
+	SettingKeyCommunityLinkURL            = "community_link_url"            // 社群入口链接
 	SettingKeySiteSubtitle                = "site_subtitle"                 // 网站副标题
 	SettingKeyAPIBaseURL                  = "api_base_url"                  // API端点地址（用于客户端配置和导入）
 	SettingKeyContactInfo                 = "contact_info"                  // 客服联系方式

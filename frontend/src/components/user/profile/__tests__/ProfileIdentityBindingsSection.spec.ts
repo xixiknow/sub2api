@@ -245,6 +245,8 @@ describe('ProfileIdentityBindingsSection', () => {
       turnstile_site_key: '',
       site_name: 'Sub2API',
       site_logo: '',
+      community_image_url: '',
+      community_link_url: '',
       site_subtitle: '',
       api_base_url: '',
       contact_info: '',

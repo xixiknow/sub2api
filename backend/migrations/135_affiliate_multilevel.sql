@@ -1,10 +1,5 @@
 -- 三级邀请返佣：为返佣流水记录层级、比例，并用订单+层级保证幂等。
 
--- 兼容历史实例：部分设置表由早期 schema 创建，只有 updated_at 而没有 created_at。
--- 后续 Go/SQL 写入路径可能会带上 created_at，先补齐默认值避免安装阶段中断。
-ALTER TABLE settings
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
-
 ALTER TABLE user_affiliate_ledger
     ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
 

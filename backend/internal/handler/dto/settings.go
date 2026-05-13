@@ -3,6 +3,8 @@ package dto
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
 // CustomMenuItem represents a user-configured custom menu entry.
@@ -93,6 +95,8 @@ type SystemSettings struct {
 
 	SiteName                    string           `json:"site_name"`
 	SiteLogo                    string           `json:"site_logo"`
+	CommunityImageURL           string           `json:"community_image_url"`
+	CommunityLinkURL            string           `json:"community_link_url"`
 	SiteSubtitle                string           `json:"site_subtitle"`
 	APIBaseURL                  string           `json:"api_base_url"`
 	ContactInfo                 string           `json:"contact_info"`
@@ -106,16 +110,16 @@ type SystemSettings struct {
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
 
-	DefaultConcurrency           int                          `json:"default_concurrency"`
-	DefaultBalance               float64                      `json:"default_balance"`
-	AffiliateRebateRate          float64                      `json:"affiliate_rebate_rate"`
-	AffiliateLevelRates          []float64                    `json:"affiliate_level_rates"`
-	AffiliateRebateFreezeHours   int                          `json:"affiliate_rebate_freeze_hours"`
-	AffiliateRebateDurationDays  int                          `json:"affiliate_rebate_duration_days"`
-	AffiliateRebatePerInviteeCap float64                      `json:"affiliate_rebate_per_invitee_cap"`
-	AffiliateRegistrationSeatCost float64                     `json:"affiliate_registration_seat_cost"`
-	DefaultUserRPMLimit          int                          `json:"default_user_rpm_limit"`
-	DefaultSubscriptions         []DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DefaultConcurrency            int                          `json:"default_concurrency"`
+	DefaultBalance                float64                      `json:"default_balance"`
+	AffiliateRebateRate           float64                      `json:"affiliate_rebate_rate"`
+	AffiliateLevelRates           []float64                    `json:"affiliate_level_rates"`
+	AffiliateRebateFreezeHours    int                          `json:"affiliate_rebate_freeze_hours"`
+	AffiliateRebateDurationDays   int                          `json:"affiliate_rebate_duration_days"`
+	AffiliateRebatePerInviteeCap  float64                      `json:"affiliate_rebate_per_invitee_cap"`
+	AffiliateRegistrationSeatCost float64                      `json:"affiliate_registration_seat_cost"`
+	DefaultUserRPMLimit           int                          `json:"default_user_rpm_limit"`
+	DefaultSubscriptions          []DefaultSubscriptionSetting `json:"default_subscriptions"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -162,21 +166,22 @@ type SystemSettings struct {
 	OpenAIAdvancedSchedulerEnabled bool `json:"openai_advanced_scheduler_enabled"`
 
 	// Payment configuration
-	PaymentEnabled                   bool     `json:"payment_enabled"`
-	PaymentMinAmount                 float64  `json:"payment_min_amount"`
-	PaymentMaxAmount                 float64  `json:"payment_max_amount"`
-	PaymentDailyLimit                float64  `json:"payment_daily_limit"`
-	PaymentOrderTimeoutMin           int      `json:"payment_order_timeout_minutes"`
-	PaymentMaxPendingOrders          int      `json:"payment_max_pending_orders"`
-	PaymentEnabledTypes              []string `json:"payment_enabled_types"`
-	PaymentBalanceDisabled           bool     `json:"payment_balance_disabled"`
-	PaymentBalanceRechargeMultiplier float64  `json:"payment_balance_recharge_multiplier"`
-	PaymentRechargeFeeRate           float64  `json:"payment_recharge_fee_rate"`
-	PaymentLoadBalanceStrat          string   `json:"payment_load_balance_strategy"`
-	PaymentProductNamePrefix         string   `json:"payment_product_name_prefix"`
-	PaymentProductNameSuffix         string   `json:"payment_product_name_suffix"`
-	PaymentHelpImageURL              string   `json:"payment_help_image_url"`
-	PaymentHelpText                  string   `json:"payment_help_text"`
+	PaymentEnabled                   bool                               `json:"payment_enabled"`
+	PaymentMinAmount                 float64                            `json:"payment_min_amount"`
+	PaymentMaxAmount                 float64                            `json:"payment_max_amount"`
+	PaymentDailyLimit                float64                            `json:"payment_daily_limit"`
+	PaymentOrderTimeoutMin           int                                `json:"payment_order_timeout_minutes"`
+	PaymentMaxPendingOrders          int                                `json:"payment_max_pending_orders"`
+	PaymentEnabledTypes              []string                           `json:"payment_enabled_types"`
+	PaymentBalanceDisabled           bool                               `json:"payment_balance_disabled"`
+	PaymentBalanceRechargeMultiplier float64                            `json:"payment_balance_recharge_multiplier"`
+	PaymentRechargeFeeRate           float64                            `json:"payment_recharge_fee_rate"`
+	PaymentRechargeBonusRules        []service.PaymentRechargeBonusRule `json:"payment_recharge_bonus_rules"`
+	PaymentLoadBalanceStrat          string                             `json:"payment_load_balance_strategy"`
+	PaymentProductNamePrefix         string                             `json:"payment_product_name_prefix"`
+	PaymentProductNameSuffix         string                             `json:"payment_product_name_suffix"`
+	PaymentHelpImageURL              string                             `json:"payment_help_image_url"`
+	PaymentHelpText                  string                             `json:"payment_help_text"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -224,6 +229,8 @@ type PublicSettings struct {
 	TurnstileSiteKey                 string           `json:"turnstile_site_key"`
 	SiteName                         string           `json:"site_name"`
 	SiteLogo                         string           `json:"site_logo"`
+	CommunityImageURL                string           `json:"community_image_url"`
+	CommunityLinkURL                 string           `json:"community_link_url"`
 	SiteSubtitle                     string           `json:"site_subtitle"`
 	APIBaseURL                       string           `json:"api_base_url"`
 	ContactInfo                      string           `json:"contact_info"`

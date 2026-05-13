@@ -28,6 +28,8 @@ func RegisterUserRoutes(
 			user.GET("/aff", h.User.GetAffiliate)
 			user.POST("/aff/transfer", h.User.TransferAffiliateQuota)
 			user.POST("/aff/registration-seats", h.User.PurchaseAffiliateRegistrationSeats)
+			user.GET("/growth", h.User.GetGrowth)
+			user.POST("/growth/events/affiliate-tutorial-done", h.User.MarkAffiliateTutorialDone)
 			user.POST("/account-bindings/email/send-code", h.User.SendEmailBindingCode)
 			user.POST("/account-bindings/email", h.User.BindEmailIdentity)
 			user.DELETE("/account-bindings/:provider", h.User.UnbindIdentity)
@@ -101,6 +103,7 @@ func RegisterUserRoutes(
 		redeem := authenticated.Group("/redeem")
 		{
 			redeem.POST("", h.Redeem.Redeem)
+			redeem.POST("/promo", h.Redeem.RedeemPromo)
 			redeem.GET("/history", h.Redeem.GetHistory)
 		}
 

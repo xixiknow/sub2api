@@ -51,6 +51,9 @@ func (s *AuthService) ValidateRegistrationCode(ctx context.Context, rawCode stri
 
 	if invite, err := s.lookupRegistrationAffiliateInvite(ctx, code); err == nil {
 		available := invite.RegistrationSeatAvailable
+		if s.affiliateRegistrationSeatsFree(ctx) {
+			available = -1
+		}
 		return RegistrationCodeValidationResult{
 			Valid:          true,
 			CodeType:       RegistrationCodeTypeAffiliate,
@@ -142,10 +145,17 @@ func (s *AuthService) lookupRegistrationAffiliateInvite(ctx context.Context, raw
 	if err != nil {
 		return nil, err
 	}
+	if s.affiliateRegistrationSeatsFree(ctx) {
+		return invite, nil
+	}
 	if invite.RegistrationSeatAvailable <= 0 {
 		return invite, ErrRegistrationInviteSeatsEmpty
 	}
 	return invite, nil
+}
+
+func (s *AuthService) affiliateRegistrationSeatsFree(ctx context.Context) bool {
+	return s != nil && s.affiliateService != nil && s.affiliateService.registrationSeatCost(ctx) <= 0
 }
 
 func (s *AuthService) lookupRegistrationRedeemCode(ctx context.Context, rawCode string) (*RedeemCode, error) {

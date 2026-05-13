@@ -6,6 +6,14 @@
 import { apiClient } from './client'
 import type { RedeemCodeRequest } from '@/types'
 
+export interface RedeemResult {
+  message: string
+  type: string
+  value: number
+  new_balance?: number
+  new_concurrency?: number
+}
+
 export interface RedeemHistoryItem {
   id: number
   code: string
@@ -51,6 +59,25 @@ export async function redeem(code: string): Promise<{
 }
 
 /**
+ * Redeem a reusable promo/welfare code.
+ * Used for permanent QQ group codes where each user can redeem once.
+ */
+export async function redeemPromo(code: string): Promise<RedeemResult> {
+  const payload: RedeemCodeRequest = { code }
+  const { data } = await apiClient.post<{
+    bonus_amount: number
+    balance_after: number
+  }>('/redeem/promo', payload)
+
+  return {
+    message: 'OK',
+    type: 'balance',
+    value: data.bonus_amount,
+    new_balance: data.balance_after,
+  }
+}
+
+/**
  * Get user's redemption history
  * @returns List of redeemed codes
  */
@@ -61,6 +88,7 @@ export async function getHistory(): Promise<RedeemHistoryItem[]> {
 
 export const redeemAPI = {
   redeem,
+  redeemPromo,
   getHistory
 }
 

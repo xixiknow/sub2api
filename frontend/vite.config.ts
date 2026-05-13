@@ -37,8 +37,14 @@ function injectPublicSettings(backendUrl: string): Plugin {
 export default defineConfig(({ mode }) => {
   // 加载环境变量
   const env = loadEnv(mode, process.cwd(), '')
-  const backendUrl = env.VITE_DEV_PROXY_TARGET || 'http://localhost:8080'
-  const devPort = Number(env.VITE_DEV_PORT || 3000)
+  // 默认跟随后端 SERVER_PORT，保持开发代理目标和后端监听端口一致。
+  const backendHost = env.VITE_DEV_PROXY_HOST || process.env.VITE_DEV_PROXY_HOST || 'localhost'
+  const backendPort = env.SERVER_PORT || process.env.SERVER_PORT || '8080'
+  const backendUrl =
+    env.VITE_DEV_PROXY_TARGET ||
+    process.env.VITE_DEV_PROXY_TARGET ||
+    `http://${backendHost}:${backendPort}`
+  const devPort = Number(env.VITE_DEV_PORT || process.env.VITE_DEV_PORT || 3000)
 
   return {
     plugins: [
