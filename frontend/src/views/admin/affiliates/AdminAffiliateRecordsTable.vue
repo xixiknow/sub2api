@@ -7,6 +7,17 @@
             <Icon name="search" size="md" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input v-model="filters.search" type="text" class="input pl-10" :placeholder="t('admin.affiliates.records.searchPlaceholder')" @input="debounceLoad" />
           </div>
+          <select
+            v-if="props.type === 'rebates'"
+            v-model.number="filters.level"
+            class="input w-full sm:w-36"
+            @change="reloadFromFirstPage"
+          >
+            <option :value="0">{{ t('admin.affiliates.records.allLevels') }}</option>
+            <option v-for="level in [1, 2, 3]" :key="level" :value="level">
+              {{ t('admin.affiliates.records.levelOption', { level }) }}
+            </option>
+          </select>
           <input v-model="filters.start_at" type="date" class="input w-full sm:w-44" :title="t('admin.affiliates.records.startAt')" @change="reloadFromFirstPage" />
           <input v-model="filters.end_at" type="date" class="input w-full sm:w-44" :title="t('admin.affiliates.records.endAt')" @change="reloadFromFirstPage" />
           <button class="btn btn-secondary px-2 md:px-3" :disabled="loading" :title="t('common.refresh')" @click="loadRecords">
@@ -64,6 +75,19 @@
           </template>
           <template #cell-payment_type="{ row }">
             {{ t('payment.methods.' + row.payment_type, row.payment_type || '-') }}
+          </template>
+          <template #cell-action="{ row }">
+            <span :class="recordActionClass(row.action)">
+              {{ t('admin.affiliates.records.actions.' + (row.action || 'accrue'), row.action || '-') }}
+            </span>
+          </template>
+          <template #cell-level="{ row }">
+            <span class="badge badge-primary">
+              {{ t('admin.affiliates.records.levelOption', { level: row.level || 1 }) }}
+            </span>
+          </template>
+          <template #cell-rate_percent="{ row }">
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatPercent(row.rate_percent) }}</span>
           </template>
           <template #cell-order_status="{ row }">
             <OrderStatusBadge :status="row.order_status" />
@@ -169,7 +193,7 @@ const { t } = useI18n()
 const appStore = useAppStore()
 const loading = ref(false)
 const records = ref<AffiliateRecord[]>([])
-const filters = reactive({ search: '', start_at: '', end_at: '' })
+const filters = reactive({ search: '', start_at: '', end_at: '', level: 0 })
 const pagination = reactive({ page: 1, page_size: 20, total: 0 })
 const overviewDialog = ref(false)
 const overviewLoading = ref(false)
@@ -189,8 +213,11 @@ const columns = computed<Column[]>(() => {
   if (props.type === 'rebates') {
     return [
       { key: 'order', label: t('admin.affiliates.records.order'), sortable: true },
+      { key: 'action', label: t('admin.affiliates.records.action'), sortable: true },
       { key: 'inviter', label: t('admin.affiliates.records.inviter'), sortable: true },
       { key: 'invitee', label: t('admin.affiliates.records.invitee'), sortable: true },
+      { key: 'level', label: t('admin.affiliates.records.level'), sortable: true },
+      { key: 'rate_percent', label: t('admin.affiliates.records.ratePercent'), sortable: true },
       { key: 'order_amount', label: t('admin.affiliates.records.orderAmount'), sortable: true },
       { key: 'pay_amount', label: t('admin.affiliates.records.payAmount'), sortable: true },
       { key: 'rebate_amount', label: t('admin.affiliates.records.rebateAmount') },
@@ -249,6 +276,7 @@ function buildParams(): ListAffiliateRecordsParams {
     sort_by: sortState.sort_by,
     sort_order: sortState.sort_order,
     timezone: userTimezone(),
+    level: props.type === 'rebates' && filters.level > 0 ? filters.level : undefined,
   }
 }
 
@@ -312,6 +340,13 @@ function formatPercent(value: number | null | undefined): string {
   return `${Number.isInteger(rounded) ? rounded.toString() : rounded.toString()}%`
 }
 
+function recordActionClass(action: string | null | undefined): string {
+  if (action === 'refund_clawback') {
+    return 'badge border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300'
+  }
+  return 'badge badge-primary'
+}
+
 function formatDateTime(value: string | null | undefined): string {
   return value ? formatDisplayDateTime(value) : '-'
 }
@@ -360,11 +395,17 @@ const AmountText = defineComponent({
     strong: { type: Boolean, default: false },
   },
   setup(amountProps) {
-    return () => h('span', {
-      class: amountProps.strong
-        ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400'
-        : 'text-sm text-gray-900 dark:text-white',
-    }, `$${formatAmount(amountProps.value)}`)
+    return () => {
+      const value = amountProps.value || 0
+      const negative = value < 0
+      return h('span', {
+        class: negative
+          ? 'text-sm font-semibold text-amber-700 dark:text-amber-300'
+          : amountProps.strong
+            ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400'
+            : 'text-sm text-gray-900 dark:text-white',
+      }, `${negative ? '-' : ''}$${formatAmount(Math.abs(value))}`)
+    }
   },
 })
 

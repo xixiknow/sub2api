@@ -9,7 +9,8 @@ import type {
   PaymentOrder,
   PaymentChannel,
   SubscriptionPlan,
-  ProviderInstance
+  ProviderInstance,
+  PaymentRechargeBonusRule
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -24,6 +25,7 @@ export interface AdminPaymentConfig {
   enabled_payment_types: string[]
   balance_disabled: boolean
   balance_recharge_multiplier: number
+  recharge_bonus_rules?: PaymentRechargeBonusRule[]
   load_balance_strategy: string
   product_name_prefix: string
   product_name_suffix: string
@@ -42,6 +44,7 @@ export interface UpdatePaymentConfigRequest {
   enabled_payment_types?: string[]
   balance_disabled?: boolean
   balance_recharge_multiplier?: number
+  recharge_bonus_rules?: PaymentRechargeBonusRule[]
   load_balance_strategy?: string
   product_name_prefix?: string
   product_name_suffix?: string

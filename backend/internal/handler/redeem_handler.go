@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -12,12 +14,14 @@ import (
 // RedeemHandler handles redeem code-related requests
 type RedeemHandler struct {
 	redeemService *service.RedeemService
+	promoService  *service.PromoService
 }
 
 // NewRedeemHandler creates a new RedeemHandler
-func NewRedeemHandler(redeemService *service.RedeemService) *RedeemHandler {
+func NewRedeemHandler(redeemService *service.RedeemService, promoService *service.PromoService) *RedeemHandler {
 	return &RedeemHandler{
 		redeemService: redeemService,
+		promoService:  promoService,
 	}
 }
 
@@ -52,11 +56,57 @@ func (h *RedeemHandler) Redeem(c *gin.Context) {
 
 	result, err := h.redeemService.Redeem(c.Request.Context(), subject.UserID, req.Code)
 	if err != nil {
+		if errors.Is(err, service.ErrRedeemCodeNotFound) && h.promoService != nil {
+			promoResult, promoErr := h.promoService.RedeemPromoCode(c.Request.Context(), subject.UserID, req.Code)
+			if promoErr == nil {
+				newBalance := promoResult.BalanceAfter
+				response.Success(c, RedeemResponse{
+					Message:    "OK",
+					Type:       service.RedeemTypeBalance,
+					Value:      promoResult.BonusAmount,
+					NewBalance: &newBalance,
+				})
+				return
+			}
+			if !errors.Is(promoErr, service.ErrPromoCodeNotFound) {
+				response.ErrorFrom(c, promoErr)
+				return
+			}
+		}
 		response.ErrorFrom(c, err)
 		return
 	}
 
 	response.Success(c, dto.RedeemCodeFromService(result))
+}
+
+// RedeemPromo handles reusable welfare codes such as permanent QQ group codes.
+// POST /api/v1/redeem/promo
+func (h *RedeemHandler) RedeemPromo(c *gin.Context) {
+	if h.promoService == nil {
+		response.InternalError(c, "promo service not configured")
+		return
+	}
+
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	var req RedeemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	result, err := h.promoService.RedeemPromoCode(c.Request.Context(), subject.UserID, req.Code)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, result)
 }
 
 // GetHistory returns the user's redemption history

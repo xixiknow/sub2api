@@ -16,13 +16,16 @@ export interface DefaultSubscriptionSetting {
   validity_days: number;
 }
 
-export type AuthSourceType =
-  | "email"
-  | "linuxdo"
-  | "oidc"
-  | "wechat"
-  | "github"
-  | "google";
+export interface PaymentRechargeBonusRule {
+  id?: string;
+  name?: string;
+  min_amount: number;
+  bonus_amount?: number;
+  bonus_percent?: number;
+  disabled?: boolean;
+}
+
+export type AuthSourceType = "email" | "linuxdo" | "oidc" | "wechat";
 
 export interface AuthSourceDefaultsValue {
   balance: number;
@@ -41,8 +44,10 @@ export type PaymentVisibleMethodSource =
   | ""
   | "official_alipay"
   | "easypay_alipay"
+  | "dulupay_alipay"
   | "official_wxpay"
-  | "easypay_wxpay";
+  | "easypay_wxpay"
+  | "dulupay_wxpay";
 export type WeChatConnectMode = "open" | "mp" | "mobile";
 
 export interface PaymentVisibleMethodSourceOption {
@@ -83,6 +88,11 @@ const PAYMENT_VISIBLE_METHOD_SOURCE_OPTIONS: Record<
       labelZh: "易支付支付宝",
       labelEn: "EasyPay Alipay",
     },
+    {
+      value: "dulupay_alipay",
+      labelZh: "Dulupay 支付宝",
+      labelEn: "Dulupay Alipay",
+    },
   ],
   wxpay: [
     { value: "", labelZh: "未配置", labelEn: "Not configured" },
@@ -95,6 +105,11 @@ const PAYMENT_VISIBLE_METHOD_SOURCE_OPTIONS: Record<
       value: "easypay_wxpay",
       labelZh: "易支付微信",
       labelEn: "EasyPay WeChat Pay",
+    },
+    {
+      value: "dulupay_wxpay",
+      labelZh: "Dulupay 微信",
+      labelEn: "Dulupay WeChat Pay",
     },
   ],
 };
@@ -109,6 +124,8 @@ const PAYMENT_VISIBLE_METHOD_SOURCE_ALIASES: Record<
     official: "official_alipay",
     easypay_alipay: "easypay_alipay",
     easypay: "easypay_alipay",
+    dulupay_alipay: "dulupay_alipay",
+    dulupay: "dulupay_alipay",
   },
   wxpay: {
     official_wxpay: "official_wxpay",
@@ -118,6 +135,8 @@ const PAYMENT_VISIBLE_METHOD_SOURCE_ALIASES: Record<
     official: "official_wxpay",
     easypay_wxpay: "easypay_wxpay",
     easypay: "easypay_wxpay",
+    dulupay_wxpay: "dulupay_wxpay",
+    dulupay: "dulupay_wxpay",
   },
 };
 const WECHAT_CONNECT_MODE_OPTIONS: WeChatConnectModeOption[] = [
@@ -326,9 +345,11 @@ export interface SystemSettings {
   // Default settings
   default_balance: number;
   affiliate_rebate_rate: number;
+  affiliate_level_rates?: number[];
   affiliate_rebate_freeze_hours: number;
   affiliate_rebate_duration_days: number;
   affiliate_rebate_per_invitee_cap: number;
+  affiliate_registration_seat_cost: number;
   default_concurrency: number;
   default_user_rpm_limit: number;
   default_subscriptions: DefaultSubscriptionSetting[];
@@ -366,6 +387,8 @@ export interface SystemSettings {
   // OEM settings
   site_name: string;
   site_logo: string;
+  community_image_url: string;
+  community_link_url: string;
   site_subtitle: string;
   api_base_url: string;
   contact_info: string;
@@ -491,6 +514,7 @@ export interface SystemSettings {
   payment_balance_disabled: boolean;
   payment_balance_recharge_multiplier: number;
   payment_recharge_fee_rate: number;
+  payment_recharge_bonus_rules: PaymentRechargeBonusRule[];
   payment_load_balance_strategy: string;
   payment_product_name_prefix: string;
   payment_product_name_suffix: string;
@@ -543,9 +567,11 @@ export interface UpdateSettingsRequest {
   login_agreement_documents?: LoginAgreementDocument[];
   default_balance?: number;
   affiliate_rebate_rate?: number;
+  affiliate_level_rates?: number[];
   affiliate_rebate_freeze_hours?: number;
   affiliate_rebate_duration_days?: number;
   affiliate_rebate_per_invitee_cap?: number;
+  affiliate_registration_seat_cost?: number;
   default_concurrency?: number;
   default_user_rpm_limit?: number;
   default_subscriptions?: DefaultSubscriptionSetting[];
@@ -582,6 +608,8 @@ export interface UpdateSettingsRequest {
   force_email_on_third_party_signup?: boolean;
   site_name?: string;
   site_logo?: string;
+  community_image_url?: string;
+  community_link_url?: string;
   site_subtitle?: string;
   api_base_url?: string;
   contact_info?: string;
@@ -685,6 +713,7 @@ export interface UpdateSettingsRequest {
   payment_balance_disabled?: boolean;
   payment_balance_recharge_multiplier?: number;
   payment_recharge_fee_rate?: number;
+  payment_recharge_bonus_rules?: PaymentRechargeBonusRule[];
   payment_load_balance_strategy?: string;
   payment_product_name_prefix?: string;
   payment_product_name_suffix?: string;

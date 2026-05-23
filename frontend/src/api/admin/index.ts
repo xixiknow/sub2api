@@ -30,7 +30,7 @@ import channelMonitorAPI from './channelMonitor'
 import channelMonitorTemplateAPI from './channelMonitorTemplate'
 import adminPaymentAPI from './payment'
 import affiliatesAPI from './affiliates'
-import riskControlAPI from './riskControl'
+import growthAPI from './growth'
 
 /**
  * Unified admin API object for convenient access
@@ -63,7 +63,7 @@ export const adminAPI = {
   channelMonitorTemplate: channelMonitorTemplateAPI,
   payment: adminPaymentAPI,
   affiliates: affiliatesAPI,
-  riskControl: riskControlAPI
+  growth: growthAPI
 }
 
 export {
@@ -94,7 +94,7 @@ export {
   channelMonitorTemplateAPI,
   adminPaymentAPI,
   affiliatesAPI,
-  riskControlAPI
+  growthAPI
 }
 
 export default adminAPI
@@ -104,4 +104,10 @@ export type { BalanceHistoryItem } from './users'
 export type { ErrorPassthroughRule, CreateRuleRequest, UpdateRuleRequest } from './errorPassthrough'
 export type { BackupAgentHealth, DataManagementConfig } from './dataManagement'
 export type { TLSFingerprintProfile, CreateProfileRequest, UpdateProfileRequest } from './tlsFingerprintProfile'
-export type { ContentModerationConfig, ContentModerationLog, ModerationMode } from './riskControl'
+export type {
+  BadgeBenefitRule,
+  GrowthBadgeDefinition,
+  GrowthBenefitType,
+  GrowthUserEntry,
+  UpsertBadgeBenefitRuleRequest
+} from './growth'

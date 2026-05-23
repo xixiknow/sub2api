@@ -74,6 +74,15 @@
             </div>
           </template>
 
+          <template #cell-purpose="{ value }">
+            <span
+              class="badge"
+              :class="value === 'community_join' ? 'badge-warning' : 'badge-gray'"
+            >
+              {{ getPurposeLabel(value) }}
+            </span>
+          </template>
+
           <template #cell-bonus_amount="{ value }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
               ${{ value.toFixed(2) }}
@@ -177,6 +186,11 @@
           />
         </div>
         <div>
+          <label class="input-label">用途</label>
+          <Select v-model="createForm.purpose" :options="purposeOptions" />
+          <p class="input-hint">QQ 社群福利码可永久有效，每个用户只能兑换一次，用于完成加入社群任务。</p>
+        </div>
+        <div>
           <label class="input-label">{{ t('admin.promo.bonusAmount') }}</label>
           <input
             v-model.number="createForm.bonus_amount"
@@ -250,6 +264,10 @@
             type="text"
             class="input font-mono uppercase"
           />
+        </div>
+        <div>
+          <label class="input-label">用途</label>
+          <Select v-model="editForm.purpose" :options="purposeOptions" />
         </div>
         <div>
           <label class="input-label">{{ t('admin.promo.bonusAmount') }}</label>
@@ -450,6 +468,7 @@ const usagesTotal = ref(0)
 // Forms
 const createForm = reactive({
   code: '',
+  purpose: 'general' as 'general' | 'community_join',
   bonus_amount: 1,
   max_uses: 0,
   expires_at_str: '',
@@ -458,6 +477,7 @@ const createForm = reactive({
 
 const editForm = reactive({
   code: '',
+  purpose: 'general' as 'general' | 'community_join',
   bonus_amount: 0,
   max_uses: 0,
   status: 'active' as 'active' | 'disabled',
@@ -477,8 +497,14 @@ const statusOptions = computed(() => [
   { value: 'disabled', label: t('admin.promo.statusDisabled') }
 ])
 
+const purposeOptions = computed(() => [
+  { value: 'general', label: '普通优惠码' },
+  { value: 'community_join', label: 'QQ 社群福利码' }
+])
+
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('admin.promo.columns.code') },
+  { key: 'purpose', label: '用途' },
   { key: 'bonus_amount', label: t('admin.promo.columns.bonusAmount'), sortable: true },
   { key: 'usage', label: t('admin.promo.columns.usage') },
   { key: 'status', label: t('admin.promo.columns.status'), sortable: true },
@@ -506,6 +532,10 @@ const getStatusLabel = (status: string, row: PromoCode) => {
     return t('admin.promo.statusMaxUsed')
   }
   return status === 'active' ? t('admin.promo.statusActive') : t('admin.promo.statusDisabled')
+}
+
+const getPurposeLabel = (purpose: string) => {
+  return purpose === 'community_join' ? 'QQ 社群福利码' : '普通优惠码'
 }
 
 // API calls
@@ -597,6 +627,7 @@ const handleCreate = async () => {
   try {
     await adminAPI.promo.create({
       code: createForm.code || undefined,
+      purpose: createForm.purpose,
       bonus_amount: createForm.bonus_amount,
       max_uses: createForm.max_uses,
       expires_at: createForm.expires_at_str ? Math.floor(new Date(createForm.expires_at_str).getTime() / 1000) : undefined,
@@ -615,6 +646,7 @@ const handleCreate = async () => {
 
 const resetCreateForm = () => {
   createForm.code = ''
+  createForm.purpose = 'general'
   createForm.bonus_amount = 1
   createForm.max_uses = 0
   createForm.expires_at_str = ''
@@ -625,6 +657,7 @@ const resetCreateForm = () => {
 const handleEdit = (code: PromoCode) => {
   editingCode.value = code
   editForm.code = code.code
+  editForm.purpose = code.purpose || 'general'
   editForm.bonus_amount = code.bonus_amount
   editForm.max_uses = code.max_uses
   editForm.status = code.status
@@ -645,6 +678,7 @@ const handleUpdate = async () => {
   try {
     await adminAPI.promo.update(editingCode.value.id, {
       code: editForm.code,
+      purpose: editForm.purpose,
       bonus_amount: editForm.bonus_amount,
       max_uses: editForm.max_uses,
       status: editForm.status,

@@ -748,6 +748,7 @@ func TestAPIContracts(t *testing.T) {
 					"default_concurrency": 5,
 					"default_balance": 1.25,
 					"affiliate_rebate_rate": 20,
+					"affiliate_level_rates": [20, 5, 2],
 					"affiliate_rebate_freeze_hours": 0,
 					"affiliate_rebate_duration_days": 0,
 					"affiliate_rebate_per_invitee_cap": 0,
@@ -964,6 +965,7 @@ func TestAPIContracts(t *testing.T) {
 					"default_concurrency": 0,
 					"default_balance": 0,
 					"affiliate_rebate_rate": 20,
+					"affiliate_level_rates": [20, 5, 2],
 					"affiliate_rebate_freeze_hours": 0,
 					"affiliate_rebate_duration_days": 0,
 					"affiliate_rebate_per_invitee_cap": 0,
@@ -1183,8 +1185,8 @@ func newContractDeps(t *testing.T) *contractDeps {
 	subscriptionService := service.NewSubscriptionService(groupRepo, userSubRepo, nil, nil, cfg)
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionService)
 
-	redeemService := service.NewRedeemService(redeemRepo, userRepo, subscriptionService, nil, nil, nil, nil, nil)
-	redeemHandler := handler.NewRedeemHandler(redeemService)
+	redeemService := service.NewRedeemService(redeemRepo, userRepo, subscriptionService, nil, nil, nil, nil)
+	redeemHandler := handler.NewRedeemHandler(redeemService, nil)
 
 	settingRepo := newStubSettingRepo()
 	settingService := service.NewSettingService(settingRepo, cfg)

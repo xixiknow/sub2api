@@ -63,6 +63,7 @@ deploy/sub2api.service
 deploy/sub2api-sudoers
 deploy/data/
 deploy/postgres_data/
+deploy/postgres_data_backup/
 deploy/redis_data/
 
 # GoReleaser

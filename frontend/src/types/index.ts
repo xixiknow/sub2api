@@ -133,22 +133,90 @@ export interface AffiliateInvitee {
   total_rebate: number
 }
 
+export interface AffiliateLevelRebateSummary {
+  level: number
+  rebate_amount: number
+}
+
+export interface AffiliateLevelInvitee {
+  user_id: number
+  email: string
+  username: string
+  joined_at?: string
+  total_rebate: number
+  frozen_rebate: number
+  available_rebate: number
+  order_count: number
+  last_rebate_at?: string
+  parent_user_id?: number | null
+  parent_email?: string
+  parent_username?: string
+}
+
+export interface AffiliateLevelDetail {
+  level: number
+  invitee_count: number
+  total_rebate: number
+  frozen_rebate: number
+  available_rebate: number
+  invitees: AffiliateLevelInvitee[]
+}
+
+export interface AffiliateLevelRateRule {
+  level: number
+  rate_percent: number
+  source: 'exclusive' | 'global' | string
+  unlocked?: boolean
+  unlock_invite_count?: number
+}
+
 export interface UserAffiliateDetail {
   user_id: number
   aff_code: string
   inviter_id?: number | null
   aff_count: number
+  qualified_aff_count?: number
   aff_quota: number
   aff_frozen_quota: number
   aff_history_quota: number
+  registration_seat_cost: number
+  registration_seat_total: number
+  registration_seat_used: number
+  registration_seat_available: number
   /** 当前用户作为邀请人时实际生效的返利比例（专属覆盖全局）。0-100。 */
   effective_rebate_rate_percent: number
+  effective_level_rates: AffiliateLevelRateRule[]
+  level_rebates: AffiliateLevelRebateSummary[]
+  level_details: AffiliateLevelDetail[]
   invitees: AffiliateInvitee[]
+}
+
+export interface UserGrowthStatus {
+  community_joined: boolean
+  community_joined_at?: string | null
+  affiliate_tutorial_done: boolean
+  affiliate_tutorial_done_at?: string | null
+  badges?: Array<{
+    badge_id: string
+    name: string
+    title: string
+    tier: string
+    points: number
+    unlocked_at: string
+  }>
 }
 
 export interface AffiliateTransferResponse {
   transferred_quota: number
   balance: number
+}
+
+export interface AffiliateRegistrationSeatPurchaseResponse {
+  balance: number
+  registration_seat_cost: number
+  registration_seat_total: number
+  registration_seat_used: number
+  registration_seat_available: number
 }
 
 export interface SendVerifyCodeRequest {
@@ -202,6 +270,8 @@ export interface PublicSettings {
   turnstile_site_key: string
   site_name: string
   site_logo: string
+  community_image_url: string
+  community_link_url: string
   site_subtitle: string
   api_base_url: string
   contact_info: string
@@ -1646,6 +1716,7 @@ export interface PromoCode {
   max_uses: number
   used_count: number
   status: 'active' | 'disabled'
+  purpose: 'general' | 'community_join'
   expires_at: string | null
   notes: string | null
   created_at: string
@@ -1665,6 +1736,7 @@ export interface CreatePromoCodeRequest {
   code?: string
   bonus_amount: number
   max_uses?: number
+  purpose?: 'general' | 'community_join'
   expires_at?: number | null
   notes?: string
 }
@@ -1674,6 +1746,7 @@ export interface UpdatePromoCodeRequest {
   bonus_amount?: number
   max_uses?: number
   status?: 'active' | 'disabled'
+  purpose?: 'general' | 'community_join'
   expires_at?: number | null
   notes?: string
 }

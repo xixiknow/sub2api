@@ -88,6 +88,7 @@ func TestCreateOrderInTx_WritesProviderSnapshot(t *testing.T) {
 		88,
 		0,
 		88,
+		nil,
 		&payment.InstanceSelection{
 			InstanceID:     strconv.FormatInt(instance.ID, 10),
 			ProviderKey:    payment.TypeAlipay,
@@ -162,6 +163,27 @@ func TestBuildPaymentOrderProviderSnapshot_IncludesEasyPayMerchantIdentity(t *te
 
 	require.Equal(t, "easypay-merchant-66", snapshot["merchant_id"])
 	require.NotContains(t, snapshot, "pkey")
+}
+
+func TestWithRechargeBonusSnapshot_CreatesSnapshotWithoutProvider(t *testing.T) {
+	t.Parallel()
+
+	snapshot := withRechargeBonusSnapshot(nil, &PaymentRechargeBonusSnapshot{
+		RuleID:         "tier_50",
+		RuleName:       "充50送5",
+		MinAmount:      50,
+		BonusAmount:    5,
+		PaymentAmount:  50,
+		BaseAmount:     50,
+		CreditedAmount: 55,
+	})
+
+	require.Equal(t, 2, snapshot["schema_version"])
+	bonus, ok := snapshot["recharge_bonus"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "tier_50", bonus["rule_id"])
+	require.Equal(t, float64(5), bonus["bonus_amount"])
+	require.Equal(t, float64(55), bonus["credited_amount"])
 }
 
 func valueOrEmpty(v *string) string {

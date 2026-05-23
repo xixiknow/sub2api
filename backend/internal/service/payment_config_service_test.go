@@ -432,6 +432,29 @@ func TestUpdatePaymentConfig_PersistsVisibleMethodRouting(t *testing.T) {
 	}
 }
 
+func TestUpdatePaymentConfig_PersistsRechargeBonusRules(t *testing.T) {
+	repo := &paymentConfigSettingRepoStub{values: map[string]string{}}
+	svc := &PaymentConfigService{settingRepo: repo}
+
+	err := svc.UpdatePaymentConfig(context.Background(), UpdatePaymentConfigRequest{
+		RechargeBonusRules: []PaymentRechargeBonusRule{
+			{ID: "tier20", Name: "充20送1", MinAmount: 20, BonusAmount: 1},
+			{ID: "tier100", Name: "充100送11", MinAmount: 100, BonusAmount: 11},
+		},
+	})
+	if err != nil {
+		t.Fatalf("UpdatePaymentConfig returned error: %v", err)
+	}
+
+	cfg := svc.parsePaymentConfig(repo.values)
+	if len(cfg.RechargeBonusRules) != 2 {
+		t.Fatalf("RechargeBonusRules len = %d, want 2", len(cfg.RechargeBonusRules))
+	}
+	if cfg.RechargeBonusRules[1].ID != "tier100" || cfg.RechargeBonusRules[1].BonusAmount != 11 {
+		t.Fatalf("unexpected bonus rules: %+v", cfg.RechargeBonusRules)
+	}
+}
+
 func paymentConfigStrPtr(value string) *string {
 	return &value
 }

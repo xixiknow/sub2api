@@ -4155,6 +4155,51 @@
                 </p>
               </div>
 
+              <!-- Community Entry -->
+              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ t("admin.settings.site.communityTitle") }}
+                </h3>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t("admin.settings.site.communityDescription") }}
+                </p>
+                <div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label
+                      class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      {{ t("admin.settings.site.communityImage") }}
+                    </label>
+                    <ImageUpload
+                      v-model="form.community_image_url"
+                      mode="image"
+                      :upload-label="t('admin.settings.site.uploadImage')"
+                      :remove-label="t('admin.settings.site.remove')"
+                      :hint="t('admin.settings.site.communityImageHint')"
+                      :max-size="600 * 1024"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      {{ t("admin.settings.site.communityLink") }}
+                    </label>
+                    <input
+                      v-model="form.community_link_url"
+                      type="url"
+                      class="input font-mono text-sm"
+                      :placeholder="
+                        t('admin.settings.site.communityLinkPlaceholder')
+                      "
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.communityLinkHint") }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <!-- Site Logo Upload -->
               <div>
                 <label
@@ -4772,6 +4817,37 @@
 
               <div>
                 <label class="input-label">
+                  {{ t('admin.settings.features.affiliate.levelRates') }}
+                </label>
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <div
+                    v-for="level in [1, 2, 3]"
+                    :key="level"
+                    class="rounded-xl border border-gray-200 bg-gray-50/80 p-3 dark:border-dark-700 dark:bg-dark-900/60"
+                  >
+                    <label class="mb-2 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.levelRateLabel', { level }) }}
+                    </label>
+                    <div class="relative">
+                      <input
+                        v-model.number="form.affiliate_level_rates[level - 1]"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        class="input pr-8"
+                      />
+                      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">
+                  {{ t('admin.settings.features.affiliate.levelRatesHint') }}
+                </p>
+              </div>
+
+              <div>
+                <label class="input-label">
                   {{ t('admin.settings.features.affiliate.freezeHours') }}
                 </label>
                 <input
@@ -4817,6 +4893,22 @@
                 />
                 <p class="mt-1 text-xs text-gray-400">
                   {{ t('admin.settings.features.affiliate.perInviteeCapDesc') }}
+                </p>
+              </div>
+
+              <div>
+                <label class="input-label">
+                  {{ t('admin.settings.features.affiliate.registrationSeatCost') }}
+                </label>
+                <input
+                  v-model.number="form.affiliate_registration_seat_cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="input"
+                />
+                <p class="mt-1 text-xs text-gray-400">
+                  {{ t('admin.settings.features.affiliate.registrationSeatCostDesc') }}
                 </p>
               </div>
 
@@ -5374,6 +5466,112 @@
                     <p class="mt-0.5 text-xs text-gray-400">
                       {{ t("admin.settings.payment.orderTimeoutHint") }}
                     </p>
+                  </div>
+                </div>
+                <div
+                  class="rounded-xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900/50 dark:bg-amber-900/[0.14]"
+                >
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        {{ localText("活动充值赠礼", "Recharge bonus campaigns") }}
+                      </h3>
+                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {{
+                          localText(
+                            "按充值金额自动匹配最高门槛档位，例如充 20 送 1、充 50 送 5、充 100 送 11。",
+                            "Automatically match the highest tier, for example pay 20 get 1, pay 50 get 5, pay 100 get 11.",
+                          )
+                        }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm shrink-0"
+                      @click="addRechargeBonusRule"
+                    >
+                      <Icon name="plus" size="sm" />
+                      <span>{{ localText("添加档位", "Add tier") }}</span>
+                    </button>
+                  </div>
+                  <div
+                    v-if="form.payment_recharge_bonus_rules.length === 0"
+                    class="mt-4 rounded-lg border border-dashed border-amber-300 bg-white/70 px-3 py-4 text-center text-sm text-gray-500 dark:border-amber-900 dark:bg-dark-900/50 dark:text-gray-400"
+                  >
+                    {{ localText("暂无充值赠礼档位。", "No recharge bonus tiers configured.") }}
+                  </div>
+                  <div v-else class="mt-4 space-y-3">
+                    <div
+                      v-for="(rule, index) in form.payment_recharge_bonus_rules"
+                      :key="rule.id || index"
+                      class="rounded-lg border border-white/80 bg-white p-3 dark:border-dark-700 dark:bg-dark-900"
+                    >
+                      <div class="grid gap-3 md:grid-cols-[1.1fr_0.9fr_0.9fr_0.9fr_auto] md:items-end">
+                        <div>
+                          <label class="input-label">{{ localText("档位名称", "Tier name") }}</label>
+                          <input
+                            v-model="rule.name"
+                            type="text"
+                            class="input"
+                            :placeholder="localText('如：充 50 送 5', 'e.g. Pay 50 get 5')"
+                          />
+                        </div>
+                        <div>
+                          <label class="input-label">{{ localText("最低充值", "Minimum") }}</label>
+                          <input
+                            v-model.number="rule.min_amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="input"
+                          />
+                        </div>
+                        <div>
+                          <label class="input-label">{{ localText("固定赠送", "Fixed bonus") }}</label>
+                          <input
+                            v-model.number="rule.bonus_amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="input"
+                          />
+                        </div>
+                        <div>
+                          <label class="input-label">{{ localText("比例赠送", "Percent bonus") }}</label>
+                          <div class="relative">
+                            <input
+                              v-model.number="rule.bonus_percent"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              class="input pr-8"
+                            />
+                            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">%</span>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 md:justify-end">
+                          <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            <input
+                              v-model="rule.disabled"
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            {{ localText("停用", "Disabled") }}
+                          </label>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn-sm text-red-600 hover:text-red-700 dark:text-red-400"
+                            @click="removeRechargeBonusRule(index)"
+                          >
+                            <Icon name="trash" size="sm" />
+                          </button>
+                        </div>
+                      </div>
+                      <p class="mt-2 text-xs text-amber-700 dark:text-amber-200">
+                        {{ rechargeBonusRulePreview(rule) }}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <!-- Row 3: Pending orders + load balance + cancel rate limit (all in one row) -->
@@ -6071,6 +6269,7 @@ import type {
   SystemSettings,
   UpdateSettingsRequest,
   DefaultSubscriptionSetting,
+  PaymentRechargeBonusRule,
   OpenAIFastPolicyRule,
   WeChatConnectMode,
   WebSearchEmulationConfig,
@@ -6296,6 +6495,7 @@ type SettingsForm = Omit<
   | "wechat_connect_open_enabled"
   | "wechat_connect_mp_enabled"
   | "wechat_connect_mobile_enabled"
+  | "payment_recharge_bonus_rules"
 > & {
   smtp_password: string;
   turnstile_secret_key: string;
@@ -6312,6 +6512,8 @@ type SettingsForm = Omit<
   google_oauth_client_secret: string;
   force_email_on_third_party_signup: boolean;
   openai_advanced_scheduler_enabled: boolean;
+  affiliate_level_rates: number[];
+  payment_recharge_bonus_rules: PaymentRechargeBonusRule[];
 };
 
 const form = reactive<SettingsForm>({
@@ -6328,16 +6530,20 @@ const form = reactive<SettingsForm>({
   login_agreement_updated_at: "2026-03-31",
   login_agreement_documents: defaultLoginAgreementDocuments(),
   default_balance: 0,
-  affiliate_rebate_rate: 20,
-  affiliate_rebate_freeze_hours: 0,
+  affiliate_rebate_rate: 5,
+  affiliate_level_rates: [5, 1, 0.5],
+  affiliate_rebate_freeze_hours: 168,
   affiliate_rebate_duration_days: 0,
   affiliate_rebate_per_invitee_cap: 0,
+  affiliate_registration_seat_cost: 1,
   default_concurrency: 1,
   default_subscriptions: [],
   force_email_on_third_party_signup: false,
   default_user_rpm_limit: 0,
   site_name: "Sub2API",
   site_logo: "",
+  community_image_url: "",
+  community_link_url: "",
   site_subtitle: "Subscription to API Conversion Platform",
   api_base_url: "",
   contact_info: "",
@@ -6355,6 +6561,7 @@ const form = reactive<SettingsForm>({
   payment_balance_disabled: false,
   payment_balance_recharge_multiplier: 1,
   payment_recharge_fee_rate: 0,
+  payment_recharge_bonus_rules: [],
   payment_enabled_types: [],
   payment_help_image_url: "",
   payment_help_text: "",
@@ -7077,6 +7284,68 @@ function parseTablePageSizeOptionsInput(raw: string): number[] | null {
   return deduped;
 }
 
+function normalizeAffiliateLevelRates(values: unknown): number[] {
+  const defaults = [5, 1, 0.5];
+  const source = Array.isArray(values) ? values : [];
+  return defaults.map((fallback, index) =>
+    Math.min(100, Math.max(0, Number(source[index] ?? fallback) || 0)),
+  );
+}
+
+function normalizeRechargeBonusRules(values: unknown): PaymentRechargeBonusRule[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((item, index) => {
+      const raw = (item || {}) as Partial<PaymentRechargeBonusRule>;
+      const minAmount = Math.max(0, Number(raw.min_amount) || 0);
+      const bonusAmount = Math.max(0, Number(raw.bonus_amount) || 0);
+      const bonusPercent = Math.min(100, Math.max(0, Number(raw.bonus_percent) || 0));
+      return {
+        id: String(raw.id || `bonus_${index + 1}`),
+        name: String(raw.name || "").trim(),
+        min_amount: Math.round(minAmount * 100) / 100,
+        bonus_amount: Math.round(bonusAmount * 100) / 100,
+        bonus_percent: Math.round(bonusPercent * 100) / 100,
+        disabled: Boolean(raw.disabled),
+      };
+    })
+    .filter((rule) => rule.min_amount > 0 && (rule.bonus_amount || 0) + (rule.bonus_percent || 0) > 0)
+    .sort((a, b) => a.min_amount - b.min_amount);
+}
+
+function addRechargeBonusRule() {
+  const presets = [20, 50, 100];
+  const minAmount = presets[form.payment_recharge_bonus_rules.length] || 0;
+  form.payment_recharge_bonus_rules.push({
+    id: `bonus_${Date.now()}`,
+    name: "",
+    min_amount: minAmount,
+    bonus_amount: 0,
+    bonus_percent: 0,
+    disabled: false,
+  });
+}
+
+function removeRechargeBonusRule(index: number) {
+  form.payment_recharge_bonus_rules.splice(index, 1);
+}
+
+function rechargeBonusRulePreview(rule: PaymentRechargeBonusRule): string {
+  const minAmount = Number(rule.min_amount) || 0;
+  const fixed = Number(rule.bonus_amount) || 0;
+  const percent = Number(rule.bonus_percent) || 0;
+  const parts: string[] = [];
+  if (fixed > 0) parts.push(`$${fixed.toFixed(2)}`);
+  if (percent > 0) parts.push(`${percent.toFixed(2)}%`);
+  if (minAmount <= 0 || parts.length === 0) {
+    return localText("请填写最低充值金额和赠送额度。", "Set a minimum amount and bonus value.");
+  }
+  return localText(
+    `充值满 ¥${minAmount.toFixed(2)}，赠送 ${parts.join(" + ")}。`,
+    `Pay at least ¥${minAmount.toFixed(2)} and get ${parts.join(" + ")} bonus.`,
+  );
+}
+
 async function loadSettings() {
   loading.value = true;
   loadFailed.value = false;
@@ -7107,6 +7376,12 @@ async function loadSettings() {
     form.backend_mode_enabled = settings.backend_mode_enabled;
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
       settings.default_subscriptions,
+    );
+    form.affiliate_level_rates = normalizeAffiliateLevelRates(
+      settings.affiliate_level_rates,
+    );
+    form.payment_recharge_bonus_rules = normalizeRechargeBonusRules(
+      settings.payment_recharge_bonus_rules,
     );
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
@@ -7410,6 +7685,7 @@ async function saveSettings() {
     // Optional URL fields: auto-clear invalid values so they don't cause backend 400 errors
     if (!isValidHttpUrl(form.frontend_url)) form.frontend_url = "";
     if (!isValidHttpUrl(form.doc_url)) form.doc_url = "";
+    if (!isValidHttpUrl(form.community_link_url)) form.community_link_url = "";
     syncWeChatConnectMode();
     const wechatStoredMode = deriveWeChatConnectStoredMode(
       form.wechat_connect_open_enabled,
@@ -7438,15 +7714,21 @@ async function saveSettings() {
         100,
         Math.max(0, Number(form.affiliate_rebate_rate) || 0),
       ),
+      affiliate_level_rates: normalizeAffiliateLevelRates(
+        form.affiliate_level_rates,
+      ),
       affiliate_rebate_freeze_hours: Math.max(0, Math.min(720, Number(form.affiliate_rebate_freeze_hours) || 0)),
       affiliate_rebate_duration_days: Math.max(0, Math.min(3650, Math.floor(Number(form.affiliate_rebate_duration_days) || 0))),
       affiliate_rebate_per_invitee_cap: Math.max(0, Number(form.affiliate_rebate_per_invitee_cap) || 0),
+      affiliate_registration_seat_cost: Math.max(0, Number(form.affiliate_registration_seat_cost) || 0),
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,
       default_user_rpm_limit: form.default_user_rpm_limit,
       site_name: form.site_name,
       site_logo: form.site_logo,
+      community_image_url: form.community_image_url,
+      community_link_url: form.community_link_url,
       site_subtitle: form.site_subtitle,
       api_base_url: form.api_base_url,
       contact_info: form.contact_info,
@@ -7566,6 +7848,9 @@ async function saveSettings() {
       payment_balance_recharge_multiplier:
         Number(form.payment_balance_recharge_multiplier) || 1,
       payment_recharge_fee_rate: Number(form.payment_recharge_fee_rate) || 0,
+      payment_recharge_bonus_rules: normalizeRechargeBonusRules(
+        form.payment_recharge_bonus_rules,
+      ),
       payment_enabled_types: form.payment_enabled_types,
       payment_load_balance_strategy: form.payment_load_balance_strategy,
       payment_product_name_prefix: form.payment_product_name_prefix,
@@ -7638,6 +7923,12 @@ async function saveSettings() {
         (form as Record<string, unknown>)[key] = value;
       }
     }
+    form.affiliate_level_rates = normalizeAffiliateLevelRates(
+      updated.affiliate_level_rates,
+    );
+    form.payment_recharge_bonus_rules = normalizeRechargeBonusRules(
+      updated.payment_recharge_bonus_rules,
+    );
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(updated));
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
@@ -8161,6 +8452,7 @@ async function saveBetaPolicySettings() {
 
 const allPaymentTypes = computed(() => [
   { value: "easypay", label: t("payment.methods.easypay") },
+  { value: "dulupay", label: t("payment.methods.dulupay") },
   { value: "alipay", label: t("payment.methods.alipay") },
   { value: "wxpay", label: t("payment.methods.wxpay") },
   { value: "stripe", label: t("payment.methods.stripe") },
@@ -8217,6 +8509,7 @@ const providerDialogRef = ref<InstanceType<
 
 const providerKeyOptions = computed(() => [
   { value: "easypay", label: t("admin.settings.payment.providerEasypay") },
+  { value: "dulupay", label: t("admin.settings.payment.providerDulupay") },
   { value: "alipay", label: t("admin.settings.payment.providerAlipay") },
   { value: "wxpay", label: t("admin.settings.payment.providerWxpay") },
   { value: "stripe", label: t("admin.settings.payment.providerStripe") },

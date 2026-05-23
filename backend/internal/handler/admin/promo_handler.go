@@ -25,11 +25,14 @@ func NewPromoHandler(promoService *service.PromoService) *PromoHandler {
 	}
 }
 
-// CreatePromoCodeRequest represents create promo code request
+// CreatePromoCodeRequest represents create promo code request.
+// When max_uses is 0 and expires_at is omitted, the code is permanent until an
+// admin disables it; promo_code_usages still limits each user to one redemption.
 type CreatePromoCodeRequest struct {
 	Code        string  `json:"code"`                                  // 可选，为空则自动生成
 	BonusAmount float64 `json:"bonus_amount" binding:"required,min=0"` // 赠送余额
 	MaxUses     int     `json:"max_uses" binding:"min=0"`              // 最大使用次数，0=无限
+	Purpose     string  `json:"purpose"`                               // general, community_join
 	ExpiresAt   *int64  `json:"expires_at"`                            // 过期时间戳（秒）
 	Notes       string  `json:"notes"`                                 // 备注
 }
@@ -40,6 +43,7 @@ type UpdatePromoCodeRequest struct {
 	BonusAmount *float64 `json:"bonus_amount" binding:"omitempty,min=0"`
 	MaxUses     *int     `json:"max_uses" binding:"omitempty,min=0"`
 	Status      *string  `json:"status" binding:"omitempty,oneof=active disabled"`
+	Purpose     *string  `json:"purpose" binding:"omitempty,oneof=general community_join"`
 	ExpiresAt   *int64   `json:"expires_at"`
 	Notes       *string  `json:"notes"`
 }
@@ -105,6 +109,7 @@ func (h *PromoHandler) Create(c *gin.Context) {
 		Code:        req.Code,
 		BonusAmount: req.BonusAmount,
 		MaxUses:     req.MaxUses,
+		Purpose:     req.Purpose,
 		Notes:       req.Notes,
 	}
 
@@ -142,6 +147,7 @@ func (h *PromoHandler) Update(c *gin.Context) {
 		BonusAmount: req.BonusAmount,
 		MaxUses:     req.MaxUses,
 		Status:      req.Status,
+		Purpose:     req.Purpose,
 		Notes:       req.Notes,
 	}
 

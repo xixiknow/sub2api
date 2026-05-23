@@ -504,6 +504,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/growth',
+    name: 'AdminGrowthBenefits',
+    component: () => import('@/views/admin/GrowthBenefitsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Growth Benefits',
+      titleKey: 'admin.growth.title',
+      descriptionKey: 'admin.growth.description'
+    }
+  },
+  {
     path: '/admin/settings',
     name: 'AdminSettings',
     component: () => import('@/views/admin/SettingsView.vue'),

@@ -137,6 +137,7 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		Plans:                     planList,
 		BalanceDisabled:           cfg.BalanceDisabled,
 		BalanceRechargeMultiplier: cfg.BalanceRechargeMultiplier,
+		RechargeBonusRules:        cfg.RechargeBonusRules,
 		RechargeFeeRate:           cfg.RechargeFeeRate,
 		HelpText:                  cfg.HelpText,
 		HelpImageURL:              cfg.HelpImageURL,
@@ -145,16 +146,17 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 }
 
 type checkoutInfoResponse struct {
-	Methods                   map[string]service.MethodLimits `json:"methods"`
-	GlobalMin                 float64                         `json:"global_min"`
-	GlobalMax                 float64                         `json:"global_max"`
-	Plans                     []checkoutPlan                  `json:"plans"`
-	BalanceDisabled           bool                            `json:"balance_disabled"`
-	BalanceRechargeMultiplier float64                         `json:"balance_recharge_multiplier"`
-	RechargeFeeRate           float64                         `json:"recharge_fee_rate"`
-	HelpText                  string                          `json:"help_text"`
-	HelpImageURL              string                          `json:"help_image_url"`
-	StripePublishableKey      string                          `json:"stripe_publishable_key"`
+	Methods                   map[string]service.MethodLimits    `json:"methods"`
+	GlobalMin                 float64                            `json:"global_min"`
+	GlobalMax                 float64                            `json:"global_max"`
+	Plans                     []checkoutPlan                     `json:"plans"`
+	BalanceDisabled           bool                               `json:"balance_disabled"`
+	BalanceRechargeMultiplier float64                            `json:"balance_recharge_multiplier"`
+	RechargeBonusRules        []service.PaymentRechargeBonusRule `json:"recharge_bonus_rules"`
+	RechargeFeeRate           float64                            `json:"recharge_fee_rate"`
+	HelpText                  string                             `json:"help_text"`
+	HelpImageURL              string                             `json:"help_image_url"`
+	StripePublishableKey      string                             `json:"stripe_publishable_key"`
 }
 
 type checkoutPlan struct {

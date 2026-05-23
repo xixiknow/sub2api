@@ -8,6 +8,7 @@ const { list, getStats, getSnapshotV2, getById } = vi.hoisted(() => {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
     removeItem: vi.fn(),
+    clear: vi.fn(),
   })
 
   return {

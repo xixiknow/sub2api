@@ -12,6 +12,7 @@ type PromoCode struct {
 	MaxUses     int
 	UsedCount   int
 	Status      string
+	Purpose     string
 	ExpiresAt   *time.Time
 	Notes       string
 	CreatedAt   time.Time
@@ -58,6 +59,7 @@ type CreatePromoCodeInput struct {
 	Code        string
 	BonusAmount float64
 	MaxUses     int
+	Purpose     string
 	ExpiresAt   *time.Time
 	Notes       string
 }
@@ -68,6 +70,7 @@ type UpdatePromoCodeInput struct {
 	BonusAmount *float64
 	MaxUses     *int
 	Status      *string
+	Purpose     *string
 	ExpiresAt   *time.Time
 	Notes       *string
 }

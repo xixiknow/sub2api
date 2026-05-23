@@ -50,6 +50,9 @@ func RegisterAdminRoutes(
 		// 优惠码管理
 		registerPromoCodeRoutes(admin, h)
 
+		// 成长徽章与权益管理
+		registerGrowthRoutes(admin, h)
+
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
@@ -100,17 +103,16 @@ func RegisterAdminRoutes(
 	}
 }
 
-func registerContentModerationRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	risk := admin.Group("/risk-control")
+func registerGrowthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	growth := admin.Group("/growth")
 	{
-		risk.GET("/config", h.Admin.ContentModeration.GetConfig)
-		risk.PUT("/config", h.Admin.ContentModeration.UpdateConfig)
-		risk.POST("/api-keys/test", h.Admin.ContentModeration.TestAPIKeys)
-		risk.GET("/status", h.Admin.ContentModeration.GetStatus)
-		risk.GET("/logs", h.Admin.ContentModeration.ListLogs)
-		risk.POST("/users/:user_id/unban", h.Admin.ContentModeration.UnbanUser)
-		risk.DELETE("/hashes", h.Admin.ContentModeration.DeleteFlaggedHash)
-		risk.DELETE("/hashes/all", h.Admin.ContentModeration.ClearFlaggedHashes)
+		growth.GET("/badges", h.Admin.Growth.ListBadges)
+		growth.POST("/badges/recompute", h.Admin.Growth.RecomputeBadges)
+		growth.GET("/benefit-rules", h.Admin.Growth.ListBenefitRules)
+		growth.POST("/benefit-rules", h.Admin.Growth.CreateBenefitRule)
+		growth.PUT("/benefit-rules/:id", h.Admin.Growth.UpdateBenefitRule)
+		growth.DELETE("/benefit-rules/:id", h.Admin.Growth.DeleteBenefitRule)
+		growth.GET("/users", h.Admin.Growth.ListUsers)
 	}
 }
 

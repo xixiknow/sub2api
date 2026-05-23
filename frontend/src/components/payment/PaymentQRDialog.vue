@@ -4,12 +4,15 @@
     <div v-if="!success" class="flex flex-col items-center space-y-4">
       <!-- QR Code mode -->
       <template v-if="qrUrl">
-        <div class="rounded-2xl bg-white p-4 shadow-sm dark:bg-dark-800">
+        <div class="rounded-xl border border-primary-100 bg-white p-4 shadow-card dark:border-dark-700 dark:bg-dark-800">
           <canvas ref="qrCanvas" class="mx-auto"></canvas>
         </div>
         <p v-if="scanHint" class="text-center text-sm text-gray-500 dark:text-gray-400">
           {{ scanHint }}
         </p>
+        <button v-if="payUrl" class="btn btn-secondary text-sm" @click="reopenPopup">
+          {{ t('payment.qr.openPayWindow') }}
+        </button>
       </template>
       <!-- Popup window waiting mode (no QR code) -->
       <template v-else>

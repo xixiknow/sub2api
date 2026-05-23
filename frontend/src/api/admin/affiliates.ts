@@ -32,6 +32,7 @@ export interface ListAffiliateRecordsParams {
   sort_by?: string
   sort_order?: 'asc' | 'desc'
   timezone?: string
+  level?: number
 }
 
 export interface AffiliateInviteRecord {
@@ -49,12 +50,15 @@ export interface AffiliateInviteRecord {
 export interface AffiliateRebateRecord {
   order_id: number
   out_trade_no: string
+  action: 'accrue' | 'refund_clawback' | string
   inviter_id: number
   inviter_email: string
   inviter_username: string
   invitee_id: number
   invitee_email: string
   invitee_username: string
+  level: number
+  rate_percent: number
   order_amount: number
   pay_amount: number
   rebate_amount: number
@@ -173,6 +177,7 @@ function recordParams(params: ListAffiliateRecordsParams = {}) {
     sort_by: params.sort_by || undefined,
     sort_order: params.sort_order || undefined,
     timezone: params.timezone || undefined,
+    level: params.level || undefined,
   }
 }
 

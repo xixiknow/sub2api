@@ -267,6 +267,9 @@ onMounted(async () => {
       promoCode.value = registerData.promo_code || ''
       invitationCode.value = registerData.invitation_code || ''
       affCode.value = registerData.aff_code || loadAffiliateReferralCode()
+      if (!invitationCode.value && affCode.value) {
+        invitationCode.value = affCode.value
+      }
       pendingAuthToken.value = registerData.pending_auth_token || activePendingSession?.token || ''
       pendingAuthTokenField.value = registerData.pending_auth_token_field || activePendingSession?.token_field || 'pending_auth_token'
       pendingProvider.value = registerData.pending_provider || activePendingSession?.provider || ''
@@ -499,14 +502,16 @@ async function handleVerify(): Promise<void> {
     }
 
     if (isPendingOAuthFlow()) {
+      const effectiveAffCode = affCode.value || loadAffiliateReferralCode()
+      const effectiveInvitationCode = invitationCode.value || effectiveAffCode
       const { data } = await apiClient.post<PendingOAuthCreateAccountResponse>(
         '/auth/oauth/pending/create-account',
         {
           email: email.value,
           password: password.value,
           verify_code: verifyCode.value.trim(),
-          invitation_code: invitationCode.value || undefined,
-          ...oauthAffiliatePayload(affCode.value || loadAffiliateReferralCode()),
+          invitation_code: effectiveInvitationCode || undefined,
+          ...oauthAffiliatePayload(effectiveAffCode),
           adopt_display_name: pendingAdoptionDecision.value?.adoptDisplayName,
           adopt_avatar: pendingAdoptionDecision.value?.adoptAvatar
         }
@@ -525,6 +530,7 @@ async function handleVerify(): Promise<void> {
       await authStore.setToken(data.access_token)
       authStore.clearPendingAuthSession?.()
     } else {
+      const effectiveInvitationCode = invitationCode.value || affCode.value
       // Register with verification code
       await authStore.register({
         email: email.value,
@@ -532,7 +538,7 @@ async function handleVerify(): Promise<void> {
         verify_code: verifyCode.value.trim(),
         turnstile_token: initialTurnstileToken.value || undefined,
         promo_code: promoCode.value || undefined,
-        invitation_code: invitationCode.value || undefined,
+        invitation_code: effectiveInvitationCode || undefined,
         ...(affCode.value ? { aff_code: affCode.value } : {})
       })
     }

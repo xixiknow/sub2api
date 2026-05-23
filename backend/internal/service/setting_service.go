@@ -579,6 +579,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyTurnstileSiteKey,
 		SettingKeySiteName,
 		SettingKeySiteLogo,
+		SettingKeyCommunityImageURL,
+		SettingKeyCommunityLinkURL,
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
@@ -696,6 +698,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
+		CommunityImageURL:                strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
+		CommunityLinkURL:                 strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
@@ -834,50 +838,45 @@ func (s *SettingService) SetVersion(version string) {
 // A unit test diffs this struct's JSON keys against dto.PublicSettings to catch
 // drift automatically (see setting_service_injection_test.go).
 type PublicSettingsInjectionPayload struct {
-	RegistrationEnabled              bool                     `json:"registration_enabled"`
-	EmailVerifyEnabled               bool                     `json:"email_verify_enabled"`
-	RegistrationEmailSuffixWhitelist []string                 `json:"registration_email_suffix_whitelist"`
-	PromoCodeEnabled                 bool                     `json:"promo_code_enabled"`
-	PasswordResetEnabled             bool                     `json:"password_reset_enabled"`
-	InvitationCodeEnabled            bool                     `json:"invitation_code_enabled"`
-	TotpEnabled                      bool                     `json:"totp_enabled"`
-	LoginAgreementEnabled            bool                     `json:"login_agreement_enabled"`
-	LoginAgreementMode               string                   `json:"login_agreement_mode"`
-	LoginAgreementUpdatedAt          string                   `json:"login_agreement_updated_at"`
-	LoginAgreementRevision           string                   `json:"login_agreement_revision"`
-	LoginAgreementDocuments          []LoginAgreementDocument `json:"login_agreement_documents"`
-	TurnstileEnabled                 bool                     `json:"turnstile_enabled"`
-	TurnstileSiteKey                 string                   `json:"turnstile_site_key"`
-	SiteName                         string                   `json:"site_name"`
-	SiteLogo                         string                   `json:"site_logo"`
-	SiteSubtitle                     string                   `json:"site_subtitle"`
-	APIBaseURL                       string                   `json:"api_base_url"`
-	ContactInfo                      string                   `json:"contact_info"`
-	DocURL                           string                   `json:"doc_url"`
-	HomeContent                      string                   `json:"home_content"`
-	HideCcsImportButton              bool                     `json:"hide_ccs_import_button"`
-	PurchaseSubscriptionEnabled      bool                     `json:"purchase_subscription_enabled"`
-	PurchaseSubscriptionURL          string                   `json:"purchase_subscription_url"`
-	TableDefaultPageSize             int                      `json:"table_default_page_size"`
-	TablePageSizeOptions             []int                    `json:"table_page_size_options"`
-	CustomMenuItems                  json.RawMessage          `json:"custom_menu_items"`
-	CustomEndpoints                  json.RawMessage          `json:"custom_endpoints"`
-	LinuxDoOAuthEnabled              bool                     `json:"linuxdo_oauth_enabled"`
-	WeChatOAuthEnabled               bool                     `json:"wechat_oauth_enabled"`
-	WeChatOAuthOpenEnabled           bool                     `json:"wechat_oauth_open_enabled"`
-	WeChatOAuthMPEnabled             bool                     `json:"wechat_oauth_mp_enabled"`
-	WeChatOAuthMobileEnabled         bool                     `json:"wechat_oauth_mobile_enabled"`
-	OIDCOAuthEnabled                 bool                     `json:"oidc_oauth_enabled"`
-	OIDCOAuthProviderName            string                   `json:"oidc_oauth_provider_name"`
-	GitHubOAuthEnabled               bool                     `json:"github_oauth_enabled"`
-	GoogleOAuthEnabled               bool                     `json:"google_oauth_enabled"`
-	BackendModeEnabled               bool                     `json:"backend_mode_enabled"`
-	PaymentEnabled                   bool                     `json:"payment_enabled"`
-	Version                          string                   `json:"version"`
-	BalanceLowNotifyEnabled          bool                     `json:"balance_low_notify_enabled"`
-	AccountQuotaNotifyEnabled        bool                     `json:"account_quota_notify_enabled"`
-	BalanceLowNotifyThreshold        float64                  `json:"balance_low_notify_threshold"`
-	BalanceLowNotifyRechargeURL      string                   `json:"balance_low_notify_recharge_url"`
+	RegistrationEnabled              bool            `json:"registration_enabled"`
+	EmailVerifyEnabled               bool            `json:"email_verify_enabled"`
+	RegistrationEmailSuffixWhitelist []string        `json:"registration_email_suffix_whitelist"`
+	PromoCodeEnabled                 bool            `json:"promo_code_enabled"`
+	PasswordResetEnabled             bool            `json:"password_reset_enabled"`
+	InvitationCodeEnabled            bool            `json:"invitation_code_enabled"`
+	TotpEnabled                      bool            `json:"totp_enabled"`
+	TurnstileEnabled                 bool            `json:"turnstile_enabled"`
+	TurnstileSiteKey                 string          `json:"turnstile_site_key"`
+	SiteName                         string          `json:"site_name"`
+	SiteLogo                         string          `json:"site_logo"`
+	CommunityImageURL                string          `json:"community_image_url"`
+	CommunityLinkURL                 string          `json:"community_link_url"`
+	SiteSubtitle                     string          `json:"site_subtitle"`
+	APIBaseURL                       string          `json:"api_base_url"`
+	ContactInfo                      string          `json:"contact_info"`
+	DocURL                           string          `json:"doc_url"`
+	HomeContent                      string          `json:"home_content"`
+	HideCcsImportButton              bool            `json:"hide_ccs_import_button"`
+	PurchaseSubscriptionEnabled      bool            `json:"purchase_subscription_enabled"`
+	PurchaseSubscriptionURL          string          `json:"purchase_subscription_url"`
+	TableDefaultPageSize             int             `json:"table_default_page_size"`
+	TablePageSizeOptions             []int           `json:"table_page_size_options"`
+	CustomMenuItems                  json.RawMessage `json:"custom_menu_items"`
+	CustomEndpoints                  json.RawMessage `json:"custom_endpoints"`
+	LinuxDoOAuthEnabled              bool            `json:"linuxdo_oauth_enabled"`
+	WeChatOAuthEnabled               bool            `json:"wechat_oauth_enabled"`
+	WeChatOAuthOpenEnabled           bool            `json:"wechat_oauth_open_enabled"`
+	WeChatOAuthMPEnabled             bool            `json:"wechat_oauth_mp_enabled"`
+	WeChatOAuthMobileEnabled         bool            `json:"wechat_oauth_mobile_enabled"`
+	OIDCOAuthEnabled                 bool            `json:"oidc_oauth_enabled"`
+	OIDCOAuthProviderName            string          `json:"oidc_oauth_provider_name"`
+	BackendModeEnabled               bool            `json:"backend_mode_enabled"`
+	PaymentEnabled                   bool            `json:"payment_enabled"`
+	Version                          string          `json:"version"`
+	BalanceLowNotifyEnabled          bool            `json:"balance_low_notify_enabled"`
+	AccountQuotaNotifyEnabled        bool            `json:"account_quota_notify_enabled"`
+	BalanceLowNotifyThreshold        float64         `json:"balance_low_notify_threshold"`
+	BalanceLowNotifyRechargeURL      string          `json:"balance_low_notify_recharge_url"`
 
 	// Feature flags — MUST match the opt-in/opt-out registry in
 	// frontend/src/utils/featureFlags.ts. Missing a field here is the bug
@@ -914,6 +913,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		TurnstileSiteKey:                 settings.TurnstileSiteKey,
 		SiteName:                         settings.SiteName,
 		SiteLogo:                         settings.SiteLogo,
+		CommunityImageURL:                settings.CommunityImageURL,
+		CommunityLinkURL:                 settings.CommunityLinkURL,
 		SiteSubtitle:                     settings.SiteSubtitle,
 		APIBaseURL:                       settings.APIBaseURL,
 		ContactInfo:                      settings.ContactInfo,
@@ -1484,6 +1485,8 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// OEM设置
 	updates[SettingKeySiteName] = settings.SiteName
 	updates[SettingKeySiteLogo] = settings.SiteLogo
+	updates[SettingKeyCommunityImageURL] = strings.TrimSpace(settings.CommunityImageURL)
+	updates[SettingKeyCommunityLinkURL] = strings.TrimSpace(settings.CommunityLinkURL)
 	updates[SettingKeySiteSubtitle] = settings.SiteSubtitle
 	updates[SettingKeyAPIBaseURL] = settings.APIBaseURL
 	updates[SettingKeyContactInfo] = settings.ContactInfo
@@ -1510,6 +1513,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyDefaultBalance] = strconv.FormatFloat(settings.DefaultBalance, 'f', 8, 64)
 	settings.AffiliateRebateRate = clampAffiliateRebateRate(settings.AffiliateRebateRate)
 	updates[SettingKeyAffiliateRebateRate] = strconv.FormatFloat(settings.AffiliateRebateRate, 'f', 8, 64)
+	levelRatesJSON, err := json.Marshal(normalizeAffiliateLevelRates(settings.AffiliateLevelRates))
+	if err != nil {
+		return nil, fmt.Errorf("marshal affiliate level rates: %w", err)
+	}
+	updates[SettingKeyAffiliateLevelRates] = string(levelRatesJSON)
 	if settings.AffiliateRebateFreezeHours < 0 {
 		settings.AffiliateRebateFreezeHours = AffiliateRebateFreezeHoursDefault
 	}
@@ -1528,6 +1536,10 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
+	if settings.AffiliateRegistrationSeatCost < 0 || math.IsNaN(settings.AffiliateRegistrationSeatCost) || math.IsInf(settings.AffiliateRegistrationSeatCost, 0) {
+		settings.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
+	}
+	updates[SettingKeyAffiliateRegistrationSeatCost] = strconv.FormatFloat(settings.AffiliateRegistrationSeatCost, 'f', 8, 64)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -1963,6 +1975,15 @@ func (s *SettingService) GetAffiliateRebateRatePercent(ctx context.Context) floa
 	return clampAffiliateRebateRate(rate)
 }
 
+// GetAffiliateLevelRates reads the three-level affiliate rebate rates.
+func (s *SettingService) GetAffiliateLevelRates(ctx context.Context) []float64 {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateLevelRates)
+	if err != nil {
+		return defaultAffiliateLevelRates()
+	}
+	return parseAffiliateLevelRates(raw)
+}
+
 // GetAffiliateRebateFreezeHours 返回返利冻结期（小时）。
 // 返回 0 表示不冻结（向后兼容）。
 func (s *SettingService) GetAffiliateRebateFreezeHours(ctx context.Context) int {
@@ -2009,6 +2030,22 @@ func (s *SettingService) GetAffiliateRebatePerInviteeCap(ctx context.Context) fl
 		return AffiliateRebatePerInviteeCapDefault
 	}
 	return cap
+}
+
+// GetAffiliateRegistrationSeatCost 返回用户购买 1 个注册名额需要消耗的余额。
+func (s *SettingService) GetAffiliateRegistrationSeatCost(ctx context.Context) float64 {
+	if s == nil || s.settingRepo == nil {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRegistrationSeatCost)
+	if err != nil {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	cost, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+	if err != nil || cost < 0 || math.IsNaN(cost) || math.IsInf(cost, 0) {
+		return AffiliateRegistrationSeatCostDefault
+	}
+	return cost
 }
 
 // IsPasswordResetEnabled 检查是否启用密码重置功能
@@ -2227,6 +2264,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyLoginAgreementDocuments:                  loginAgreementDocumentsJSON,
 		SettingKeySiteName:                                 "Sub2API",
 		SettingKeySiteLogo:                                 "",
+		SettingKeyCommunityImageURL:                        "",
+		SettingKeyCommunityLinkURL:                         "",
 		SettingKeyPurchaseSubscriptionEnabled:              "false",
 		SettingKeyPurchaseSubscriptionURL:                  "",
 		SettingKeyTableDefaultPageSize:                     "20",
@@ -2284,9 +2323,11 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyDefaultConcurrency:                       strconv.Itoa(s.cfg.Default.UserConcurrency),
 		SettingKeyDefaultBalance:                           strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
 		SettingKeyAffiliateRebateRate:                      strconv.FormatFloat(AffiliateRebateRateDefault, 'f', 8, 64),
+		SettingKeyAffiliateLevelRates:                      AffiliateLevelRatesDefault,
 		SettingKeyAffiliateRebateFreezeHours:               strconv.Itoa(AffiliateRebateFreezeHoursDefault),
 		SettingKeyAffiliateRebateDurationDays:              strconv.Itoa(AffiliateRebateDurationDaysDefault),
 		SettingKeyAffiliateRebatePerInviteeCap:             strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
+		SettingKeyAffiliateRegistrationSeatCost:            strconv.FormatFloat(AffiliateRegistrationSeatCostDefault, 'f', 8, 64),
 		SettingKeyDefaultUserRPMLimit:                      "0",
 		SettingKeyDefaultSubscriptions:                     "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:            "0",
@@ -2400,6 +2441,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
+		CommunityImageURL:                strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
+		CommunityLinkURL:                 strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
@@ -2445,6 +2488,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	} else {
 		result.AffiliateRebateRate = AffiliateRebateRateDefault
 	}
+	result.AffiliateLevelRates = parseAffiliateLevelRates(settings[SettingKeyAffiliateLevelRates])
 	if freezeHours, err := strconv.Atoi(settings[SettingKeyAffiliateRebateFreezeHours]); err == nil && freezeHours >= 0 {
 		if freezeHours > AffiliateRebateFreezeHoursMax {
 			freezeHours = AffiliateRebateFreezeHoursMax
@@ -2459,6 +2503,13 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	}
 	if perInviteeCap, err := strconv.ParseFloat(settings[SettingKeyAffiliateRebatePerInviteeCap], 64); err == nil && perInviteeCap >= 0 {
 		result.AffiliateRebatePerInviteeCap = perInviteeCap
+	} else {
+		result.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
+	}
+	if seatCost, err := strconv.ParseFloat(settings[SettingKeyAffiliateRegistrationSeatCost], 64); err == nil && seatCost >= 0 {
+		result.AffiliateRegistrationSeatCost = seatCost
+	} else {
+		result.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 
@@ -2778,6 +2829,14 @@ func clampAffiliateRebateRate(value float64) float64 {
 		return AffiliateRebateRateMax
 	}
 	return value
+}
+
+func normalizeAffiliateLevelRates(values []float64) []float64 {
+	out := defaultAffiliateLevelRates()
+	for i := 0; i < len(values) && i < AffiliateLevelsMax; i++ {
+		out[i] = clampAffiliateRebateRate(values[i])
+	}
+	return out
 }
 
 func isFalseSettingValue(value string) bool {

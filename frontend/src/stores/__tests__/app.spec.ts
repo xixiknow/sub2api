@@ -257,6 +257,8 @@ describe('useAppStore', () => {
       windowAny.__APP_CONFIG__ = {
         site_name: 'TestSite',
         site_logo: '/logo.png',
+        community_image_url: '',
+        community_link_url: '',
         version: '1.0.0',
         contact_info: 'test@test.com',
         api_base_url: 'https://api.test.com',
@@ -307,6 +309,8 @@ describe('useAppStore', () => {
         turnstile_site_key: '',
         site_name: 'Updated Site',
         site_logo: '',
+        community_image_url: '',
+        community_link_url: '',
         site_subtitle: '',
         api_base_url: '',
         contact_info: '',

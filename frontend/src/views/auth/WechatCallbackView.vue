@@ -196,6 +196,7 @@
             <PendingOAuthCreateAccountForm
               test-id-prefix="wechat"
               :initial-email="pendingAccountEmail"
+              :initial-invitation-code="loadOAuthAffiliateCode()"
               :is-submitting="isSubmitting"
               :error-message="accountActionError"
               @submit="handleCreateAccount"
@@ -831,6 +832,7 @@ async function finalizePendingAccountResponse(completion: PendingWeChatCompletio
   if (completion.error === 'invitation_required') {
     pendingAccountAction.value = 'none'
     needsInvitation.value = true
+    invitationCode.value = invitationCode.value.trim() || loadOAuthAffiliateCode()
     needsAdoptionConfirmation.value = false
     isProcessing.value = false
     persistPendingAuthSession(redirect)
@@ -864,24 +866,26 @@ async function finalizePendingAccountResponse(completion: PendingWeChatCompletio
 
 async function handleSubmitInvitation() {
   invitationError.value = ''
-  if (!invitationCode.value.trim()) return
+  const affCode = loadOAuthAffiliateCode()
+  const registrationCode = invitationCode.value.trim() || affCode
+  if (!registrationCode) return
+  invitationCode.value = registrationCode
 
   isSubmitting.value = true
   try {
-    const affCode = loadOAuthAffiliateCode()
     const decision = currentAdoptionDecision()
     const completion: PendingWeChatCompletion = legacyPendingOAuthToken.value
       ? (
           await apiClient.post<PendingWeChatCompletion>('/auth/oauth/wechat/complete-registration', {
             pending_oauth_token: legacyPendingOAuthToken.value,
-            invitation_code: invitationCode.value.trim(),
+            invitation_code: registrationCode,
             ...oauthAffiliatePayload(affCode),
             ...serializeAdoptionDecision(decision)
           })
         ).data
       : affCode
-        ? await completeWeChatOAuthRegistration(invitationCode.value.trim(), decision, affCode)
-        : await completeWeChatOAuthRegistration(invitationCode.value.trim(), decision)
+        ? await completeWeChatOAuthRegistration(registrationCode, decision, affCode)
+        : await completeWeChatOAuthRegistration(registrationCode, decision)
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     const err = e as { message?: string; response?: { data?: { message?: string } } }
@@ -911,12 +915,14 @@ async function handleCreateAccount(payload: PendingOAuthCreateAccountPayload) {
 
   isSubmitting.value = true
   try {
+    const affCode = loadOAuthAffiliateCode()
+    const registrationCode = payload.invitationCode || affCode
     const { data } = await apiClient.post<PendingWeChatCompletion>('/auth/oauth/pending/create-account', {
       email: payload.email,
       password: payload.password,
       verify_code: payload.verifyCode || undefined,
-      invitation_code: payload.invitationCode || undefined,
-      ...oauthAffiliatePayload(loadOAuthAffiliateCode()),
+      invitation_code: registrationCode || undefined,
+      ...oauthAffiliatePayload(affCode),
       ...serializeAdoptionDecision(currentAdoptionDecision())
     })
     await finalizePendingAccountResponse(data)

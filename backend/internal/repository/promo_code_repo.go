@@ -39,10 +39,14 @@ func (r *promoCodeRepository) Create(ctx context.Context, code *service.PromoCod
 	if err != nil {
 		return err
 	}
+	if err := r.setPromoCodePurpose(ctx, client, created.ID, code.Purpose); err != nil {
+		return err
+	}
 
 	code.ID = created.ID
 	code.CreatedAt = created.CreatedAt
 	code.UpdatedAt = created.UpdatedAt
+	code.Purpose = normalizeRepoPromoPurpose(code.Purpose)
 	return nil
 }
 
@@ -56,7 +60,11 @@ func (r *promoCodeRepository) GetByID(ctx context.Context, id int64) (*service.P
 		}
 		return nil, err
 	}
-	return promoCodeEntityToService(m), nil
+	out := promoCodeEntityToService(m)
+	if err := r.fillPromoCodePurpose(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (r *promoCodeRepository) GetByCode(ctx context.Context, code string) (*service.PromoCode, error) {
@@ -69,7 +77,11 @@ func (r *promoCodeRepository) GetByCode(ctx context.Context, code string) (*serv
 		}
 		return nil, err
 	}
-	return promoCodeEntityToService(m), nil
+	out := promoCodeEntityToService(m)
+	if err := r.fillPromoCodePurpose(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (r *promoCodeRepository) GetByCodeForUpdate(ctx context.Context, code string) (*service.PromoCode, error) {
@@ -84,7 +96,11 @@ func (r *promoCodeRepository) GetByCodeForUpdate(ctx context.Context, code strin
 		}
 		return nil, err
 	}
-	return promoCodeEntityToService(m), nil
+	out := promoCodeEntityToService(m)
+	if err := r.fillPromoCodePurpose(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (r *promoCodeRepository) Update(ctx context.Context, code *service.PromoCode) error {
@@ -110,8 +126,12 @@ func (r *promoCodeRepository) Update(ctx context.Context, code *service.PromoCod
 		}
 		return err
 	}
+	if err := r.setPromoCodePurpose(ctx, client, code.ID, code.Purpose); err != nil {
+		return err
+	}
 
 	code.UpdatedAt = updated.UpdatedAt
+	code.Purpose = normalizeRepoPromoPurpose(code.Purpose)
 	return nil
 }
 
@@ -153,6 +173,11 @@ func (r *promoCodeRepository) ListWithFilters(ctx context.Context, params pagina
 	}
 
 	outCodes := promoCodeEntitiesToService(codes)
+	for i := range outCodes {
+		if err := r.fillPromoCodePurpose(ctx, &outCodes[i]); err != nil {
+			return nil, nil, err
+		}
+	}
 
 	return outCodes, paginationResultFromTotal(int64(total), params), nil
 }
@@ -260,10 +285,50 @@ func promoCodeEntityToService(m *dbent.PromoCode) *service.PromoCode {
 		MaxUses:     m.MaxUses,
 		UsedCount:   m.UsedCount,
 		Status:      m.Status,
+		Purpose:     service.PromoCodePurposeGeneral,
 		ExpiresAt:   m.ExpiresAt,
 		Notes:       derefString(m.Notes),
 		CreatedAt:   m.CreatedAt,
 		UpdatedAt:   m.UpdatedAt,
+	}
+}
+
+func (r *promoCodeRepository) setPromoCodePurpose(ctx context.Context, client *dbent.Client, id int64, purpose string) error {
+	purpose = normalizeRepoPromoPurpose(purpose)
+	_, err := client.ExecContext(ctx, `
+UPDATE promo_codes
+SET purpose = $1,
+    updated_at = NOW()
+WHERE id = $2`, purpose, id)
+	return err
+}
+
+func (r *promoCodeRepository) fillPromoCodePurpose(ctx context.Context, code *service.PromoCode) error {
+	if code == nil || code.ID <= 0 {
+		return nil
+	}
+	client := clientFromContext(ctx, r.client)
+	rows, err := client.QueryContext(ctx, `SELECT purpose FROM promo_codes WHERE id = $1`, code.ID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var purpose string
+		if err := rows.Scan(&purpose); err != nil {
+			return err
+		}
+		code.Purpose = normalizeRepoPromoPurpose(purpose)
+	}
+	return rows.Err()
+}
+
+func normalizeRepoPromoPurpose(purpose string) string {
+	switch strings.TrimSpace(purpose) {
+	case service.PromoCodePurposeCommunityJoin:
+		return service.PromoCodePurposeCommunityJoin
+	default:
+		return service.PromoCodePurposeGeneral
 	}
 }
 

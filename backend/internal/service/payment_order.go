@@ -50,11 +50,16 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 	}
 	orderAmount := req.Amount
 	limitAmount := req.Amount
+	var bonusSnapshot *PaymentRechargeBonusSnapshot
 	if plan != nil {
 		orderAmount = plan.Price
 		limitAmount = plan.Price
 	} else if req.OrderType == payment.OrderTypeBalance {
 		orderAmount = calculateCreditedBalance(req.Amount, cfg.BalanceRechargeMultiplier)
+		bonusSnapshot = calculateRechargeBonus(req.Amount, orderAmount, cfg.RechargeBonusRules)
+		if bonusSnapshot != nil {
+			orderAmount = bonusSnapshot.CreditedAmount
+		}
 	}
 	feeRate := cfg.RechargeFeeRate
 	payAmountStr := payment.CalculatePayAmount(limitAmount, feeRate)
@@ -73,7 +78,7 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 	if oauthResp != nil {
 		return oauthResp, nil
 	}
-	order, err := s.createOrderInTx(ctx, req, user, plan, cfg, orderAmount, limitAmount, feeRate, payAmount, sel)
+	order, err := s.createOrderInTx(ctx, req, user, plan, cfg, orderAmount, limitAmount, feeRate, payAmount, bonusSnapshot, sel)
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +88,10 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 			SetStatus(OrderStatusFailed).
 			Save(ctx)
 		return nil, err
+	}
+	resp.Bonus = bonusSnapshot
+	if bonusSnapshot != nil {
+		resp.BonusAmount = bonusSnapshot.BonusAmount
 	}
 	return resp, nil
 }
@@ -122,7 +131,7 @@ func (s *PaymentService) validateSubOrder(ctx context.Context, req CreateOrderRe
 	return plan, nil
 }
 
-func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderRequest, user *User, plan *dbent.SubscriptionPlan, cfg *PaymentConfig, orderAmount, limitAmount, feeRate, payAmount float64, sel *payment.InstanceSelection) (*dbent.PaymentOrder, error) {
+func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderRequest, user *User, plan *dbent.SubscriptionPlan, cfg *PaymentConfig, orderAmount, limitAmount, feeRate, payAmount float64, bonusSnapshot *PaymentRechargeBonusSnapshot, sel *payment.InstanceSelection) (*dbent.PaymentOrder, error) {
 	tx, err := s.entClient.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin transaction: %w", err)
@@ -144,6 +153,9 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 		return nil, err
 	}
 	providerSnapshot := buildPaymentOrderProviderSnapshot(sel, req)
+	if bonusSnapshot != nil {
+		providerSnapshot = withRechargeBonusSnapshot(providerSnapshot, bonusSnapshot)
+	}
 	selectedInstanceID := ""
 	selectedProviderKey := ""
 	if sel != nil {
@@ -269,9 +281,34 @@ func buildPaymentOrderProviderSnapshot(sel *payment.InstanceSelection, req Creat
 			snapshot["merchant_id"] = merchantID
 		}
 	}
+	if providerKey == payment.TypeDulupay {
+		if merchantID := strings.TrimSpace(sel.Config["pid"]); merchantID != "" {
+			snapshot["merchant_id"] = merchantID
+		}
+	}
 
 	if len(snapshot) == 1 {
 		return nil
+	}
+	return snapshot
+}
+
+func withRechargeBonusSnapshot(snapshot map[string]any, bonus *PaymentRechargeBonusSnapshot) map[string]any {
+	if bonus == nil {
+		return snapshot
+	}
+	if snapshot == nil {
+		snapshot = map[string]any{"schema_version": 2}
+	}
+	snapshot["recharge_bonus"] = map[string]any{
+		"rule_id":         bonus.RuleID,
+		"rule_name":       bonus.RuleName,
+		"min_amount":      bonus.MinAmount,
+		"bonus_amount":    bonus.BonusAmount,
+		"bonus_percent":   bonus.BonusPercent,
+		"payment_amount":  bonus.PaymentAmount,
+		"base_amount":     bonus.BaseAmount,
+		"credited_amount": bonus.CreditedAmount,
 	}
 	return snapshot
 }
