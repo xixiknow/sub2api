@@ -20,6 +20,10 @@ type SystemSettings struct {
 	FrontendURL                      string
 	InvitationCodeEnabled            bool
 	TotpEnabled                      bool // TOTP 双因素认证
+	LoginAgreementEnabled            bool
+	LoginAgreementMode               string
+	LoginAgreementUpdatedAt          string
+	LoginAgreementDocuments          []LoginAgreementDocument
 
 	SMTPHost               string
 	SMTPPort               int
@@ -88,6 +92,20 @@ type SystemSettings struct {
 	OIDCConnectUserInfoEmailPath      string
 	OIDCConnectUserInfoIDPath         string
 	OIDCConnectUserInfoUsernamePath   string
+
+	// GitHub / Google 邮箱快捷登录
+	GitHubOAuthEnabled                bool
+	GitHubOAuthClientID               string
+	GitHubOAuthClientSecret           string
+	GitHubOAuthClientSecretConfigured bool
+	GitHubOAuthRedirectURL            string
+	GitHubOAuthFrontendRedirectURL    string
+	GoogleOAuthEnabled                bool
+	GoogleOAuthClientID               string
+	GoogleOAuthClientSecret           string
+	GoogleOAuthClientSecretConfigured bool
+	GoogleOAuthRedirectURL            string
+	GoogleOAuthFrontendRedirectURL    string
 
 	SiteName                    string
 	SiteLogo                    string
@@ -194,6 +212,11 @@ type PublicSettings struct {
 	PasswordResetEnabled             bool
 	InvitationCodeEnabled            bool
 	TotpEnabled                      bool // TOTP 双因素认证
+	LoginAgreementEnabled            bool
+	LoginAgreementMode               string
+	LoginAgreementUpdatedAt          string
+	LoginAgreementRevision           string
+	LoginAgreementDocuments          []LoginAgreementDocument
 	TurnstileEnabled                 bool
 	TurnstileSiteKey                 string
 	SiteName                         string
@@ -223,6 +246,8 @@ type PublicSettings struct {
 	PaymentEnabled           bool
 	OIDCOAuthEnabled         bool
 	OIDCOAuthProviderName    string
+	GitHubOAuthEnabled       bool
+	GoogleOAuthEnabled       bool
 	Version                  string
 
 	BalanceLowNotifyEnabled     bool
@@ -239,6 +264,15 @@ type PublicSettings struct {
 
 	// Affiliate (邀请返利) feature toggle
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	// 风控中心功能开关
+	RiskControlEnabled bool `json:"risk_control_enabled"`
+}
+
+type LoginAgreementDocument struct {
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	ContentMD string `json:"content_md"`
 }
 
 type WeChatConnectOAuthConfig struct {

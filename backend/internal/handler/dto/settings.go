@@ -13,6 +13,7 @@ type CustomMenuItem struct {
 	Label      string `json:"label"`
 	IconSVG    string `json:"icon_svg"`
 	URL        string `json:"url"`
+	PageSlug   string `json:"page_slug,omitempty"`
 	Visibility string `json:"visibility"` // "user" or "admin"
 	SortOrder  int    `json:"sort_order"`
 }
@@ -26,15 +27,19 @@ type CustomEndpoint struct {
 
 // SystemSettings represents the admin settings API response payload.
 type SystemSettings struct {
-	RegistrationEnabled              bool     `json:"registration_enabled"`
-	EmailVerifyEnabled               bool     `json:"email_verify_enabled"`
-	RegistrationEmailSuffixWhitelist []string `json:"registration_email_suffix_whitelist"`
-	PromoCodeEnabled                 bool     `json:"promo_code_enabled"`
-	PasswordResetEnabled             bool     `json:"password_reset_enabled"`
-	FrontendURL                      string   `json:"frontend_url"`
-	InvitationCodeEnabled            bool     `json:"invitation_code_enabled"`
-	TotpEnabled                      bool     `json:"totp_enabled"`                   // TOTP 双因素认证
-	TotpEncryptionKeyConfigured      bool     `json:"totp_encryption_key_configured"` // TOTP 加密密钥是否已配置
+	RegistrationEnabled              bool                     `json:"registration_enabled"`
+	EmailVerifyEnabled               bool                     `json:"email_verify_enabled"`
+	RegistrationEmailSuffixWhitelist []string                 `json:"registration_email_suffix_whitelist"`
+	PromoCodeEnabled                 bool                     `json:"promo_code_enabled"`
+	PasswordResetEnabled             bool                     `json:"password_reset_enabled"`
+	FrontendURL                      string                   `json:"frontend_url"`
+	InvitationCodeEnabled            bool                     `json:"invitation_code_enabled"`
+	TotpEnabled                      bool                     `json:"totp_enabled"`                   // TOTP 双因素认证
+	TotpEncryptionKeyConfigured      bool                     `json:"totp_encryption_key_configured"` // TOTP 加密密钥是否已配置
+	LoginAgreementEnabled            bool                     `json:"login_agreement_enabled"`
+	LoginAgreementMode               string                   `json:"login_agreement_mode"`
+	LoginAgreementUpdatedAt          string                   `json:"login_agreement_updated_at"`
+	LoginAgreementDocuments          []LoginAgreementDocument `json:"login_agreement_documents"`
 
 	SMTPHost               string `json:"smtp_host"`
 	SMTPPort               int    `json:"smtp_port"`
@@ -92,6 +97,17 @@ type SystemSettings struct {
 	OIDCConnectUserInfoEmailPath      string `json:"oidc_connect_userinfo_email_path"`
 	OIDCConnectUserInfoIDPath         string `json:"oidc_connect_userinfo_id_path"`
 	OIDCConnectUserInfoUsernamePath   string `json:"oidc_connect_userinfo_username_path"`
+
+	GitHubOAuthEnabled                bool   `json:"github_oauth_enabled"`
+	GitHubOAuthClientID               string `json:"github_oauth_client_id"`
+	GitHubOAuthClientSecretConfigured bool   `json:"github_oauth_client_secret_configured"`
+	GitHubOAuthRedirectURL            string `json:"github_oauth_redirect_url"`
+	GitHubOAuthFrontendRedirectURL    string `json:"github_oauth_frontend_redirect_url"`
+	GoogleOAuthEnabled                bool   `json:"google_oauth_enabled"`
+	GoogleOAuthClientID               string `json:"google_oauth_client_id"`
+	GoogleOAuthClientSecretConfigured bool   `json:"google_oauth_client_secret_configured"`
+	GoogleOAuthRedirectURL            string `json:"google_oauth_redirect_url"`
+	GoogleOAuthFrontendRedirectURL    string `json:"google_oauth_frontend_redirect_url"`
 
 	SiteName                    string           `json:"site_name"`
 	SiteLogo                    string           `json:"site_logo"`
@@ -204,6 +220,9 @@ type SystemSettings struct {
 	// Available Channels feature switch (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
+	// 风控中心功能开关
+	RiskControlEnabled bool `json:"risk_control_enabled"`
+
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 
@@ -265,6 +284,14 @@ type PublicSettings struct {
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	RiskControlEnabled bool `json:"risk_control_enabled"`
+}
+
+type LoginAgreementDocument struct {
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	ContentMD string `json:"content_md"`
 }
 
 // OverloadCooldownSettings 529过载冷却配置 DTO
