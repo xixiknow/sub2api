@@ -31,6 +31,7 @@ import channelMonitorTemplateAPI from './channelMonitorTemplate'
 import adminPaymentAPI from './payment'
 import affiliatesAPI from './affiliates'
 import growthAPI from './growth'
+import riskControlAPI from './riskControl'
 
 /**
  * Unified admin API object for convenient access
@@ -63,7 +64,8 @@ export const adminAPI = {
   channelMonitorTemplate: channelMonitorTemplateAPI,
   payment: adminPaymentAPI,
   affiliates: affiliatesAPI,
-  growth: growthAPI
+  growth: growthAPI,
+  riskControl: riskControlAPI
 }
 
 export {
@@ -94,7 +96,8 @@ export {
   channelMonitorTemplateAPI,
   adminPaymentAPI,
   affiliatesAPI,
-  growthAPI
+  growthAPI,
+  riskControlAPI
 }
 
 export default adminAPI
@@ -111,3 +114,4 @@ export type {
   GrowthUserEntry,
   UpsertBadgeBenefitRuleRequest
 } from './growth'
+export type { ContentModerationConfig, ContentModerationLog, ModerationMode } from './riskControl'

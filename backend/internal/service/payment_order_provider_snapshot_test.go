@@ -186,6 +186,30 @@ func TestWithRechargeBonusSnapshot_CreatesSnapshotWithoutProvider(t *testing.T) 
 	require.Equal(t, float64(55), bonus["credited_amount"])
 }
 
+func TestBuildPaymentOrderProviderSnapshot_IncludesProviderCurrency(t *testing.T) {
+	t.Parallel()
+
+	stripeSnapshot := buildPaymentOrderProviderSnapshot(&payment.InstanceSelection{
+		InstanceID:  "77",
+		ProviderKey: payment.TypeStripe,
+		Config: map[string]string{
+			"currency": "hkd",
+		},
+	}, CreateOrderRequest{})
+	require.Equal(t, "HKD", stripeSnapshot["currency"])
+
+	airwallexSnapshot := buildPaymentOrderProviderSnapshot(&payment.InstanceSelection{
+		InstanceID:  "78",
+		ProviderKey: payment.TypeAirwallex,
+		Config: map[string]string{
+			"currency":  "usd",
+			"accountId": "acct-78",
+		},
+	}, CreateOrderRequest{})
+	require.Equal(t, "USD", airwallexSnapshot["currency"])
+	require.Equal(t, "acct-78", airwallexSnapshot["merchant_id"])
+}
+
 func valueOrEmpty(v *string) string {
 	if v == nil {
 		return ""
