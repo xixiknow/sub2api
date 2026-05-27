@@ -111,6 +111,8 @@ backend/data/
 backend/config.yaml
 deploy/config.yaml
 backend/.installed
+deploy/.env.bak-*
+deploy/postgres_data_backup/
 
 # ===================
 # 其他

@@ -12,8 +12,8 @@
 
 services:
   sub2api:
-    image: weishaw/sub2api:latest
-    container_name: sub2api
+    image: ${SUB2API_IMAGE:-weishaw/sub2api:latest}
+    container_name: ${SUB2API_CONTAINER_NAME:-sub2api}
     restart: unless-stopped
     ulimits:
       nofile:
@@ -29,7 +29,7 @@ services:
       # =======================================================================
       # Auto Setup
       # =======================================================================
-      - AUTO_SETUP=true
+      - AUTO_SETUP=${AUTO_SETUP:-true}
 
       # =======================================================================
       # Server Configuration
@@ -75,6 +75,11 @@ services:
       # =======================================================================
       - JWT_SECRET=${JWT_SECRET:-}
       - JWT_EXPIRE_HOUR=${JWT_EXPIRE_HOUR:-24}
+
+      # =======================================================================
+      # TOTP (2FA) Configuration
+      # =======================================================================
+      - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
 
       # =======================================================================
       # Timezone Configuration
