@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"net/url"
 	"strings"
 )
@@ -27,13 +26,9 @@ func validateInterval(sec int) error {
 }
 
 // validateEndpoint 校验 endpoint：
-//   - scheme 强制 https（拒绝 http，避免明文凭证 + 部分 SSRF 利用面）
+//   - scheme 允许 http/https（部署侧已放开,以便监控同 docker 网络内服务）
 //   - 必须为 origin（无 path/query/fragment），防止用户填 https://api.openai.com/v1
 //     导致 joinURL 拼出 /v1/v1/chat/completions
-//   - hostname 不能是 localhost/metadata 等已知元数据 hostname
-//   - 解析所有 IP，任一落在 loopback/RFC1918/link-local/ULA 段即拒绝（防 SSRF）
-//
-// 错误信息不暴露具体 IP / hostname，避免泄露内网拓扑。
 func validateEndpoint(ep string) error {
 	ep = strings.TrimSpace(ep)
 	if ep == "" {
@@ -43,7 +38,7 @@ func validateEndpoint(ep string) error {
 	if err != nil {
 		return ErrChannelMonitorInvalidEndpoint
 	}
-	if u.Scheme != "https" {
+	if u.Scheme != "https" && u.Scheme != "http" {
 		return ErrChannelMonitorEndpointScheme
 	}
 	if u.Host == "" {
@@ -54,17 +49,6 @@ func validateEndpoint(ep string) error {
 	}
 	if u.RawQuery != "" || u.Fragment != "" {
 		return ErrChannelMonitorEndpointPath
-	}
-
-	hostname := u.Hostname()
-	ctx, cancel := context.WithTimeout(context.Background(), monitorEndpointResolveTimeout)
-	defer cancel()
-	blocked, err := isPrivateOrLoopbackHost(ctx, hostname)
-	if err != nil {
-		return ErrChannelMonitorEndpointUnreachable
-	}
-	if blocked {
-		return ErrChannelMonitorEndpointPrivate
 	}
 	return nil
 }
