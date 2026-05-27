@@ -16,8 +16,8 @@ services:
   # Sub2API Application
   # ===========================================================================
   sub2api:
-    image: weishaw/sub2api:latest
-    container_name: sub2api
+    image: ${SUB2API_IMAGE:-weishaw/sub2api:latest}
+    container_name: ${SUB2API_CONTAINER_NAME:-sub2api}
     restart: unless-stopped
     ulimits:
       nofile:
@@ -39,7 +39,7 @@ services:
       # =======================================================================
       # Auto Setup (REQUIRED for Docker deployment)
       # =======================================================================
-      - AUTO_SETUP=true
+      - AUTO_SETUP=${AUTO_SETUP:-true}
 
       # =======================================================================
       # Server Configuration
