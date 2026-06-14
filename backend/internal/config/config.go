@@ -93,6 +93,13 @@ type Config struct {
 	Gemini                  GeminiConfig                  `mapstructure:"gemini"`
 	Update                  UpdateConfig                  `mapstructure:"update"`
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
+	TGShop                  TGShopConfig                  `mapstructure:"tgshop"`
+}
+
+// TGShopConfig 配置 telegram-shop 充值回调接收端。
+// WebhookSecret 必须与 telegram-shop 的 sub2api.webhook_secret 完全一致。
+type TGShopConfig struct {
+	WebhookSecret string `mapstructure:"webhook_secret"`
 }
 
 type LogConfig struct {
@@ -1731,6 +1738,9 @@ func setDefaults() {
 	viper.SetDefault("jwt.access_token_expire_minutes", 0) // 0 表示回退到 expire_hour
 	viper.SetDefault("jwt.refresh_token_expire_days", 30)  // 30天Refresh Token有效期
 	viper.SetDefault("jwt.refresh_window_minutes", 2)      // 过期前2分钟开始允许刷新
+
+	// TGShop telegram-shop 充值回调共享密钥
+	viper.SetDefault("tgshop.webhook_secret", "")
 
 	// TOTP
 	viper.SetDefault("totp.encryption_key", "")

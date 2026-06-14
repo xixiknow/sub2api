@@ -718,11 +718,6 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					if registrationInvite == nil || registrationInvite.CodeType != RegistrationCodeTypeAffiliate {
 						s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
 					}
-					if invitationRedeemCode != nil {
-						if err := s.redeemRepo.Use(ctx, invitationRedeemCode.ID, user.ID); err != nil {
-							return nil, nil, ErrInvitationCodeInvalid
-						}
-					}
 				}
 			}
 		} else {

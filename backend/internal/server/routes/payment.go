@@ -15,6 +15,7 @@ func RegisterPaymentRoutes(
 	v1 *gin.RouterGroup,
 	paymentHandler *handler.PaymentHandler,
 	webhookHandler *handler.PaymentWebhookHandler,
+	tgshopWebhookHandler *handler.TGShopWebhookHandler,
 	adminPaymentHandler *admin.PaymentHandler,
 	jwtAuth middleware.JWTAuthMiddleware,
 	adminAuth middleware.AdminAuthMiddleware,
@@ -65,6 +66,8 @@ func RegisterPaymentRoutes(
 		webhook.POST("/wxpay", webhookHandler.WxpayNotify)
 		webhook.POST("/stripe", webhookHandler.StripeWebhook)
 		webhook.POST("/airwallex", webhookHandler.AirwallexWebhook)
+		// telegram-shop 充值回调（内部 HMAC 签名校验）
+		webhook.POST("/tgshop", tgshopWebhookHandler.Notify)
 	}
 
 	// --- Admin payment endpoints (admin auth) ---
