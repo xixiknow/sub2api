@@ -41,7 +41,19 @@ type tgshopRechargePayload struct {
 	TradeNo string  `json:"trade_no"`
 	Email   string  `json:"email"`
 	Amount  float64 `json:"amount"`
-	Status  string  `json:"status"`
+	// BaseAmount 为实付充值额度（不含活动赠额），用作邀请返利的计提基数。
+	// 旧版 telegram-shop 不发送该字段，此时回退为 Amount。
+	BaseAmount float64 `json:"base_amount"`
+	Status     string  `json:"status"`
+}
+
+// resolveRebateBaseAmount 决定邀请返利的计提基数：优先使用实付额度 baseAmount，
+// 当其缺失或非正（旧版 telegram-shop 未发送 base_amount）时回退为落账金额 amount。
+func resolveRebateBaseAmount(baseAmount, amount float64) float64 {
+	if baseAmount > 0 {
+		return baseAmount
+	}
+	return amount
 }
 
 // Notify POST /api/v1/payment/webhook/tgshop
@@ -73,11 +85,15 @@ func (h *TGShopWebhookHandler) Notify(c *gin.Context) {
 		return
 	}
 
+	// 返利基数取实付额度；旧版回调缺失 base_amount 时回退为落账金额。
+	baseAmount := resolveRebateBaseAmount(p.BaseAmount, p.Amount)
+
 	if err := h.tgshopService.Recharge(c.Request.Context(), service.TGShopRechargeInput{
-		OrderNo: p.OrderNo,
-		TradeNo: p.TradeNo,
-		Email:   p.Email,
-		Amount:  p.Amount,
+		OrderNo:    p.OrderNo,
+		TradeNo:    p.TradeNo,
+		Email:      p.Email,
+		Amount:     p.Amount,
+		BaseAmount: baseAmount,
 	}); err != nil {
 		slog.Error("[TGShop] recharge failed", "orderNo", p.OrderNo, "error", err)
 		c.String(http.StatusInternalServerError, "recharge failed")

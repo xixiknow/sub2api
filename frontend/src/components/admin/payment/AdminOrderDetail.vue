@@ -151,6 +151,8 @@ const emit = defineEmits<{
 }>()
 
 function canRefund(order: PaymentOrder): boolean {
+  // tgshop 为外部代充的展示订单，不参与退款流程。
+  if (order.payment_type === 'tgshop') return false
   return canRefundStatus(order.status)
 }
 

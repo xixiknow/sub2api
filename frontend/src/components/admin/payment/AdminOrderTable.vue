@@ -222,6 +222,8 @@ const orderTypeFilterOptions = computed(() => [
 ])
 
 function canRefundRow(order: PaymentOrder): boolean {
+  // tgshop 为外部代充的展示订单，不参与退款流程。
+  if (order.payment_type === 'tgshop') return false
   return canRefund(order.status)
 }
 

@@ -29,6 +29,9 @@ RUN pnpm install --frozen-lockfile
 
 # Copy frontend source and build
 COPY frontend/ ./
+# 前端通过 ?raw 内联仓库根部的合规文档（AdminComplianceDialog.vue 引用 ../../../../docs/legal/*.md）
+# vite/rollup 在 /app/frontend 下构建，需把 docs/legal 放到 /app/docs/legal
+COPY docs/legal/ /app/docs/legal/
 RUN pnpm run build
 
 # -----------------------------------------------------------------------------

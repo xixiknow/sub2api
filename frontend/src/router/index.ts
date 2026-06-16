@@ -649,8 +649,9 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiresAdmin: true,
       title: 'Order Management',
-      titleKey: 'nav.orderManagement',
-      requiresPayment: true
+      titleKey: 'nav.orderManagement'
+      // 不加 requiresPayment：支付关闭时仍需查看 tgshop 代充订单。
+      // 仅 requiresAdmin 保护，仪表盘/订阅计划仍保留 requiresPayment 门控。
     }
   },
   {

@@ -7173,6 +7173,7 @@ export default {
       link: 'Link',
       alipay_direct: '支付宝（直连）',
       wxpay_direct: '微信支付（直连）',
+      tgshop: 'Telegram 商城',
     },
     status: {
       pending: '待支付',

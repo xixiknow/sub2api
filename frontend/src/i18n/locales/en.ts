@@ -6993,6 +6993,7 @@ export default {
       link: 'Link',
       alipay_direct: 'Alipay (Direct)',
       wxpay_direct: 'WeChat Pay (Direct)',
+      tgshop: 'Telegram Shop',
     },
     status: {
       pending: 'Pending',

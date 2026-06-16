@@ -652,7 +652,6 @@ const flagAvailableChannels = makeSidebarFlag(FeatureFlags.availableChannels)
 const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
-const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 
 // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
 // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
@@ -757,13 +756,17 @@ const adminNavItems = computed((): NavItem[] => {
       label: t('nav.orderManagement'),
       icon: OrderIcon,
       hideInSimpleMode: true,
-      expandOnly: true,
-      featureFlag: flagAdminPayment,
-      children: [
-        { path: '/admin/orders/dashboard', label: t('nav.paymentDashboard'), icon: ChartIcon },
-        { path: '/admin/orders', label: t('nav.orderManagement'), icon: OrderIcon },
-        { path: '/admin/orders/plans', label: t('nav.paymentPlans'), icon: CreditCardIcon },
-      ],
+      // 支付开启时展开为「仪表盘 / 订单列表 / 订阅计划」三项；
+      // 支付关闭时仅作为单项入口直达订单列表（tgshop 代充订单仍需可查），
+      // 仪表盘与订阅计划依赖站内支付配置，关闭时不渲染。
+      expandOnly: adminSettingsStore.paymentEnabled,
+      children: adminSettingsStore.paymentEnabled
+        ? [
+            { path: '/admin/orders/dashboard', label: t('nav.paymentDashboard'), icon: ChartIcon },
+            { path: '/admin/orders', label: t('nav.orderManagement'), icon: OrderIcon },
+            { path: '/admin/orders/plans', label: t('nav.paymentPlans'), icon: CreditCardIcon },
+          ]
+        : undefined,
     },
     { path: '/admin/usage', label: t('nav.usage'), icon: ChartIcon }
   ]

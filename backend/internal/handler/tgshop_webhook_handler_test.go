@@ -64,3 +64,23 @@ func TestTGShopVerifySignature(t *testing.T) {
 		t.Fatal("tampered body accepted")
 	}
 }
+
+func TestResolveRebateBaseAmount(t *testing.T) {
+	cases := []struct {
+		name       string
+		baseAmount float64
+		amount     float64
+		want       float64
+	}{
+		{"base provided uses base", 50, 60, 50},
+		{"base missing falls back to amount", 0, 60, 60},
+		{"base negative falls back to amount", -1, 60, 60},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := resolveRebateBaseAmount(c.baseAmount, c.amount); got != c.want {
+				t.Fatalf("resolveRebateBaseAmount(%v, %v) = %v, want %v", c.baseAmount, c.amount, got, c.want)
+			}
+		})
+	}
+}

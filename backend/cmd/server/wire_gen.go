@@ -254,7 +254,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	handlerPaymentHandler := handler.NewPaymentHandler(paymentService, paymentConfigService, channelService)
 	paymentWebhookHandler := handler.NewPaymentWebhookHandler(paymentService, registry)
 	availableChannelHandler := handler.NewAvailableChannelHandler(channelService, apiKeyService, settingService)
-	tgShopService := service.NewTGShopService(userRepository, redeemService)
+	tgShopService := service.NewTGShopService(userRepository, redeemService, affiliateService, paymentService)
 	tgShopWebhookHandler := handler.NewTGShopWebhookHandler(tgShopService, configConfig)
 	idempotencyCoordinator := service.ProvideIdempotencyCoordinator(idempotencyRepository, configConfig)
 	idempotencyCleanupService := service.ProvideIdempotencyCleanupService(idempotencyRepository, configConfig)

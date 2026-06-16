@@ -880,3 +880,65 @@ func (s *PaymentService) AdminListOrders(ctx context.Context, userID int64, p Or
 	}
 	return orders, total, nil
 }
+
+// --- External (display-only) Orders ---
+
+// ErrExternalOrderExists 表示同一外部订单（按 out_trade_no 幂等）已写入过。
+var ErrExternalOrderExists = errors.New("external order already exists")
+
+// ExternalCompletedOrderInput 描述一笔由外部渠道（如 telegram-shop）完成、
+// 仅用于在订单管理中展示的已完成订单。余额由外部渠道自身的入账路径处理，
+// 本订单不参与履约/退款/余额变更。
+type ExternalCompletedOrderInput struct {
+	UserID       int64
+	UserEmail    string
+	UserName     string
+	Amount       float64 // 落账口径金额（此处为实付额度，不含赠送）
+	PayAmount    float64 // 实付金额
+	PaymentType  string  // 支付方式标签，如 "tgshop"
+	OutTradeNo   string  // 幂等键，命中唯一索引则视为已存在
+	TradeNo      string  // 外部交易号 -> payment_trade_no
+	RechargeCode string  // 充值码（必填字段，外部订单用派生值占位）
+	SrcHost      string
+	ClientIP     string
+}
+
+// pcTruncateField 将字符串截断到 n 字节，不追加任何后缀（用于满足 DB 字段长度约束）。
+func pcTruncateField(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n]
+}
+
+// CreateExternalCompletedOrder 写入一笔展示用的已完成订单。
+// 幂等：out_trade_no 唯一索引命中时返回 ErrExternalOrderExists。
+// 该订单不会进入履约/退款流程，也不会变更用户余额。
+func (s *PaymentService) CreateExternalCompletedOrder(ctx context.Context, in ExternalCompletedOrderInput) (*dbent.PaymentOrder, error) {
+	now := time.Now()
+	o, err := s.entClient.PaymentOrder.Create().
+		SetUserID(in.UserID).
+		SetUserEmail(pcTruncateField(in.UserEmail, 255)).
+		SetUserName(pcTruncateField(in.UserName, 100)).
+		SetAmount(in.Amount).
+		SetPayAmount(in.PayAmount).
+		SetRechargeCode(pcTruncateField(in.RechargeCode, 64)).
+		SetOutTradeNo(pcTruncateField(in.OutTradeNo, 64)).
+		SetPaymentType(pcTruncateField(in.PaymentType, 30)).
+		SetPaymentTradeNo(pcTruncateField(in.TradeNo, 128)).
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(OrderStatusCompleted).
+		SetClientIP(pcTruncateField(in.ClientIP, 50)).
+		SetSrcHost(pcTruncateField(in.SrcHost, 255)).
+		SetExpiresAt(now).
+		SetPaidAt(now).
+		SetCompletedAt(now).
+		Save(ctx)
+	if err != nil {
+		if dbent.IsConstraintError(err) {
+			return nil, ErrExternalOrderExists
+		}
+		return nil, fmt.Errorf("create external completed order: %w", err)
+	}
+	return o, nil
+}
