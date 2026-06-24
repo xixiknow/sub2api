@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-terra-bg text-terra-ink dark:bg-dark-950 dark:text-dark-100">
+  <div class="xingguang-shell min-h-screen text-terra-ink dark:text-dark-100">
     <!-- Sidebar -->
     <AppSidebar />
 
@@ -12,8 +12,11 @@
       <AppHeader />
 
       <!-- Main Content -->
-      <main class="p-4 md:p-6 lg:p-8">
-        <slot />
+      <main class="relative p-4 md:p-6 lg:p-8">
+        <div class="xingguang-grid pointer-events-none absolute inset-0 opacity-60 dark:opacity-40"></div>
+        <div class="relative z-10">
+          <slot />
+        </div>
       </main>
     </div>
   </div>

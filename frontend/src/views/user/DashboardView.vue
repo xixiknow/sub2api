@@ -3,6 +3,18 @@
     <div class="space-y-6">
       <div v-if="loading" class="flex items-center justify-center py-12"><LoadingSpinner /></div>
       <template v-else-if="stats">
+        <section class="xingguang-panel relative overflow-hidden p-6">
+          <div class="xingguang-orb -right-16 -top-16 h-44 w-44 bg-amber-300/40 dark:bg-amber-400/20"></div>
+          <div class="xingguang-orb bottom-0 left-1/3 h-36 w-36 bg-indigo-400/25 dark:bg-indigo-500/20"></div>
+          <div class="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <span class="xingguang-pill">✦ Xingguang Console</span>
+              <h2 class="mt-3 text-2xl font-bold text-terra-ink dark:text-white md:text-3xl">星光用户工作台</h2>
+              <p class="mt-2 max-w-2xl text-sm text-terra-muted dark:text-dark-300">统一管理 API Key、用量趋势、账户余额与模型通道，让每一次调用都像星轨一样清晰可追踪。</p>
+            </div>
+            <router-link to="/keys" class="btn btn-primary shadow-lg shadow-amber-500/20">管理密钥</router-link>
+          </div>
+        </section>
         <UserDashboardStats :stats="stats" :balance="user?.balance || 0" :is-simple="authStore.isSimpleMode" :platform-quotas="platformQuotas" />
         <UserDashboardCharts v-model:startDate="startDate" v-model:endDate="endDate" v-model:granularity="granularity" :loading="loadingCharts" :trend="trendData" :models="modelStats" @dateRangeChange="loadCharts" @granularityChange="loadCharts" @refresh="refreshAll" />
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

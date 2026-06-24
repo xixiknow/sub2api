@@ -162,6 +162,14 @@ type providerAdapter struct {
 	textPath     string // gjson 提取响应文本的 path
 }
 
+// providerAnthropicTextPath / providerGeminiTextPath 响应文本的默认 gjson path。
+// 既作为 adapter.textPath 的取值，也作为 extractAnthropicText / extractGeminiText
+// 遍历失败时的兜底——抽成常量避免两处字面量漂移。
+const (
+	providerAnthropicTextPath = "content.0.text"
+	providerGeminiTextPath    = "candidates.0.content.parts.0.text"
+)
+
 // providerAdapters 全部已支持的 provider。键值即 MonitorProvider* 字符串。
 //
 //nolint:gochecknoglobals // 适配器表是只读静态数据，初始化后不变更。
@@ -182,7 +190,7 @@ var providerAdapters = map[string]providerAdapter{
 				"anthropic-version": monitorAnthropicAPIVersion,
 			}
 		},
-		textPath: "content.0.text",
+		textPath: providerAnthropicTextPath,
 	},
 	MonitorProviderGemini: {
 		// Gemini 把 model 名写在 URL path 上：/v1beta/models/{model}:generateContent
@@ -199,7 +207,7 @@ var providerAdapters = map[string]providerAdapter{
 		buildHeaders: func(apiKey string) map[string]string {
 			return map[string]string{"x-goog-api-key": apiKey}
 		},
-		textPath: "candidates.0.content.parts.0.text",
+		textPath: providerGeminiTextPath,
 	},
 }
 
@@ -281,10 +289,68 @@ func callProvider(ctx context.Context, provider, endpoint, apiKey, model, prompt
 	if err != nil {
 		return "", "", status, err
 	}
-	if provider == MonitorProviderOpenAI && apiMode == MonitorAPIModeResponses {
+	switch {
+	case provider == MonitorProviderOpenAI && apiMode == MonitorAPIModeResponses:
 		return extractOpenAIResponsesText(respBytes), string(respBytes), status, nil
+	case provider == MonitorProviderAnthropic:
+		return extractAnthropicText(respBytes), string(respBytes), status, nil
+	case provider == MonitorProviderGemini:
+		return extractGeminiText(respBytes), string(respBytes), status, nil
 	}
 	return gjson.GetBytes(respBytes, adapter.textPath).String(), string(respBytes), status, nil
+}
+
+// extractAnthropicText 聚合 Anthropic Messages 响应里的最终 assistant 文本。
+// content 数组顺序由模型决定：开启 extended thinking 时 thinking / redacted_thinking
+// 块会排在 text 块之前，因此不能假设文本永远在 content.0.text
+// （否则 content[0] 命中 thinking 块时抽出的就是空串，challenge 会误判 failed）。
+// 思路与 extractOpenAIResponsesText 对称：遍历 content，只拼接 type=="text" 的块。
+func extractAnthropicText(respBytes []byte) string {
+	var texts []string
+	content := gjson.GetBytes(respBytes, "content")
+	if content.IsArray() {
+		content.ForEach(func(_, block gjson.Result) bool {
+			// 空 type 容忍为 text（兼容部分网关回包不带 type 字段）。
+			if blockType := block.Get("type").String(); blockType != "" && blockType != "text" {
+				return true
+			}
+			if text := block.Get("text").String(); strings.TrimSpace(text) != "" {
+				texts = append(texts, text)
+			}
+			return true
+		})
+	}
+
+	if len(texts) > 0 {
+		return strings.Join(texts, "")
+	}
+	// 兜底：保留原始 textPath，覆盖 content 非数组等非常规结构。
+	return gjson.GetBytes(respBytes, providerAnthropicTextPath).String()
+}
+
+// extractGeminiText 聚合 Gemini generateContent 响应里的最终文本。
+// 与 Anthropic 同理：开启 thinking 后 parts 里会混入 thought 块（part.thought==true），
+// 这类块的 text 是思考内容而非答案，必须跳过，只拼接正文 text part。
+func extractGeminiText(respBytes []byte) string {
+	var texts []string
+	parts := gjson.GetBytes(respBytes, "candidates.0.content.parts")
+	if parts.IsArray() {
+		parts.ForEach(func(_, part gjson.Result) bool {
+			if part.Get("thought").Bool() {
+				return true
+			}
+			if text := part.Get("text").String(); strings.TrimSpace(text) != "" {
+				texts = append(texts, text)
+			}
+			return true
+		})
+	}
+
+	if len(texts) > 0 {
+		return strings.Join(texts, "")
+	}
+	// 兜底：保留原始 textPath。
+	return gjson.GetBytes(respBytes, providerGeminiTextPath).String()
 }
 
 // extractOpenAIResponsesText 聚合 Responses API 的最终 assistant 文本。

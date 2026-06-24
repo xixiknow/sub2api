@@ -27,8 +27,11 @@ func swapMonitorHTTPClient(t *testing.T) {
 type captureHandler struct {
 	lastBody    map[string]any
 	lastHeaders http.Header
-	respondText string // 写到 Anthropic content[0].text 里（校验用）
+	respondText string // 写到 Anthropic text 块里（校验用）
 	status      int
+	// leadingThinking 为 true 时在 text 块前插入一个 thinking 块，
+	// 复刻开启 extended thinking 后 content[0] 为 thinking 块的真实回包。
+	leadingThinking bool
 }
 
 func (h *captureHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -43,11 +46,18 @@ func (h *captureHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(h.status)
-	// 构造 Anthropic 格式的响应：content[0].text = h.respondText
+	// 构造 Anthropic 格式的响应：thinking 块（可选）排在 text 块之前。
+	content := []map[string]any{}
+	if h.leadingThinking {
+		content = append(content, map[string]any{
+			"type":      "thinking",
+			"thinking":  "let me compute the answer",
+			"signature": "sig",
+		})
+	}
+	content = append(content, map[string]any{"type": "text", "text": h.respondText})
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"content": []map[string]any{
-			{"type": "text", "text": h.respondText},
-		},
+		"content": content,
 	})
 }
 
@@ -239,6 +249,73 @@ func TestRunCheckForModel_OpenAIResponses_SkipsLeadingReasoningItem(t *testing.T
 	}
 	if h.lastPath != providerOpenAIResponsesPath {
 		t.Fatalf("expected responses path %q, got %q", providerOpenAIResponsesPath, h.lastPath)
+	}
+}
+
+// challengeAnswerHandler 解析 challenge 数学题并回正确答案，
+// 用于验证「上游答对 + thinking 块在前」时 challenge 仍能通过校验。
+type challengeAnswerHandler struct {
+	leadingThinking bool
+	lastPath        string
+}
+
+func (h *challengeAnswerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.lastPath = r.URL.Path
+	defer func() { _ = r.Body.Close() }()
+	var parsed map[string]any
+	_ = json.NewDecoder(r.Body).Decode(&parsed)
+
+	prompt := ""
+	if messages, ok := parsed["messages"].([]any); ok && len(messages) > 0 {
+		if msg, ok := messages[0].(map[string]any); ok {
+			prompt, _ = msg["content"].(string)
+		}
+	}
+	answer := answerFromChallengePrompt(prompt)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	content := []map[string]any{}
+	if h.leadingThinking {
+		content = append(content, map[string]any{
+			"type":      "thinking",
+			"thinking":  "\n" + answer + "\n",
+			"signature": "sig",
+		})
+	}
+	content = append(content, map[string]any{"type": "text", "text": "\n\n" + answer})
+	_ = json.NewEncoder(w).Encode(map[string]any{"content": content})
+}
+
+func TestRunCheckForModel_Anthropic_SkipsLeadingThinkingBlock(t *testing.T) {
+	// 复刻线上 claude-sonnet-4-6 经网关返回 content[0]=thinking、content[1]=text 的回包：
+	// 旧实现死取 content.0.text 会拿到空串 → challenge mismatch；
+	// 新实现遍历 content 跳过 thinking 块，应能命中正确答案。
+	h := &challengeAnswerHandler{leadingThinking: true}
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	swapMonitorHTTPClient(t)
+
+	res := runCheckForModel(context.Background(), MonitorProviderAnthropic, srv.URL, "sk-fake", "claude-sonnet-4-6", nil)
+
+	if res.Status != MonitorStatusOperational {
+		t.Fatalf("anthropic with leading thinking block should pass challenge, got status=%s message=%q",
+			res.Status, res.Message)
+	}
+}
+
+func TestRunCheckForModel_Anthropic_TextOnlyStillPasses(t *testing.T) {
+	// 回归：无 thinking 块（如 opus）的普通回包仍应正常通过。
+	h := &challengeAnswerHandler{leadingThinking: false}
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	swapMonitorHTTPClient(t)
+
+	res := runCheckForModel(context.Background(), MonitorProviderAnthropic, srv.URL, "sk-fake", "claude-opus-4-8", nil)
+
+	if res.Status != MonitorStatusOperational {
+		t.Fatalf("anthropic text-only response should pass challenge, got status=%s message=%q",
+			res.Status, res.Message)
 	}
 }
 

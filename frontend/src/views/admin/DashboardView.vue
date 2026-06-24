@@ -7,6 +7,32 @@
       </div>
 
       <template v-else-if="stats">
+        <section class="xingguang-panel relative overflow-hidden p-6">
+          <div class="xingguang-orb -right-20 -top-20 h-52 w-52 bg-fuchsia-300/35 dark:bg-fuchsia-500/20"></div>
+          <div class="xingguang-orb -bottom-16 left-10 h-44 w-44 bg-amber-300/35 dark:bg-amber-400/20"></div>
+          <div class="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <span class="xingguang-pill">✦ Xingguang Admin</span>
+              <h2 class="mt-3 text-2xl font-bold text-terra-ink dark:text-white md:text-3xl">星光管理中枢</h2>
+              <p class="mt-2 max-w-2xl text-sm text-terra-muted dark:text-dark-300">实时总览密钥、账户池、用户增长与成本表现，把运营态势收束到一张星图里。</p>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="rounded-2xl border border-white/60 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.06]">
+                <p class="text-terra-muted dark:text-dark-400">RPM</p>
+                <p class="font-mono font-semibold text-indigo-600 dark:text-indigo-300">{{ formatTokens(stats.rpm) }}</p>
+              </div>
+              <div class="rounded-2xl border border-white/60 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.06]">
+                <p class="text-terra-muted dark:text-dark-400">TPM</p>
+                <p class="font-mono font-semibold text-fuchsia-600 dark:text-fuchsia-300">{{ formatTokens(stats.tpm) }}</p>
+              </div>
+              <div class="rounded-2xl border border-white/60 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.06]">
+                <p class="text-terra-muted dark:text-dark-400">Avg</p>
+                <p class="font-mono font-semibold text-amber-600 dark:text-amber-300">{{ formatDuration(stats.average_duration_ms) }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Row 1: Core Stats -->
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <!-- Total API Keys -->
