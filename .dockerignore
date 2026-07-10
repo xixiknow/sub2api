@@ -11,9 +11,10 @@
 *.md
 !deploy/DOCKER.md
 docs/
-# 前端通过 ?raw 内联这两份合规文档（AdminComplianceDialog.vue），必须保留在构建上下文中
-!docs/legal/admin-compliance.zh.md
-!docs/legal/admin-compliance.en.md
+# 前端通过 ?raw 内联仓库根部的合规文档（AdminComplianceDialog.vue / LegalDocumentView.vue
+# 引用 docs/legal/*.md?raw），必须保留整个 docs/legal 子树在构建上下文中
+!docs/legal/
+!docs/legal/*.md
 
 # IDE
 .idea/

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/internal/payment"
 )
 
 func TestCalculateRechargeBonus_UsesHighestMatchedTier(t *testing.T) {
@@ -43,9 +44,10 @@ func TestCalculateRechargeBonus_SupportsPercentRule(t *testing.T) {
 	}
 }
 
-func TestAffiliateRebateBaseAmountForOrder_ExcludesRechargeBonus(t *testing.T) {
+func TestAffiliateRebateBaseAmount_ExcludesRechargeBonus(t *testing.T) {
 	order := &dbent.PaymentOrder{
-		Amount: 111,
+		OrderType: payment.OrderTypeBalance,
+		Amount:    111,
 		ProviderSnapshot: map[string]any{
 			"recharge_bonus": map[string]any{
 				"base_amount":     100.0,
@@ -54,7 +56,7 @@ func TestAffiliateRebateBaseAmountForOrder_ExcludesRechargeBonus(t *testing.T) {
 		},
 	}
 
-	if got := affiliateRebateBaseAmountForOrder(order); got != 100 {
-		t.Fatalf("affiliateRebateBaseAmountForOrder = %v, want 100", got)
+	if got := affiliateRebateBaseAmount(order); got != 100 {
+		t.Fatalf("affiliateRebateBaseAmount = %v, want 100", got)
 	}
 }
