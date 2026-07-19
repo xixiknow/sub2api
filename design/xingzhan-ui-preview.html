@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>星站 UI 重构概念效果图</title>
+  <style>
+    :root {
+      --bg: #050712;
+      --panel: rgba(15, 22, 42, .72);
+      --panel-strong: rgba(10, 16, 32, .9);
+      --line: rgba(151, 177, 255, .16);
+      --line-hot: rgba(135, 206, 255, .34);
+      --text: #eef5ff;
+      --muted: #8f9fbd;
+      --dim: #59657d;
+      --cyan: #55d7ff;
+      --blue: #6a7dff;
+      --violet: #a45cff;
+      --gold: #ffd36a;
+      --green: #65f0b5;
+      --red: #ff6b8a;
+      --shadow: 0 40px 120px rgba(0, 0, 0, .48);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% -10%, rgba(85, 215, 255, .28), transparent 34%),
+        radial-gradient(circle at 84% 6%, rgba(164, 92, 255, .25), transparent 32%),
+        radial-gradient(circle at 50% 100%, rgba(255, 211, 106, .12), transparent 30%),
+        var(--bg);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(151,177,255,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(151,177,255,.055) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,.55) .8px, transparent 1px);
+      background-size: 72px 72px, 72px 72px, 130px 130px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.92), rgba(0,0,0,.28));
+    }
+
+    .deck { width: min(1520px, calc(100vw - 40px)); margin: 0 auto; padding: 28px 0 80px; }
+    .topbar {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(5, 7, 18, .72);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 18px 70px rgba(0,0,0,.32);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .08em; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 13px;
+      background: conic-gradient(from 210deg, var(--gold), var(--cyan), var(--blue), var(--violet), var(--gold));
+      display: grid; place-items: center;
+      box-shadow: 0 0 34px rgba(85,215,255,.28);
+    }
+    .brand-mark::after { content: "✦"; color: #07101d; font-size: 18px; }
+    .nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav a {
+      color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 700;
+      padding: 10px 13px; border-radius: 999px; border: 1px solid transparent;
+    }
+    .nav a:hover { color: var(--text); border-color: var(--line-hot); background: rgba(255,255,255,.05); }
+
+    .screen {
+      position: relative;
+      min-height: 900px;
+      margin-top: 28px;
+      border: 1px solid var(--line);
+      border-radius: 36px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(13,18,37,.96), rgba(5,8,20,.98)),
+        var(--bg);
+      box-shadow: var(--shadow);
+    }
+    .screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 0 90px rgba(85,215,255,.06);
+    }
+    .screen-label {
+      position: absolute; top: 24px; right: 28px; z-index: 5;
+      color: var(--dim); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+    }
+
+    .landing { padding: 34px 48px 46px; }
+    .landing header { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 3; }
+    .landing-menu { display: flex; gap: 28px; color: var(--muted); font-size: 14px; font-weight: 700; }
+    .actions { display: flex; align-items: center; gap: 12px; }
+    .ghost-btn, .primary-btn {
+      height: 42px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px;
+      text-decoration: none;
+    }
+    .ghost-btn { color: var(--text); border: 1px solid var(--line); background: rgba(255,255,255,.04); }
+    .primary-btn { color: #06101c; border: 0; background: linear-gradient(135deg, var(--gold), var(--cyan)); box-shadow: 0 18px 46px rgba(85,215,255,.24); }
+
+    .hero {
+      position: relative; z-index: 2;
+      display: grid; grid-template-columns: 1.02fr .98fr; gap: 40px;
+      align-items: center; padding-top: 96px;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 999px;
+      color: var(--cyan); background: rgba(85,215,255,.08); border: 1px solid rgba(85,215,255,.22); font-weight: 800; font-size: 13px;
+    }
+    h1 { margin: 24px 0 0; font-size: clamp(62px, 7vw, 108px); line-height: .92; letter-spacing: -.075em; max-width: 740px; }
+    .hero-gradient { background: linear-gradient(120deg, #fff, #bcd3ff 35%, var(--cyan) 58%, var(--gold)); -webkit-background-clip: text; color: transparent; }
+    .hero p { margin: 30px 0 0; color: #aebbd4; font-size: 20px; line-height: 1.8; max-width: 680px; }
+    .hero-cta { margin-top: 38px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .trust-row { margin-top: 42px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 720px; }
+    .trust-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.035); }
+    .trust-card b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .trust-card span { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+    .orbit-stage { position: relative; min-height: 620px; }
+    .planet {
+      position: absolute; inset: 70px 30px auto auto; width: 450px; height: 450px; border-radius: 50%;
+      background:
+        radial-gradient(circle at 34% 28%, rgba(255,255,255,.95), transparent 3%),
+        radial-gradient(circle at 40% 35%, rgba(85,215,255,.42), transparent 18%),
+        radial-gradient(circle at 62% 68%, rgba(164,92,255,.45), transparent 28%),
+        linear-gradient(145deg, #111b38, #050814 68%);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: inset -38px -40px 70px rgba(0,0,0,.64), 0 0 120px rgba(85,215,255,.18);
+    }
+    .orbit { position: absolute; border: 1px solid rgba(151,177,255,.22); border-radius: 50%; transform: rotate(-18deg); }
+    .orbit.one { width: 590px; height: 210px; right: -36px; top: 205px; }
+    .orbit.two { width: 710px; height: 290px; right: -86px; top: 160px; border-color: rgba(255,211,106,.18); }
+    .satellite {
+      position: absolute; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line-hot); background: rgba(9,15,31,.78); backdrop-filter: blur(18px); box-shadow: 0 16px 50px rgba(0,0,0,.32);
+    }
+    .satellite small { color: var(--dim); display:block; font-weight:800; letter-spacing:.12em; }
+    .satellite b { display:block; margin-top:4px; font-size:20px; }
+    .satellite.s1 { right: 0; top: 90px; }
+    .satellite.s2 { left: 18px; top: 330px; }
+    .satellite.s3 { right: 82px; bottom: 42px; }
+
+    .section-strip { position: relative; z-index: 2; margin-top: 72px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .feature { border: 1px solid var(--line); border-radius: 26px; padding: 24px; background: rgba(255,255,255,.045); min-height: 170px; }
+    .feature i { color: var(--gold); font-style: normal; font-size: 13px; letter-spacing: .14em; font-weight: 900; }
+    .feature h3 { margin: 24px 0 10px; font-size: 22px; }
+    .feature p { margin: 0; color: var(--muted); line-height: 1.7; }
+
+    .app { display: grid; grid-template-columns: 270px 1fr; min-height: 900px; }
+    .sidebar { border-right: 1px solid var(--line); background: rgba(3, 6, 15, .62); padding: 28px 18px; }
+    .side-title { display: flex; align-items: center; gap: 12px; margin-bottom: 34px; }
+    .side-title strong { font-size: 20px; letter-spacing: .08em; }
+    .menu-group { margin: 24px 0; }
+    .menu-label { color: var(--dim); font-size: 11px; letter-spacing: .16em; font-weight: 900; margin: 0 12px 10px; }
+    .menu-item { height: 44px; display: flex; align-items: center; gap: 12px; border-radius: 14px; padding: 0 13px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .menu-item.active { color: var(--text); background: linear-gradient(135deg, rgba(85,215,255,.16), rgba(106,125,255,.1)); border: 1px solid rgba(85,215,255,.22); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 18px currentColor; }
+    .main { padding: 28px; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .app-header h2 { margin: 0; font-size: 30px; letter-spacing: -.03em; }
+    .app-header p { margin: 7px 0 0; color: var(--muted); }
+    .search { width: 340px; height: 44px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.045); color: var(--muted); display: flex; align-items: center; padding: 0 14px; font-weight: 700; }
+    .banner { border: 1px solid rgba(85,215,255,.24); border-radius: 30px; padding: 28px; background: radial-gradient(circle at 80% 20%, rgba(85,215,255,.16), transparent 30%), linear-gradient(135deg, rgba(15,24,54,.88), rgba(10,13,28,.86)); overflow: hidden; position: relative; }
+    .banner h3 { margin: 10px 0; font-size: 34px; letter-spacing: -.04em; }
+    .banner p { color: #aebbd4; line-height: 1.7; max-width: 680px; margin: 0; }
+    .mini-orbit { position: absolute; width: 280px; height: 280px; right: 42px; top: -64px; border-radius: 50%; border: 1px solid rgba(85,215,255,.22); }
+    .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-top: 18px; }
+    .metric { padding: 20px; border: 1px solid var(--line); border-radius: 24px; background: rgba(255,255,255,.045); }
+    .metric span { color: var(--muted); font-size: 13px; font-weight: 800; }
+    .metric b { display:block; margin-top:12px; font-size: 31px; letter-spacing: -.04em; }
+    .metric em { color: var(--green); font-style: normal; font-size: 13px; font-weight: 800; }
+    .dashboard-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 18px; margin-top: 18px; }
+    .chart-card, .list-card { border: 1px solid var(--line); border-radius: 28px; background: rgba(255,255,255,.04); padding: 22px; min-height: 330px; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card-head h3 { margin: 0; font-size: 18px; }
+    .chip { color: var(--cyan); border: 1px solid rgba(85,215,255,.24); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900; }
+    .bars { height: 230px; display: flex; align-items: end; gap: 14px; border-bottom: 1px solid var(--line); padding-top: 30px; }
+    .bar { flex:1; border-radius: 10px 10px 0 0; background: linear-gradient(to top, rgba(85,215,255,.18), rgba(85,215,255,.82)); min-height: 30px; box-shadow: 0 0 22px rgba(85,215,255,.18); }
+    .list-row { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding: 15px 0; }
+    .list-row:last-child { border-bottom:0; }
+    .list-row strong { display:block; margin-bottom:4px; }
+    .list-row span { color: var(--muted); font-size: 13px; }
+    .status { font-weight: 900; font-size: 12px; color: var(--green); }
+
+    .admin .metric:nth-child(2) b { color: var(--gold); }
+    .admin .metric:nth-child(3) b { color: var(--cyan); }
+    .admin-map { height: 300px; border-radius: 24px; border: 1px solid var(--line); background:
+      radial-gradient(circle at 22% 35%, rgba(101,240,181,.22), transparent 8%),
+      radial-gradient(circle at 58% 50%, rgba(85,215,255,.22), transparent 10%),
+      radial-gradient(circle at 78% 28%, rgba(255,107,138,.18), transparent 8%),
+      linear-gradient(135deg, rgba(255,255,255,.035), rgba(255,255,255,.015));
+      position: relative; overflow: hidden;
+    }
+    .admin-map::before { content:""; position:absolute; inset:30px; border:1px dashed rgba(151,177,255,.16); border-radius:50%; transform: rotate(-15deg); }
+    .route-line { position:absolute; height:2px; transform-origin:left; background:linear-gradient(90deg, transparent, var(--cyan), transparent); opacity:.9; }
+    .r1 { width:340px; left:170px; top:126px; transform:rotate(18deg); }
+    .r2 { width:260px; left:450px; top:156px; transform:rotate(-24deg); }
+    .r3 { width:210px; left:310px; top:214px; transform:rotate(-8deg); background:linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+    @media (max-width: 980px) {
+      .hero, .app, .dashboard-grid { grid-template-columns: 1fr; }
+      .orbit-stage { min-height: 520px; }
+      .sidebar { display: none; }
+      .metrics, .trust-row, .section-strip { grid-template-columns: 1fr 1fr; }
+      .landing { padding: 28px; }
+      .landing-menu { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="topbar">
+      <div class="brand"><span class="brand-mark"></span><span>星站 UI CONCEPT</span></div>
+      <nav class="nav">
+        <a href="#landing">首页</a><a href="#user">用户端</a><a href="#admin">管理端</a>
+      </nav>
+    </div>
+
+    <section class="screen landing" id="landing">
+      <div class="screen-label">Landing / 站点首页</div>
+      <header>
+        <div class="brand"><span class="brand-mark"></span><span>星站</span></div>
+        <div class="landing-menu"><span>能力矩阵</span><span>模型通道</span><span>用量计费</span><span>开发文档</span></div>
+        <div class="actions"><a class="ghost-btn" href="#">登录</a><a class="primary-btn" href="#">进入星站 →</a></div>
+      </header>
+      <div class="hero">
+        <div>
+          <span class="eyebrow">✦ AI Gateway Command Center</span>
+          <h1>把模型接入<br><span class="hero-gradient">升维成星际网络</span></h1>
+          <p>星站是面向 AI API 中转、订阅额度分发与多账号调度的统一控制台。首页不再只是介绍产品，而是直接建立“稳定、规模、掌控”的平台心智。</p>
+          <div class="hero-cta"><a class="primary-btn" href="#">开始接入</a><a class="ghost-btn" href="#">查看模型航线</a></div>
+          <div class="trust-row">
+            <div class="trust-card"><b>99.9%</b><span>链路可观测</span></div>
+            <div class="trust-card"><b>Multi</b><span>账号池调度</span></div>
+            <div class="trust-card"><b>Token</b><span>精细化计费</span></div>
+            <div class="trust-card"><b>Route</b><span>智能故障切换</span></div>
+          </div>
+        </div>
+        <div class="orbit-stage">
+          <div class="planet"></div><div class="orbit one"></div><div class="orbit two"></div>
+          <div class="satellite s1"><small>UPSTREAM</small><b>Claude / GPT / Gemini</b></div>
+          <div class="satellite s2"><small>REQUEST</small><b>Sticky Session Active</b></div>
+          <div class="satellite s3"><small>RESPONSE</small><b>200 OK · 428ms</b></div>
+        </div>
+      </div>
+      <div class="section-strip">
+        <div class="feature"><i>01 / ROUTING</i><h3>不是“换壳首页”，是网关心智</h3><p>用星轨和航线表达模型路由、账号池、故障切换，视觉直接服务产品定位。</p></div>
+        <div class="feature"><i>02 / BILLING</i><h3>计费与额度变成可读仪表</h3><p>用户端核心是余额、Token、RPM/TPM、通道额度，而不是泛泛功能卡片。</p></div>
+        <div class="feature"><i>03 / OPS</i><h3>管理端像指挥中心</h3><p>管理员第一眼看到风险、吞吐、成本、异常链路，减少装饰性噪音。</p></div>
+      </div>
+    </section>
+
+    <section class="screen app" id="user">
+      <div class="screen-label">User Console / 用户端</div>
+      <aside class="sidebar">
+        <div class="side-title"><span class="brand-mark"></span><strong>星站</strong></div>
+        <div class="menu-group"><p class="menu-label">USER NAVIGATION</p><div class="menu-item active"><span class="dot"></span>总览</div><div class="menu-item"><span class="dot"></span>API 密钥</div><div class="menu-item"><span class="dot"></span>用量记录</div><div class="menu-item"><span class="dot"></span>模型通道</div><div class="menu-item"><span class="dot"></span>充值订阅</div></div>
+        <div class="menu-group"><p class="menu-label">ACCOUNT</p><div class="menu-item"><span class="dot"></span>个人资料</div><div class="menu-item"><span class="dot"></span>邀请返利</div></div>
+      </aside>
+      <main class="main">
+        <div class="app-header"><div><h2>用户星图</h2><p>掌握密钥、余额、额度与调用趋势。</p></div><div class="search">⌘K 搜索密钥 / 模型 / 订单</div></div>
+        <div class="banner"><div class="mini-orbit"></div><span class="eyebrow">Personal API Orbit</span><h3>你的 API 调用正在稳定穿越星站航线</h3><p>把“余额、Key、用量、订阅”统一到一个高密度但不压迫的界面里，用户能快速判断还能用多少、哪里在消耗、下一步该做什么。</p></div>
+        <div class="metrics"><div class="metric"><span>账户余额</span><b>$128.60</b><em>可用余额</em></div><div class="metric"><span>今日请求</span><b>18.4K</b><em>+12.8%</em></div><div class="metric"><span>Token 消耗</span><b>9.7M</b><em>本周期</em></div><div class="metric"><span>平均延迟</span><b>428ms</b><em>健康</em></div></div>
+        <div class="dashboard-grid"><div class="chart-card"><div class="card-head"><h3>调用趋势</h3><span class="chip">Last 7 days</span></div><div class="bars"><div class="bar" style="height:42%"></div><div class="bar" style="height:58%"></div><div class="bar" style="height:46%"></div><div class="bar" style="height:74%"></div><div class="bar" style="height:63%"></div><div class="bar" style="height:86%"></div><div class="bar" style="height:68%"></div></div></div><div class="list-card"><div class="card-head"><h3>常用航线</h3><span class="chip">Live</span></div><div class="list-row"><div><strong>Claude Sonnet</strong><span>主力编码链路</span></div><span class="status">ONLINE</span></div><div class="list-row"><div><strong>GPT 系列</strong><span>文本与工具调用</span></div><span class="status">ONLINE</span></div><div class="list-row"><div><strong>Gemini</strong><span>长上下文备用</span></div><span class="status">ONLINE</span></div><div class="list-row"><div><strong>Antigravity</strong><span>实验通道</span></div><span class="status">BETA</span></div></div></div>
+      </main>
+    </section>
+
+    <section class="screen app admin" id="admin">
+      <div class="screen-label">Admin Command / 管理端</div>
+      <aside class="sidebar">
+        <div class="side-title"><span class="brand-mark"></span><strong>星站管理</strong></div>
+        <div class="menu-group"><p class="menu-label">COMMAND</p><div class="menu-item active"><span class="dot"></span>运营总览</div><div class="menu-item"><span class="dot"></span>用户管理</div><div class="menu-item"><span class="dot"></span>账号池</div><div class="menu-item"><span class="dot"></span>通道监控</div><div class="menu-item"><span class="dot"></span>风控策略</div></div>
+        <div class="menu-group"><p class="menu-label">SYSTEM</p><div class="menu-item"><span class="dot"></span>支付订单</div><div class="menu-item"><span class="dot"></span>站点设置</div><div class="menu-item"><span class="dot"></span>备份升级</div></div>
+      </aside>
+      <main class="main">
+        <div class="app-header"><div><h2>星站指挥中心</h2><p>用运营视角看吞吐、成本、风险与通道健康。</p></div><div class="search">⌘K 定位用户 / 账号 / 异常</div></div>
+        <div class="banner"><div class="mini-orbit"></div><span class="eyebrow">Operations Control Tower</span><h3>从“管理后台”升级为实时调度指挥舱</h3><p>管理端不做普通表格堆叠，而是以异常优先、成本可控、通道可观测为主线组织信息。</p></div>
+        <div class="metrics"><div class="metric"><span>今日收入</span><b>$4.8K</b><em>+18.2%</em></div><div class="metric"><span>账户池健康</span><b>96%</b><em>3 个异常</em></div><div class="metric"><span>实时 RPM</span><b>2.4K</b><em>峰值稳定</em></div><div class="metric"><span>活跃用户</span><b>1,286</b><em>+74 今日</em></div></div>
+        <div class="dashboard-grid"><div class="chart-card"><div class="card-head"><h3>全局航线拓扑</h3><span class="chip">Realtime</span></div><div class="admin-map"><div class="route-line r1"></div><div class="route-line r2"></div><div class="route-line r3"></div></div></div><div class="list-card"><div class="card-head"><h3>运营告警</h3><span class="chip">Priority</span></div><div class="list-row"><div><strong>OpenAI 池延迟升高</strong><span>建议切换备用代理组</span></div><span class="status" style="color:var(--gold)">WARN</span></div><div class="list-row"><div><strong>Claude 账号 3 个异常</strong><span>OAuth 需重新授权</span></div><span class="status" style="color:var(--red)">ACTION</span></div><div class="list-row"><div><strong>Gemini 成本低于阈值</strong><span>可提升路由权重</span></div><span class="status">OK</span></div><div class="list-row"><div><strong>新用户增长正常</strong><span>邀请渠道贡献 28%</span></div><span class="status">OK</span></div></div></div>
+      </main>
+    </section>
+  </div>
+</body>
+</html>

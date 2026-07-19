@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>星站 · 满天繁星主题首页 v2</title>
+  <style>
+    :root {
+      --bg: #030511;
+      --deep: #070a1d;
+      --ink: #f5f8ff;
+      --muted: #aab8dc;
+      --dim: #69779c;
+      --star: #fff7d6;
+      --blue: #73ddff;
+      --violet: #a78bfa;
+      --rose: #ff8bd1;
+      --gold: #ffe08a;
+      --line: rgba(190, 215, 255, .18);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .canvas {
+      position: relative;
+      min-height: 100vh;
+      padding: 28px 44px 42px;
+      isolation: isolate;
+      background:
+        radial-gradient(ellipse at 50% 120%, rgba(33, 78, 154, .36), transparent 58%),
+        radial-gradient(circle at 18% 18%, rgba(167, 139, 250, .26), transparent 30%),
+        radial-gradient(circle at 82% 12%, rgba(115, 221, 255, .2), transparent 32%),
+        linear-gradient(180deg, #02030b 0%, #06102a 50%, #09051b 100%);
+    }
+
+    .stars, .stars::before, .stars::after {
+      position: absolute;
+      inset: -20%;
+      content: "";
+      pointer-events: none;
+      z-index: -2;
+      background-repeat: repeat;
+      animation: drift 90s linear infinite;
+    }
+
+    .stars {
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.95) 0 1px, transparent 1.4px),
+        radial-gradient(circle, rgba(255,224,138,.9) 0 1.1px, transparent 1.6px),
+        radial-gradient(circle, rgba(115,221,255,.95) 0 .9px, transparent 1.4px);
+      background-size: 94px 94px, 137px 137px, 173px 173px;
+      background-position: 0 0, 38px 62px, 91px 17px;
+      opacity: .88;
+    }
+
+    .stars::before {
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.95) 0 1.6px, transparent 2.3px),
+        radial-gradient(circle, rgba(167,139,250,.8) 0 1.2px, transparent 1.9px);
+      background-size: 211px 211px, 287px 287px;
+      background-position: 44px 60px, 150px 90px;
+      opacity: .5;
+      filter: blur(.1px);
+      animation-duration: 130s;
+    }
+
+    .stars::after {
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.75) 0 .7px, transparent 1.2px);
+      background-size: 43px 43px;
+      opacity: .42;
+      animation-duration: 180s;
+      animation-direction: reverse;
+    }
+
+    .milky-way {
+      position: absolute;
+      left: -24%;
+      top: 8%;
+      width: 152%;
+      height: 520px;
+      z-index: -1;
+      transform: rotate(-17deg);
+      background:
+        radial-gradient(ellipse at 18% 45%, rgba(255,255,255,.72) 0 1px, transparent 1.8px),
+        radial-gradient(ellipse at 28% 52%, rgba(255,247,214,.86) 0 1.2px, transparent 2px),
+        radial-gradient(ellipse at 42% 46%, rgba(191,244,255,.82) 0 1px, transparent 1.8px),
+        radial-gradient(ellipse at 58% 56%, rgba(255,255,255,.72) 0 1px, transparent 1.8px),
+        radial-gradient(ellipse at 72% 44%, rgba(255,224,138,.72) 0 1.1px, transparent 2px),
+        radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.38), transparent 10%),
+        radial-gradient(ellipse at 50% 50%, rgba(115,221,255,.28), transparent 25%),
+        radial-gradient(ellipse at 50% 50%, rgba(167,139,250,.24), transparent 42%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,139,209,.18), transparent 62%);
+      background-size: 34px 34px, 54px 54px, 46px 46px, 62px 62px, 74px 74px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+      background-position: 0 0, 24px 18px, 12px 30px, 38px 8px, 52px 26px, 0 0, 0 0, 0 0, 0 0;
+      filter: blur(5px);
+      opacity: .98;
+      mask-image: linear-gradient(90deg, transparent, rgba(0,0,0,.92) 14%, black 50%, rgba(0,0,0,.88) 86%, transparent);
+    }
+
+    .nebula {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 20% 74%, rgba(255,139,209,.18), transparent 25%),
+        radial-gradient(circle at 68% 34%, rgba(115,221,255,.16), transparent 30%),
+        radial-gradient(circle at 48% 48%, rgba(255,224,138,.12), transparent 22%),
+        radial-gradient(circle at 86% 72%, rgba(167,139,250,.16), transparent 24%);
+      mix-blend-mode: screen;
+    }
+
+    .star-cluster {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 9% 24%, #fff 0 1.7px, transparent 2.5px),
+        radial-gradient(circle at 13% 29%, #ffe9a8 0 1.2px, transparent 2px),
+        radial-gradient(circle at 21% 18%, #bff4ff 0 1.4px, transparent 2.3px),
+        radial-gradient(circle at 41% 22%, #fff 0 1.2px, transparent 2px),
+        radial-gradient(circle at 48% 18%, #fff7d6 0 1.8px, transparent 2.8px),
+        radial-gradient(circle at 74% 20%, #bff4ff 0 1.6px, transparent 2.5px),
+        radial-gradient(circle at 91% 30%, #fff 0 1.3px, transparent 2.1px),
+        radial-gradient(circle at 82% 60%, #ffe08a 0 1.4px, transparent 2.3px),
+        radial-gradient(circle at 58% 78%, #fff 0 1.5px, transparent 2.4px);
+      filter: drop-shadow(0 0 12px rgba(255,255,255,.75));
+      opacity: .95;
+    }
+
+    .shooting-star {
+      position: absolute;
+      width: 240px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), rgba(115,221,255,.7), transparent);
+      filter: drop-shadow(0 0 12px rgba(115,221,255,.9));
+      transform: rotate(-25deg);
+      opacity: .85;
+    }
+    .shooting-star.one { top: 128px; right: 220px; }
+    .shooting-star.two { top: 610px; left: 180px; width: 170px; opacity: .48; }
+
+    @keyframes drift {
+      from { transform: translate3d(0,0,0); }
+      to { transform: translate3d(-160px, 110px,0); }
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 13px 16px;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(12,18,42,.62), rgba(8,12,27,.38));
+      backdrop-filter: blur(22px);
+      box-shadow: 0 20px 80px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.1);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: .08em; }
+    .logo {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle, #fff 0 7%, transparent 8%),
+        conic-gradient(from 0deg, var(--gold), var(--blue), var(--violet), var(--rose), var(--gold));
+      box-shadow: 0 0 24px rgba(115,221,255,.44), 0 0 54px rgba(167,139,250,.25);
+    }
+    .logo::before {
+      content: "";
+      position: absolute;
+      width: 66px;
+      height: 22px;
+      border: 1px solid rgba(255,255,255,.52);
+      border-radius: 50%;
+      transform: rotate(-24deg);
+    }
+    .logo::after { content: "✦"; color: #071025; font-size: 17px; font-weight: 900; }
+
+    nav { display: flex; gap: 8px; }
+    nav a {
+      color: #c7d5f8;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+    nav a:hover { border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.06); }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 999px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 900;
+      font-size: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.055);
+    }
+    .btn.primary {
+      color: #04101d;
+      border: 0;
+      background: linear-gradient(135deg, #fff7c2 0%, #87e8ff 45%, #c4a5ff 100%);
+      box-shadow: 0 20px 70px rgba(115,221,255,.28), 0 0 26px rgba(255,255,255,.2);
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      max-width: 1480px;
+      margin: 0 auto;
+      min-height: calc(100vh - 118px);
+      display: grid;
+      grid-template-columns: 1fr 520px;
+      gap: 56px;
+      align-items: center;
+    }
+
+    .copy { padding-top: 36px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 999px;
+      color: #dce8ff;
+      background: rgba(255,255,255,.055);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+    .eyebrow::before { content: "✦"; color: var(--gold); text-shadow: 0 0 16px var(--gold); }
+
+    h1 {
+      margin: 26px 0 0;
+      max-width: 950px;
+      font-size: clamp(74px, 8.5vw, 132px);
+      line-height: .86;
+      letter-spacing: -.085em;
+      text-wrap: balance;
+      text-shadow: 0 0 34px rgba(255,255,255,.1);
+    }
+    h1 .line { display: block; }
+    h1 .stars-text {
+      color: transparent;
+      background:
+        radial-gradient(circle at 12% 35%, #fff 0 1.5px, transparent 2px),
+        radial-gradient(circle at 34% 64%, #fff7bc 0 1.4px, transparent 2px),
+        radial-gradient(circle at 68% 30%, #bff4ff 0 1.3px, transparent 2px),
+        linear-gradient(100deg, #fff 0%, #c6f4ff 28%, #a78bfa 62%, #ffe08a 100%);
+      background-size: 44px 44px, 68px 68px, 56px 56px, 100% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      filter: drop-shadow(0 0 20px rgba(115,221,255,.22));
+    }
+
+    .subtitle {
+      margin: 30px 0 0;
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.85;
+    }
+
+    .cta-row { margin-top: 38px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .star-proof {
+      margin-top: 44px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 13px;
+      max-width: 810px;
+    }
+    .proof-card {
+      position: relative;
+      min-height: 108px;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+      overflow: hidden;
+    }
+    .proof-card::before {
+      content: "✦";
+      position: absolute;
+      right: 14px;
+      top: 10px;
+      color: rgba(255,255,255,.22);
+      font-size: 22px;
+    }
+    .proof-card b { display: block; font-size: 28px; letter-spacing: -.03em; }
+    .proof-card span { display: block; margin-top: 10px; color: var(--muted); font-size: 13px; font-weight: 800; }
+
+    .star-gate {
+      position: relative;
+      height: 640px;
+      display: grid;
+      place-items: center;
+    }
+    .gate-ring {
+      position: absolute;
+      width: 470px;
+      height: 470px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(255,255,255,.12) 0 1px, transparent 1.4px),
+        conic-gradient(from 130deg, rgba(255,224,138,.08), rgba(115,221,255,.75), rgba(167,139,250,.58), rgba(255,139,209,.34), rgba(255,224,138,.08));
+      box-shadow: 0 0 90px rgba(115,221,255,.28), inset 0 0 80px rgba(255,255,255,.08);
+      mask: radial-gradient(circle, transparent 0 58%, black 59% 100%);
+      animation: spin 32s linear infinite;
+    }
+    .gate-ring.two { width: 610px; height: 610px; opacity: .34; animation-duration: 55s; animation-direction: reverse; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .station {
+      position: relative;
+      width: 315px;
+      height: 315px;
+      border-radius: 46% 54% 50% 50%;
+      background:
+        radial-gradient(circle at 46% 35%, rgba(255,255,255,.98) 0 2px, transparent 3px),
+        radial-gradient(circle at 42% 42%, rgba(255,255,255,.75), transparent 8%),
+        radial-gradient(circle at 34% 28%, rgba(115,221,255,.7), transparent 18%),
+        radial-gradient(circle at 68% 68%, rgba(167,139,250,.72), transparent 30%),
+        linear-gradient(150deg, #19264d, #050819 68%);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset -45px -42px 80px rgba(0,0,0,.66), 0 0 120px rgba(115,221,255,.22);
+    }
+    .station::before {
+      content: "";
+      position: absolute;
+      inset: -30px;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 50%;
+      transform: rotate(-18deg) scaleX(1.55) scaleY(.42);
+      box-shadow: 0 0 20px rgba(255,255,255,.08);
+    }
+
+    .constellation {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .constellation svg { width: 100%; height: 100%; overflow: visible; }
+    .constellation line { stroke: rgba(210,231,255,.26); stroke-width: 1; }
+    .constellation circle { fill: #fff; filter: drop-shadow(0 0 8px #fff); }
+
+    .float-card {
+      position: absolute;
+      min-width: 190px;
+      padding: 15px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(6, 11, 28, .58);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.1);
+    }
+    .float-card small { color: var(--dim); font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+    .float-card strong { display: block; margin-top: 6px; font-size: 18px; }
+    .float-card.a { top: 80px; right: 20px; }
+    .float-card.b { left: -10px; top: 278px; }
+    .float-card.c { right: 52px; bottom: 80px; }
+
+    footer {
+      position: absolute;
+      left: 44px;
+      right: 44px;
+      bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      color: rgba(220,232,255,.58);
+      font-size: 12px;
+      letter-spacing: .12em;
+      font-weight: 800;
+      pointer-events: none;
+    }
+    .constellation-name { color: rgba(255,255,255,.8); }
+
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .canvas { overflow: hidden; }
+      .hero { grid-template-columns: 1fr; }
+      .star-gate { height: 520px; }
+      .star-proof { grid-template-columns: repeat(2, 1fr); }
+      nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="canvas">
+    <div class="stars"></div>
+    <div class="milky-way"></div>
+    <div class="nebula"></div>
+    <div class="star-cluster"></div>
+    <div class="shooting-star one"></div>
+    <div class="shooting-star two"></div>
+
+    <header>
+      <div class="brand"><span class="logo"></span><span>星站</span></div>
+      <nav>
+        <a href="#">星图首页</a>
+        <a href="#">模型星轨</a>
+        <a href="#">用量星盘</a>
+        <a href="#">开发文档</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn" href="#">登录</a>
+        <a class="btn primary" href="#">进入星站 ✦</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="copy">
+        <span class="eyebrow">满天繁星 · AI API Gateway</span>
+        <h1>
+          <span class="line">让每一次调用</span>
+          <span class="line stars-text">都抵达星辰</span>
+        </h1>
+        <p class="subtitle">星站不是普通中转后台，而是一座 AI 模型空间站：把 Claude、GPT、Gemini 与账号池、计费、风控、路由编织成可观测的星图网络。</p>
+        <div class="cta-row">
+          <a class="btn primary" href="#">点亮第一条星轨</a>
+          <a class="btn" href="#">查看星图架构</a>
+        </div>
+        <div class="star-proof">
+          <div class="proof-card"><b>∞</b><span>星轨式模型路由</span></div>
+          <div class="proof-card"><b>99.9%</b><span>链路稳定可观测</span></div>
+          <div class="proof-card"><b>Token</b><span>额度像星盘一样清晰</span></div>
+          <div class="proof-card"><b>Orbit</b><span>会话粘滞与故障切换</span></div>
+        </div>
+      </div>
+
+      <div class="star-gate">
+        <div class="gate-ring two"></div>
+        <div class="gate-ring"></div>
+        <div class="constellation">
+          <svg viewBox="0 0 640 640" aria-hidden="true">
+            <line x1="88" y1="166" x2="174" y2="250" />
+            <line x1="174" y1="250" x2="116" y2="390" />
+            <line x1="174" y1="250" x2="298" y2="190" />
+            <line x1="298" y1="190" x2="412" y2="268" />
+            <line x1="412" y1="268" x2="520" y2="182" />
+            <line x1="412" y1="268" x2="460" y2="434" />
+            <line x1="116" y1="390" x2="262" y2="474" />
+            <line x1="262" y1="474" x2="460" y2="434" />
+            <circle cx="88" cy="166" r="4" />
+            <circle cx="174" cy="250" r="5" />
+            <circle cx="116" cy="390" r="3.5" />
+            <circle cx="298" cy="190" r="4.5" />
+            <circle cx="412" cy="268" r="5" />
+            <circle cx="520" cy="182" r="3.5" />
+            <circle cx="460" cy="434" r="4" />
+            <circle cx="262" cy="474" r="4" />
+          </svg>
+        </div>
+        <div class="station"></div>
+        <div class="float-card a"><small>UPSTREAM STARS</small><strong>Claude · GPT · Gemini</strong></div>
+        <div class="float-card b"><small>REQUEST ORBIT</small><strong>Sticky Session Active</strong></div>
+        <div class="float-card c"><small>STAR SIGNAL</small><strong>200 OK · 428ms</strong></div>
+      </div>
+    </section>
+
+    <footer>
+      <span>STAR STATION / XINGZHAN</span>
+      <span class="constellation-name">CONSTELLATION: API ROUTING · BILLING · OPS</span>
+    </footer>
+  </main>
+</body>
+</html>
