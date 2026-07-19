@@ -106,6 +106,20 @@ func (s *TGShopService) Recharge(ctx context.Context, in TGShopRechargeInput) er
 	return nil
 }
 
+// QueryBalance 返回指定 email 用户的可用余额与冻结余额，只读，不改任何状态。
+// email 规范化口径与 Recharge 一致（TrimSpace + ToLower）。用户不存在时返回错误。
+func (s *TGShopService) QueryBalance(ctx context.Context, email string) (balance, frozen float64, err error) {
+	email = strings.TrimSpace(strings.ToLower(email))
+	if email == "" {
+		return 0, 0, errors.New("email is required")
+	}
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return 0, 0, fmt.Errorf("user not found for email %s: %w", email, err)
+	}
+	return user.Balance, user.FrozenBalance, nil
+}
+
 // tryRecordDisplayOrder 为本次 telegram-shop 充值写入一笔展示用的已完成订单。
 // 金额口径：amount = pay_amount = 实付额度 BaseAmount（不含赠送）。
 // 幂等：out_trade_no = "tgshop-{order_no}" 命中唯一索引时视为已存在。

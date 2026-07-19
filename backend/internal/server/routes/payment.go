@@ -68,6 +68,8 @@ func RegisterPaymentRoutes(
 		webhook.POST("/airwallex", webhookHandler.AirwallexWebhook)
 		// telegram-shop 充值回调（内部 HMAC 签名校验）
 		webhook.POST("/tgshop", tgshopWebhookHandler.Notify)
+		// telegram-shop 余额查询（只读，同一 HMAC 签名校验）
+		webhook.POST("/tgshop/balance", tgshopWebhookHandler.Balance)
 	}
 
 	// --- Admin payment endpoints (admin auth) ---

@@ -103,6 +103,62 @@ func (h *TGShopWebhookHandler) Notify(c *gin.Context) {
 	c.String(http.StatusOK, "success")
 }
 
+type tgshopBalanceRequest struct {
+	Email string `json:"email"`
+}
+
+type tgshopBalanceResponse struct {
+	Email         string  `json:"email"`
+	Balance       float64 `json:"balance"`
+	FrozenBalance float64 `json:"frozen_balance"`
+	Status        string  `json:"status"`
+}
+
+// Balance POST /api/v1/payment/webhook/tgshop/balance
+// 只读查询指定 email 用户的余额。复用与 Notify 相同的 HMAC 签名校验（防重放）。
+func (h *TGShopWebhookHandler) Balance(c *gin.Context) {
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, tgshopMaxBody))
+	if err != nil {
+		c.String(http.StatusBadRequest, "read body failed")
+		return
+	}
+
+	if h.secret == "" {
+		slog.Error("[TGShop] webhook secret not configured, rejecting")
+		c.String(http.StatusServiceUnavailable, "tgshop webhook disabled")
+		return
+	}
+	if !h.verifySignature(c, body) {
+		slog.Warn("[TGShop] invalid signature")
+		c.String(http.StatusUnauthorized, "invalid signature")
+		return
+	}
+
+	var p tgshopBalanceRequest
+	if err := json.Unmarshal(body, &p); err != nil {
+		c.String(http.StatusBadRequest, "invalid payload")
+		return
+	}
+	if p.Email == "" {
+		c.String(http.StatusBadRequest, "email is required")
+		return
+	}
+
+	balance, frozen, err := h.tgshopService.QueryBalance(c.Request.Context(), p.Email)
+	if err != nil {
+		slog.Warn("[TGShop] query balance failed", "email", p.Email, "error", err)
+		c.String(http.StatusNotFound, "user not found")
+		return
+	}
+
+	c.JSON(http.StatusOK, tgshopBalanceResponse{
+		Email:         p.Email,
+		Balance:       balance,
+		FrozenBalance: frozen,
+		Status:        tgshopStatusOK,
+	})
+}
+
 // verifySignature 校验 HMAC-SHA256 签名 + 5 分钟时间窗，防重放。
 // 签名格式：hex(HMAC_SHA256(secret, timestamp + "." + nonce + "." + rawBody))。
 func (h *TGShopWebhookHandler) verifySignature(c *gin.Context, body []byte) bool {
