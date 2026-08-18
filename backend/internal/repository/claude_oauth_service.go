@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/oauth"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyurl"
@@ -207,6 +208,7 @@ func (s *claudeOAuthService) ExchangeCodeForToken(ctx context.Context, code, cod
 		SetContext(ctx).
 		SetHeader("Accept", "application/json, text/plain, */*").
 		SetHeader("Content-Type", "application/json").
+		SetHeader("anthropic-beta", claude.BetaOAuth).
 		SetHeader("User-Agent", "axios/1.13.6").
 		SetBody(reqBody).
 		SetSuccessResult(&tokenResp).
@@ -245,6 +247,7 @@ func (s *claudeOAuthService) RefreshToken(ctx context.Context, refreshToken, pro
 		SetContext(ctx).
 		SetHeader("Accept", "application/json, text/plain, */*").
 		SetHeader("Content-Type", "application/json").
+		SetHeader("anthropic-beta", claude.BetaOAuth).
 		SetHeader("User-Agent", "axios/1.13.6").
 		SetBody(reqBody).
 		SetSuccessResult(&tokenResp).
@@ -276,5 +279,5 @@ func createReqClient(proxyURL string) (*req.Client, error) {
 		client.SetProxyURL(trimmed)
 	}
 
-	return client, nil
+	return instrumentReqClient(client), nil
 }
