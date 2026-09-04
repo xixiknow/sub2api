@@ -38,6 +38,7 @@ func newGatewayRoutesTestRouterWithConfig(cfg *config.Config, platform ...string
 			Gateway:       &handler.GatewayHandler{},
 			OpenAIGateway: &handler.OpenAIGatewayHandler{},
 			AsyncImage:    handler.NewAsyncImageHandler(nil, nil),
+			SeedanceVideo: &handler.SeedanceVideoHandler{},
 		},
 		servermiddleware.APIKeyAuthMiddleware(func(c *gin.Context) {
 			groupID := int64(1)
@@ -193,6 +194,48 @@ func TestGatewayRoutesGrokImagesAndVideosPathsAreRegistered(t *testing.T) {
 		router.ServeHTTP(w, req)
 		require.NotEqual(t, http.StatusNotFound, w.Code, "path=%s should hit Grok video handler", path)
 		require.NotContains(t, w.Body.String(), "not supported for this platform")
+	}
+}
+
+func TestGatewayRoutesDramaSeedanceVideoPathsAreRegistered(t *testing.T) {
+	router := newGatewayRoutesTestRouter(service.PlatformDrama)
+
+	for _, path := range []string{
+		"/v1/videos/uploads",
+		"/videos/uploads",
+		"/v1/videos/tasks",
+		"/videos/tasks",
+	} {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"model":"seedance-2.0-0826","prompt":"draw a cat"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		require.NotEqual(t, http.StatusNotFound, w.Code, "path=%s should hit Seedance video handler", path)
+	}
+
+	for _, path := range []string{
+		"/v1/videos/tasks/video_123",
+		"/videos/tasks/video_123",
+		"/v1/videos/tasks/video_123/content",
+		"/videos/tasks/video_123/content",
+	} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		require.NotEqual(t, http.StatusNotFound, w.Code, "path=%s should hit Seedance video handler", path)
+	}
+
+	for _, path := range []string{
+		"/v1/videos/tasks/video_123/content",
+		"/videos/tasks/video_123/content",
+	} {
+		req := httptest.NewRequest(http.MethodHead, path, nil)
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		require.NotEqual(t, http.StatusNotFound, w.Code, "path=%s should hit Seedance video HEAD handler", path)
 	}
 }
 

@@ -54,6 +54,63 @@ func (c *dramaVideoClient) CreateVideo(ctx context.Context, account *service.Acc
 	return c.doJSON(req)
 }
 
+func (c *dramaVideoClient) CreateVideoUploadSession(ctx context.Context, account *service.Account, body []byte) (*service.SeedanceVideoUploadSession, error) {
+	if len(body) == 0 {
+		return nil, fmt.Errorf("empty upload session request body")
+	}
+	req, err := c.newRequest(ctx, account, http.MethodPost, "/openapi/v1/uploads", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	var session service.SeedanceVideoUploadSession
+	if err := c.doJSONInto(req, &session); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(session.RequestID) == "" {
+		return nil, fmt.Errorf("upload session response missing request_id")
+	}
+	if strings.TrimSpace(session.UploadID) == "" {
+		return nil, fmt.Errorf("upload session response missing upload_id")
+	}
+	return &session, nil
+}
+
+func (c *dramaVideoClient) CreateSeedanceVideoTask(ctx context.Context, account *service.Account, body []byte) (*service.SeedanceVideoTaskResponse, error) {
+	if len(body) == 0 {
+		return nil, fmt.Errorf("empty seedance task request body")
+	}
+	req, err := c.newRequest(ctx, account, http.MethodPost, "/v1/videos", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	var task service.SeedanceVideoTaskResponse
+	if err := c.doJSONInto(req, &task); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(task.PublicID()) == "" {
+		return nil, fmt.Errorf("seedance task response missing id")
+	}
+	return &task, nil
+}
+
+func (c *dramaVideoClient) GetSeedanceVideoTask(ctx context.Context, account *service.Account, taskID string) (*service.SeedanceVideoTaskResponse, error) {
+	path := "/v1/videos/" + url.PathEscape(strings.TrimSpace(taskID))
+	req, err := c.newRequest(ctx, account, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var task service.SeedanceVideoTaskResponse
+	if err := c.doJSONWithRetryInto(ctx, req, &task, 3); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(task.PublicID()) == "" {
+		return nil, fmt.Errorf("seedance task response missing id")
+	}
+	return &task, nil
+}
+
 func (c *dramaVideoClient) GetVideo(ctx context.Context, account *service.Account, taskID string) (*service.DramaVideoUpstreamTask, error) {
 	path := "/v1/videos/" + url.PathEscape(strings.TrimSpace(taskID))
 	req, err := c.newRequest(ctx, account, http.MethodGet, path, nil)
@@ -143,6 +200,15 @@ func (c *dramaVideoClient) doJSON(req *http.Request) (*service.DramaVideoUpstrea
 	return decodeDramaTaskResponse(resp)
 }
 
+func (c *dramaVideoClient) doJSONInto(req *http.Request, out any) error {
+	resp, err := c.doWithClient(req, c.httpClient)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return decodeDramaJSONInto(resp, out)
+}
+
 func (c *dramaVideoClient) doJSONWithRetry(ctx context.Context, req *http.Request, attempts int) (*service.DramaVideoUpstreamTask, error) {
 	resp, err := c.doWithRetry(ctx, req, attempts)
 	if err != nil {
@@ -150,6 +216,29 @@ func (c *dramaVideoClient) doJSONWithRetry(ctx context.Context, req *http.Reques
 	}
 	defer resp.Body.Close()
 	return decodeDramaTaskResponse(resp)
+}
+
+func (c *dramaVideoClient) doJSONWithRetryInto(ctx context.Context, req *http.Request, out any, attempts int) error {
+	resp, err := c.doWithRetry(ctx, req, attempts)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return decodeDramaJSONInto(resp, out)
+}
+
+func (c *dramaVideoClient) doWithClient(req *http.Request, client *http.Client) (*http.Response, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, fmt.Errorf("nil response")
+	}
+	return resp, nil
 }
 
 func (c *dramaVideoClient) doWithRetry(ctx context.Context, req *http.Request, attempts int) (*http.Response, error) {
@@ -192,7 +281,7 @@ func decodeDramaTaskResponse(resp *http.Response) (*service.DramaVideoUpstreamTa
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Drama request failed: status=%d body=%s", resp.StatusCode, string(body))
+		return nil, service.NewSeedanceVideoUpstreamError(resp.StatusCode, body)
 	}
 	var task service.DramaVideoUpstreamTask
 	if err := json.Unmarshal(body, &task); err != nil {
@@ -202,6 +291,20 @@ func decodeDramaTaskResponse(resp *http.Response) (*service.DramaVideoUpstreamTa
 		return nil, fmt.Errorf("Drama task response missing id")
 	}
 	return &task, nil
+}
+
+func decodeDramaJSONInto(resp *http.Response, out any) error {
+	body, err := io.ReadAll(io.LimitReader(resp.Body, dramaVideoMaxResponseBytes))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return service.NewSeedanceVideoUpstreamError(resp.StatusCode, body)
+	}
+	if err := json.Unmarshal(body, out); err != nil {
+		return fmt.Errorf("decode Drama response: %w", err)
+	}
+	return nil
 }
 
 func isDramaRetryableStatus(status int) bool {

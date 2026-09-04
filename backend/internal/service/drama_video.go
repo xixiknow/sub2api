@@ -28,8 +28,11 @@ const (
 
 	DramaVideoDefaultBaseURL = "https://drama.dafeiyangapi.top"
 
-	DramaVideoModelV2Fast = "drama-video-v2-fast"
-	DramaVideoModelV2     = "drama-video-v2"
+	DramaVideoModelV2Fast       = "drama-video-v2-fast"
+	DramaVideoModelV2           = "drama-video-v2"
+	DramaVideoModelSeedance20   = "seedance2.0"
+	DramaVideoModelSeedance25   = "seedance2.5"
+	DramaVideoModelSD25Vref720p = "sd2-5-vref-720p"
 
 	dramaVideoTaskIDPrefix = "vidtask_"
 )
@@ -141,6 +144,9 @@ type DramaVideoClient interface {
 	CreateVideo(ctx context.Context, account *Account, body []byte) (*DramaVideoUpstreamTask, error)
 	GetVideo(ctx context.Context, account *Account, taskID string) (*DramaVideoUpstreamTask, error)
 	DownloadVideo(ctx context.Context, account *Account, taskID string) (*DramaVideoDownload, error)
+	CreateVideoUploadSession(ctx context.Context, account *Account, body []byte) (*SeedanceVideoUploadSession, error)
+	CreateSeedanceVideoTask(ctx context.Context, account *Account, body []byte) (*SeedanceVideoTaskResponse, error)
+	GetSeedanceVideoTask(ctx context.Context, account *Account, taskID string) (*SeedanceVideoTaskResponse, error)
 }
 
 type DramaVideoUpstreamTask struct {

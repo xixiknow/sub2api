@@ -166,10 +166,10 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 		ctx := context.WithValue(c.Request.Context(), ctxkey.UserID, apiKey.User.ID)
 		c.Request = c.Request.WithContext(ctx)
 		billingInfoRequest := c.Request.URL.Path == "/v1/sub2api/billing"
-		// Async image task polling only reads data that already belongs to the
+		// Async task polling only reads data that already belongs to the
 		// authenticated key and must remain available after the completed
 		// generation consumes the key's remaining balance.
-		skipBilling := c.Request.URL.Path == "/v1/usage" || billingInfoRequest || isAsyncImageTaskRead(c.Request.Method, c.Request.URL.Path)
+		skipBilling := c.Request.URL.Path == "/v1/usage" || billingInfoRequest || isAsyncImageTaskRead(c.Request.Method, c.Request.URL.Path) || isAsyncVideoTaskRead(c.Request.Method, c.Request.URL.Path)
 
 		// ── 4. SimpleMode → early return ─────────────────────────────
 
@@ -338,6 +338,42 @@ func isAsyncImageTaskRead(method, path string) bool {
 		return false
 	}
 	return strings.HasPrefix(path, "/v1/images/tasks/") || strings.HasPrefix(path, "/images/tasks/")
+}
+
+func isAsyncVideoTaskRead(method, path string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead:
+	default:
+		return false
+	}
+	trimmed := strings.Trim(strings.TrimSpace(path), "/")
+	if trimmed == "" {
+		return false
+	}
+	parts := strings.Split(trimmed, "/")
+	switch parts[0] {
+	case "v1":
+		if len(parts) < 3 || parts[1] != "videos" {
+			return false
+		}
+		return isAsyncVideoTaskReadTail(parts[2:])
+	case "videos":
+		return isAsyncVideoTaskReadTail(parts[1:])
+	default:
+		return false
+	}
+}
+
+func isAsyncVideoTaskReadTail(parts []string) bool {
+	if len(parts) == 0 {
+		return false
+	}
+	switch parts[0] {
+	case "uploads", "tasks", "generations", "edits", "extensions":
+		return len(parts) >= 2
+	default:
+		return true
+	}
 }
 
 // GetAPIKeyFromContext 从上下文中获取API key

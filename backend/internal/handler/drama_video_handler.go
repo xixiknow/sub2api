@@ -89,6 +89,9 @@ func (h *DramaVideoHandler) Content(c *gin.Context) {
 		c.Header("Content-Length", strconv.FormatInt(content.Size, 10))
 	}
 	c.Status(http.StatusOK)
+	if c.Request.Method == http.MethodHead {
+		return
+	}
 	_, _ = io.Copy(c.Writer, f)
 }
 
@@ -101,6 +104,7 @@ func dramaVideoOwnerFromContext(c *gin.Context) (service.DramaVideoOwner, bool) 
 }
 
 func dramaVideoError(c *gin.Context, err error) {
+	setDramaVideoUpstreamContext(c, err)
 	status := infraerrors.Code(err)
 	code := infraerrors.Reason(err)
 	message := infraerrors.Message(err)
@@ -115,4 +119,22 @@ func dramaVideoError(c *gin.Context, err error) {
 	}
 	c.Header("Cache-Control", "no-store")
 	c.JSON(status, gin.H{"error": gin.H{"type": "invalid_request_error", "code": code, "message": message}})
+}
+
+type dramaVideoUpstreamErrorCarrier interface {
+	error
+	UpstreamStatusCode() int
+	UpstreamErrorMessage() string
+	UpstreamErrorDetail() string
+}
+
+func setDramaVideoUpstreamContext(c *gin.Context, err error) {
+	if c == nil || err == nil {
+		return
+	}
+	var carrier dramaVideoUpstreamErrorCarrier
+	if !errors.As(err, &carrier) {
+		return
+	}
+	service.SetOpsUpstreamError(c, carrier.UpstreamStatusCode(), carrier.UpstreamErrorMessage(), carrier.UpstreamErrorDetail())
 }
