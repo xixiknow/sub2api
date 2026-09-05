@@ -29,6 +29,7 @@ const (
 	EndpointVideosEdits          = "/v1/videos/edits"
 	EndpointVideosExtensions     = "/v1/videos/extensions"
 	EndpointVideos               = "/v1/videos"
+	EndpointVideoGenerations     = "/v1/video/generations"
 	EndpointGeminiModels         = "/v1beta/models"
 )
 
@@ -97,6 +98,8 @@ func NormalizeInboundEndpoint(path string) string {
 		return EndpointImagesEdits
 	case strings.Contains(path, EndpointImageTasks) || strings.Contains(path, "/images/tasks/"):
 		return EndpointImageTasks
+	case strings.Contains(path, EndpointVideoGenerations) || strings.Contains(path, "/video/generations"):
+		return EndpointVideoGenerations
 	case strings.Contains(path, EndpointVideosGenerations) || strings.Contains(path, "/videos/generations"):
 		return EndpointVideosGenerations
 	case strings.Contains(path, EndpointVideosEdits) || strings.Contains(path, "/videos/edits"):

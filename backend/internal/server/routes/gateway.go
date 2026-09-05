@@ -95,6 +95,10 @@ func RegisterGatewayRoutes(
 		}
 	}
 	videoGenerationHandler := func(c *gin.Context) {
+		if platform := getGroupPlatform(c); platform == service.PlatformDrama && h.DramaVideo != nil {
+			h.DramaVideo.Create(c)
+			return
+		}
 		// Video status/content lookups below already allow Composite groups; keep
 		// task creation aligned so composite keys that route to Grok accounts can
 		// submit video generation jobs.
@@ -110,7 +114,25 @@ func RegisterGatewayRoutes(
 			},
 		})
 	}
+	dramaVideoGenerationsHandler := func(c *gin.Context) {
+		if platform := getGroupPlatform(c); (platform == service.PlatformDrama || platform == service.PlatformComposite) && h.DramaVideo != nil {
+			h.DramaVideo.Create(c)
+			return
+		}
+		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": gin.H{
+				"type":    "not_found_error",
+				"message": "Videos API is not supported for this platform",
+			},
+		})
+	}
 	videoStatusHandler := func(c *gin.Context) {
+		requestID := c.Param("request_id")
+		if h.DramaVideo != nil && (service.IsDramaVideoTaskID(requestID) || getGroupPlatform(c) == service.PlatformDrama) {
+			h.DramaVideo.Get(c)
+			return
+		}
 		// Video status requests do not carry a model, so composite groups cannot
 		// be resolved by compositeTargetPlatformMiddleware. Route them through
 		// the Grok handler and let scheduler/account selection enforce capacity.
@@ -127,6 +149,11 @@ func RegisterGatewayRoutes(
 		})
 	}
 	videoContentHandler := func(c *gin.Context) {
+		requestID := c.Param("request_id")
+		if h.DramaVideo != nil && (service.IsDramaVideoTaskID(requestID) || getGroupPlatform(c) == service.PlatformDrama) {
+			h.DramaVideo.Content(c)
+			return
+		}
 		// Video content requests do not carry a model, so composite groups cannot
 		// be resolved by compositeTargetPlatformMiddleware. Route them through
 		// the Grok handler just like video status lookups.
@@ -269,6 +296,7 @@ func RegisterGatewayRoutes(
 		// canonical /videos/generations route inside the Grok media forwarder.
 		gateway.POST("/videos", videoGenerationHandler)
 		gateway.POST("/videos/generations", videoGenerationHandler)
+		gateway.POST("/video/generations", dramaVideoGenerationsHandler)
 		gateway.POST("/videos/edits", videoEditHandler)
 		gateway.POST("/videos/extensions", videoExtensionHandler)
 		gateway.GET("/videos/generations/:request_id/content", videoContentHandler)
@@ -279,6 +307,10 @@ func RegisterGatewayRoutes(
 		gateway.GET("/videos/extensions/:request_id", videoStatusHandler)
 		gateway.GET("/videos/:request_id", videoStatusHandler)
 		gateway.GET("/videos/:request_id/content", videoContentHandler)
+		gateway.HEAD("/videos/:request_id/content", videoContentHandler)
+		gateway.GET("/video/generations/:request_id", videoStatusHandler)
+		gateway.GET("/video/generations/:request_id/content", videoContentHandler)
+		gateway.HEAD("/video/generations/:request_id/content", videoContentHandler)
 
 		// xAI Voice APIs (Grok platform only): HTTP TTS/STT + Realtime WS.
 		// Not part of the creation-center product surface — gateway relay only.
@@ -407,6 +439,7 @@ func RegisterGatewayRoutes(
 	r.GET("/images/tasks/:task_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, h.AsyncImage.Get)
 	r.POST("/videos", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoGenerationHandler)
 	r.POST("/videos/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoGenerationHandler)
+	r.POST("/video/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, dramaVideoGenerationsHandler)
 	r.POST("/videos/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoEditHandler)
 	r.POST("/videos/extensions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoExtensionHandler)
 	r.GET("/videos/generations/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoContentHandler)
@@ -417,6 +450,10 @@ func RegisterGatewayRoutes(
 	r.GET("/videos/extensions/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoStatusHandler)
 	r.GET("/videos/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoStatusHandler)
 	r.GET("/videos/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoContentHandler)
+	r.HEAD("/videos/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoContentHandler)
+	r.GET("/video/generations/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoStatusHandler)
+	r.GET("/video/generations/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoContentHandler)
+	r.HEAD("/video/generations/:request_id/content", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), compositeTarget, requireGroupAnthropic, videoContentHandler)
 
 	rootVoiceHandler := func(endpoint string) gin.HandlerFunc {
 		return func(c *gin.Context) {
@@ -719,6 +756,8 @@ func compositeRouteEndpointForPath(path string) string {
 		return service.CompositeRouteEndpointEmbeddings
 	case strings.Contains(path, "/images/"):
 		return service.CompositeRouteEndpointImages
+	case strings.Contains(path, "/videos"), strings.Contains(path, "/video/"):
+		return service.CompositeRouteEndpointVideos
 	case strings.Contains(path, "/v1beta/"):
 		return service.CompositeRouteEndpointGemini
 	default:

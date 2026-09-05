@@ -77,6 +77,9 @@ func NormalizeVideoModelPrices(in map[string]map[string]float64) map[string]map[
 		}
 		family := CanonicalGrokImagineVideoPriceFamily(modelKey)
 		if family == "" {
+			family = CanonicalDramaVideoPriceFamily(modelKey)
+		}
+		if family == "" {
 			key := strings.ToLower(strings.TrimSpace(modelKey))
 			switch key {
 			case VideoPriceFamilyGrokImagineVideo, VideoPriceFamilyGrokImagineVideo15:
@@ -136,6 +139,9 @@ func LookupVideoModelPrice(prices map[string]map[string]float64, model, resoluti
 		return nil
 	}
 	family := CanonicalGrokImagineVideoPriceFamily(model)
+	if family == "" {
+		family = CanonicalDramaVideoPriceFamily(model)
+	}
 	if family == "" {
 		family = strings.ToLower(strings.TrimSpace(model))
 	}

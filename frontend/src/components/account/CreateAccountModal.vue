@@ -202,6 +202,19 @@
             <PlatformIcon platform="deepseek" size="sm" />
             DeepSeek
           </button>
+          <button
+            type="button"
+            @click="selectDramaPlatform()"
+            :class="[
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
+              form.platform === 'drama'
+                ? 'bg-white text-rose-600 shadow-sm dark:bg-dark-600 dark:text-rose-400'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+            ]"
+          >
+            <PlatformIcon platform="drama" size="sm" />
+            Drama
+          </button>
         </div>
       </div>
 
@@ -4079,6 +4092,13 @@ const cnAccentIconClass = computed(() => {
 })
 // 切换国产供应商平台：强制 apikey 类型，deepseek 无 coding 套餐故锁定 payg，
 // 协议回落 adaptive，并把 base url 重置为该平台默认端点。
+function selectDramaPlatform() {
+  form.platform = 'drama'
+  form.type = 'apikey'
+  accountCategory.value = 'apikey'
+  apiKeyBaseUrl.value = 'https://drama.dafeiyangapi.top'
+}
+
 function selectCNPlatform(platform: 'kimi' | 'zhipu' | 'deepseek') {
   form.platform = platform
   form.type = 'apikey'
@@ -4640,7 +4660,9 @@ watch(
             ? 'https://generativelanguage.googleapis.com'
             : newPlatform === 'grok'
               ? 'https://api.x.ai/v1'
-              : 'https://api.anthropic.com'
+              : newPlatform === 'drama'
+                ? 'https://drama.dafeiyangapi.top'
+                : 'https://api.anthropic.com'
     }
     // Clear model-related settings
     allowedModels.value = []
@@ -4668,6 +4690,10 @@ watch(
       modelRestrictionMode.value = 'mapping'
       form.concurrency = 1
       form.load_factor = null
+    }
+    if (newPlatform === 'drama') {
+      accountCategory.value = 'apikey'
+      form.type = 'apikey'
     }
     if (newPlatform !== 'gemini' && newPlatform !== 'anthropic' && accountCategory.value === 'service_account') {
       accountCategory.value = 'oauth-based'
@@ -5555,7 +5581,9 @@ const handleSubmit = async () => {
         ? 'https://generativelanguage.googleapis.com'
         : form.platform === 'grok'
           ? 'https://api.x.ai/v1'
-          : 'https://api.anthropic.com'
+          : form.platform === 'drama'
+            ? 'https://drama.dafeiyangapi.top'
+            : 'https://api.anthropic.com'
 
   // Build credentials with optional model mapping
   const credentials: Record<string, unknown> = {

@@ -176,6 +176,10 @@ func TestDetectModelPlatform(t *testing.T) {
 		{name: "moonshot prefix", model: "moonshot/moonshot-v1-32k", platform: PlatformKimi, ok: true},
 		{name: "zhipu", model: "glm-5.2", platform: PlatformZhipu, ok: true},
 		{name: "deepseek", model: "deepseek-v4-pro", platform: PlatformDeepseek, ok: true},
+		{name: "drama seedance family", model: "seedance2.0-F", platform: PlatformDrama, ok: true},
+		{name: "drama seedance alias", model: "seedance2.0-F-1080p", platform: PlatformDrama, ok: true},
+		{name: "drama sd25 alias", model: "sd25-30s", platform: PlatformDrama, ok: true},
+		{name: "drama minimax", model: "minimax-h3", platform: PlatformDrama, ok: true},
 		{name: "unknown k3 alias", model: "k3-preview", ok: false},
 		{name: "unknown", model: "llama-4-maverick", ok: false},
 	}
@@ -211,7 +215,7 @@ func TestCompositeGroupSchedulerHasAllCanonicalPlatformBuckets(t *testing.T) {
 		platforms = append(platforms, platform)
 	}
 	require.ElementsMatch(t,
-		[]string{PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok, PlatformKimi, PlatformZhipu, PlatformDeepseek},
+		[]string{PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok, PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformDrama},
 		platforms,
 	)
 }

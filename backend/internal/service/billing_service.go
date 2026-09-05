@@ -2058,6 +2058,9 @@ func (s *BillingService) getDefaultVideoPrice(model string, resolution string) f
 	if price, ok := getDefaultGrokImagineVideoPrice(model, resolution); ok {
 		return price
 	}
+	if price, ok := getDefaultDramaVideoPrice(model, resolution); ok {
+		return price
+	}
 
 	// The bundled LiteLLM schema does not expose an output video generation price.
 	// Keep the historical model default as the fallback (interpreted as a per-second

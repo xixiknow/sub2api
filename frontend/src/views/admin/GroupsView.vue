@@ -152,7 +152,9 @@
                             ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
                             : value === 'deepseek'
                               ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                              : value === 'drama'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
               ]"
             >
               <PlatformIcon :platform="value" size="xs" />
@@ -1116,15 +1118,16 @@
             </p>
             <div class="mt-3 space-y-3">
               <div
-                v-for="family in videoModelPriceFamilyRows(createForm.video_model_prices)"
+                v-for="family in videoModelPriceFamilyRows(createForm.video_model_prices, createForm.platform)"
                 :key="family.key"
-                class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,7rem))] sm:items-end"
+                class="grid gap-2 sm:items-end"
+                :class="createForm.platform === 'drama' ? 'sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,7rem))]' : 'sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,7rem))]'"
               >
                 <div class="min-w-0 pb-1 font-mono text-xs text-gray-700 dark:text-gray-300">
                   {{ family.label }}
                 </div>
                 <label
-                  v-for="resolution in grokVideoPriceResolutions"
+                  v-for="resolution in videoPriceResolutionsFor(createForm.platform)"
                   :key="resolution.key"
                   class="block"
                 >
@@ -1137,6 +1140,7 @@
                     step="0.001"
                     min="0"
                     class="input"
+                    :disabled="!videoResolutionEnabledForFamily(family.key, resolution.key, createForm.platform)"
                     :data-testid="`create-grok-video-price-${family.key}-${resolution.key}`"
                   />
                 </label>
@@ -2917,15 +2921,16 @@
             </p>
             <div class="mt-3 space-y-3">
               <div
-                v-for="family in videoModelPriceFamilyRows(editForm.video_model_prices)"
+                v-for="family in videoModelPriceFamilyRows(editForm.video_model_prices, editForm.platform)"
                 :key="family.key"
-                class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,7rem))] sm:items-end"
+                class="grid gap-2 sm:items-end"
+                :class="editForm.platform === 'drama' ? 'sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,7rem))]' : 'sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,7rem))]'"
               >
                 <div class="min-w-0 pb-1 font-mono text-xs text-gray-700 dark:text-gray-300">
                   {{ family.label }}
                 </div>
                 <label
-                  v-for="resolution in grokVideoPriceResolutions"
+                  v-for="resolution in videoPriceResolutionsFor(editForm.platform)"
                   :key="resolution.key"
                   class="block"
                 >
@@ -2938,6 +2943,7 @@
                     step="0.001"
                     min="0"
                     class="input"
+                    :disabled="!videoResolutionEnabledForFamily(family.key, resolution.key, editForm.platform)"
                     :data-testid="`edit-grok-video-price-${family.key}-${resolution.key}`"
                   />
                 </label>
@@ -4656,9 +4662,10 @@ import {
 } from "./groupsImagePricing";
 import {
   createVideoModelPricesForm,
-  grokVideoPriceResolutions,
   serializeVideoModelPrices,
   videoModelPriceFamilyRows,
+  videoPriceResolutionsFor,
+  videoResolutionEnabledForFamily,
 } from "./groupsVideoModelPricing";
 
 const supportsLivePlatform = (platform: string): boolean =>
@@ -5213,7 +5220,7 @@ const createForm = reactive({
   video_price_480p: null as number | null,
   video_price_720p: null as number | null,
   video_price_1080p: null as number | null,
-  video_model_prices: createVideoModelPricesForm(),
+  video_model_prices: createVideoModelPricesForm(null, "anthropic"),
   // Codex 网页搜索按次计费（仅 openai 平台使用）；null = 使用默认价 0.01
   web_search_price_per_call: null as number | null,
   search_price_per_1k: null as number | null,
@@ -5257,6 +5264,13 @@ const createForm = reactive({
   max_reasoning_effort_over_limit: reasoningEffortOverLimitDowngrade,
   reasoning_effort_mappings: [] as ReasoningEffortMappingRow[],
 });
+
+watch(
+  () => createForm.platform,
+  (platform) => {
+    createForm.video_model_prices = createVideoModelPricesForm(null, platform);
+  },
+);
 
 // 简单账号类型（用于模型路由选择）
 interface SimpleAccount {
@@ -5577,7 +5591,7 @@ const editForm = reactive({
   video_price_480p: null as number | null,
   video_price_720p: null as number | null,
   video_price_1080p: null as number | null,
-  video_model_prices: createVideoModelPricesForm(),
+  video_model_prices: createVideoModelPricesForm(null, "anthropic"),
   // Codex 网页搜索按次计费（仅 openai 平台使用）；null = 使用默认价 0.01
   web_search_price_per_call: null as number | null,
   search_price_per_1k: null as number | null,
@@ -6033,7 +6047,7 @@ const closeCreateModal = () => {
   createForm.video_price_480p = null;
   createForm.video_price_720p = null;
   createForm.video_price_1080p = null;
-  createForm.video_model_prices = createVideoModelPricesForm();
+  createForm.video_model_prices = createVideoModelPricesForm(null, createForm.platform);
   createForm.long_context_pricing_enabled = true;
   createForm.force_openai_fast = false;
   createForm.free_openai_fast = false;
@@ -6295,6 +6309,7 @@ const handleEdit = async (group: AdminGroup) => {
   editForm.video_price_1080p = group.video_price_1080p;
   editForm.video_model_prices = createVideoModelPricesForm(
     group.video_model_prices,
+    group.platform,
   );
   editForm.web_search_price_per_call = group.web_search_price_per_call ?? null;
   editForm.search_price_per_1k = group.search_price_per_1k ?? null;
@@ -6384,7 +6399,7 @@ const closeEditModal = () => {
   editForm.video_price_480p = null;
   editForm.video_price_720p = null;
   editForm.video_price_1080p = null;
-  editForm.video_model_prices = createVideoModelPricesForm();
+  editForm.video_model_prices = createVideoModelPricesForm(null, editForm.platform);
   editForm.long_context_pricing_enabled = true;
   editForm.force_openai_fast = false;
   editForm.free_openai_fast = false;
