@@ -161,6 +161,21 @@ func TestCreateAccountAcceptsDedicatedUpstreamBillingProbeSetting(t *testing.T) 
 	require.ErrorIs(t, err, ErrUpstreamBillingProbeAccountInvalid)
 }
 
+func TestCreateAccountAcceptsDramaAPIKeyUpstreamBillingProbeSetting(t *testing.T) {
+	enabled := true
+	created, err := (&adminServiceImpl{accountRepo: &upstreamBillingProbeAccountRepo{}}).CreateAccount(context.Background(), &CreateAccountInput{
+		Name:                 "drama",
+		Platform:             PlatformDrama,
+		Type:                 AccountTypeAPIKey,
+		Credentials:          map[string]any{"api_key": "sk-drama", "base_url": "https://drama.dafeiyangapi.top"},
+		ProbeEnabled:         &enabled,
+		SkipDefaultGroupBind: true,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, true, created.Extra[UpstreamBillingProbeEnabledExtraKey])
+}
+
 func TestUpdateAccountPreservesManagedUpstreamBillingProbeStateForUnrelatedEdit(t *testing.T) {
 	accountID := int64(110)
 	repo := &upstreamBillingProbeAccountRepo{accounts: map[int64]*Account{

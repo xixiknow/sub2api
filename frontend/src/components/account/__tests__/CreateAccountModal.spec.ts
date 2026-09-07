@@ -504,6 +504,43 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     expect(importCodexSessionMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBeUndefined()
   })
 
+  it('shows Drama video families and Drama hints instead of Claude copy', async () => {
+    const wrapper = mountModal()
+    await wrapper.get('[data-testid="platform-drama"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('admin.accounts.drama.baseUrlHint')
+    expect(wrapper.text()).toContain('admin.accounts.drama.apiKeyHint')
+    expect(wrapper.text()).not.toContain('admin.accounts.baseUrlHint')
+    expect(wrapper.text()).not.toContain('admin.accounts.apiKeyHint')
+    expect(wrapper.find('[data-testid="upstream-billing-auto-probe"]').exists()).toBe(false)
+    const baseUrlInput = wrapper
+      .findAll('form#create-account-form input[type="text"]')
+      .find(input => input.attributes('placeholder') === 'https://drama.dafeiyangapi.top')
+    expect(baseUrlInput).toBeDefined()
+    expect((baseUrlInput!.element as HTMLInputElement).value).toBe('https://drama.dafeiyangapi.top')
+  })
+
+  it('creates a Drama API-key account without enabling token-rate probe', async () => {
+    const wrapper = mountModal()
+    await wrapper.get('[data-testid="platform-drama"]').trigger('click')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('Drama account')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('sk-drama-test')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createAccountMock).toHaveBeenCalledTimes(1)
+    expect(createAccountMock.mock.calls[0]?.[0]).toMatchObject({
+      platform: 'drama',
+      type: 'apikey',
+      upstream_billing_probe_enabled: false,
+      credentials: {
+        base_url: 'https://drama.dafeiyangapi.top',
+        api_key: 'sk-drama-test',
+      },
+    })
+  })
+
   it('leaves Codex PAT import billing ownership to the backend', async () => {
     const wrapper = await openCodexImportStep()
     await wrapper.get('[data-testid="import-codex-pat"]').trigger('click')

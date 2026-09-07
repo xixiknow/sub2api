@@ -204,6 +204,7 @@
           </button>
           <button
             type="button"
+            data-testid="platform-drama"
             @click="selectDramaPlatform()"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
@@ -1348,8 +1349,9 @@
           <p v-if="apiKeyHint" class="input-hint">{{ apiKeyHint }}</p>
         </div>
 
-        <!-- 上游倍率自动探测：全部 API-key 平台可用（所在区块已限定 apikey 类型） -->
+        <!-- 上游倍率自动探测：文本 API-key 平台可用；Drama 是视频按秒/按条计费，不走 token 倍率探测 -->
         <div
+          v-if="form.platform !== 'drama'"
           class="flex items-center justify-between gap-4 border-t border-gray-200 pt-4 dark:border-dark-600"
         >
           <div>
@@ -3887,6 +3889,7 @@ const oauthStepTitle = computed(() => {
 const baseUrlHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
+  if (form.platform === 'drama') return t('admin.accounts.drama.baseUrlHint')
   if (form.platform === 'grok') return ''
   return t('admin.accounts.baseUrlHint')
 })
@@ -3894,6 +3897,7 @@ const baseUrlHint = computed(() => {
 const apiKeyHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
+  if (form.platform === 'drama') return t('admin.accounts.drama.apiKeyHint')
   if (form.platform === 'grok') return ''
   return t('admin.accounts.apiKeyHint')
 })
@@ -3910,6 +3914,8 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
       return 'https://generativelanguage.googleapis.com'
     case 'grok':
       return 'https://api.x.ai/v1'
+    case 'drama':
+      return 'https://drama.dafeiyangapi.top'
     default:
       return 'https://api.anthropic.com'
   }
@@ -3928,6 +3934,8 @@ const apiKeyValuePlaceholder = computed(() => {
     case 'zhipu':
       return '<api-key>.<secret>'
     case 'deepseek':
+      return 'sk-...'
+    case 'drama':
       return 'sk-...'
     default:
       return 'sk-ant-...'
@@ -4694,6 +4702,7 @@ watch(
     if (newPlatform === 'drama') {
       accountCategory.value = 'apikey'
       form.type = 'apikey'
+      upstreamBillingAutoProbeEnabled.value = false
     }
     if (newPlatform !== 'gemini' && newPlatform !== 'anthropic' && accountCategory.value === 'service_account') {
       accountCategory.value = 'oauth-based'
@@ -5677,7 +5686,7 @@ const handleSubmit = async () => {
     ...form,
     group_ids: form.group_ids,
     extra,
-    upstream_billing_probe_enabled: upstreamBillingAutoProbeEnabled.value,
+    upstream_billing_probe_enabled: form.platform === 'drama' ? false : upstreamBillingAutoProbeEnabled.value,
     auto_pause_on_expired: autoPauseOnExpired.value
   })
 }
@@ -5808,7 +5817,7 @@ const createAccountAndFinish = async (
     expires_at: form.expires_at,
     // 上游倍率探测对全部 API-key 平台开放（antigravity upstream 走本 helper）；
     // 非 apikey 类型（bedrock/oauth）不传，后端不动作。
-    upstream_billing_probe_enabled: type === 'apikey' ? upstreamBillingAutoProbeEnabled.value : undefined,
+    upstream_billing_probe_enabled: type === 'apikey' && platform !== 'drama' ? upstreamBillingAutoProbeEnabled.value : undefined,
     auto_pause_on_expired: autoPauseOnExpired.value
   })
 }

@@ -192,3 +192,9 @@ func TestQuantizeUsageBillingAmountHandlesNegativeAmounts(t *testing.T) {
 	require.Equal(t, -QuantizeUsageBillingAmount(0.000078125), got,
 		"正负金额必须对称量化")
 }
+
+func TestBatchImageBalanceHoldCommandHoldClaimRequestID(t *testing.T) {
+	dramaID := "vidtask_abc"
+	require.Equal(t, DramaVideoHoldRequestID(dramaID), (&BatchImageBalanceHoldCommand{BatchID: dramaID}).HoldClaimRequestID())
+	require.Equal(t, BatchImageHoldRequestID("imgbatch_1"), (&BatchImageBalanceHoldCommand{BatchID: "imgbatch_1"}).HoldClaimRequestID())
+}

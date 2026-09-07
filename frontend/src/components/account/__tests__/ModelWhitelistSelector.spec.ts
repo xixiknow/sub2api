@@ -91,6 +91,17 @@ describe('ModelWhitelistSelector', () => {
     syncUpstreamModelsPreview.mockReset()
   })
 
+  it('lists Drama public video families instead of Claude models', async () => {
+    const wrapper = mountSelector({ platform: 'drama' })
+    await wrapper.get('div.cursor-pointer').trigger('click')
+
+    expect(findModelRow(wrapper, 'seedance-2.0-C').exists()).toBe(true)
+    expect(findModelRow(wrapper, 'minimax-h3').exists()).toBe(true)
+    expect(
+      wrapper.findAll('[data-testid="model-option"]').some(row => row.text().includes('claude-'))
+    ).toBe(false)
+  })
+
   it('copies a model ID without selecting the model', async () => {
     const wrapper = mountSelector()
     await wrapper.get('div.cursor-pointer').trigger('click')

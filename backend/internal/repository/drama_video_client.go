@@ -55,7 +55,11 @@ func (c *dramaVideoClient) CreateVideo(ctx context.Context, account *service.Acc
 }
 
 func (c *dramaVideoClient) GetVideo(ctx context.Context, account *service.Account, path, taskID string) (*service.DramaVideoUpstreamTask, error) {
-	req, err := c.newRequest(ctx, account, http.MethodGet, dramaStatusPath(path, taskID), nil)
+	_ = path
+	// New API GET /v1/video/generations/{id} returns a mill envelope
+	// ({code, data.id: number, status: SUCCESS}). The unified video object
+	// that Create already understands is GET /v1/videos/{id}.
+	req, err := c.newRequest(ctx, account, http.MethodGet, dramaStatusPath(service.DramaVideoCreatePathVideos, taskID), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -233,6 +233,38 @@ func TestReleaseUsageBillingBatchImageBalance_ReturnsFrozenToAvailable(t *testin
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestReleaseUsageBillingBatchImageBalance_ReleasesDramaVideoHold(t *testing.T) {
+	ctx := context.Background()
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	taskID := "vidtask_deadbeef"
+	mock.ExpectBegin()
+	tx, err := db.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	mock.ExpectQuery(`SELECT 1\s+FROM usage_billing_dedup\s+WHERE request_id = \$1 AND api_key_id = \$2`).
+		WithArgs(service.DramaVideoHoldRequestID(taskID), int64(7)).
+		WillReturnRows(sqlmock.NewRows([]string{"?column?"}).AddRow(1))
+	mock.ExpectQuery(releaseBatchImageHoldSQL).
+		WithArgs(0.4, int64(42)).
+		WillReturnRows(sqlmock.NewRows([]string{"balance", "frozen_balance"}).AddRow(5.0, 0.8))
+	mock.ExpectCommit()
+
+	result, err := releaseUsageBillingBatchImageBalance(ctx, tx, &service.BatchImageBalanceHoldCommand{
+		UserID:     42,
+		APIKeyID:   7,
+		BatchID:    taskID,
+		HoldAmount: 0.4,
+		RequestID:  service.DramaVideoReleaseRequestID(taskID),
+	})
+	require.NoError(t, err)
+	require.InDelta(t, 5.0, *result.NewBalance, 0.000001)
+	require.InDelta(t, 0.8, *result.FrozenBalance, 0.000001)
+	require.NoError(t, tx.Commit())
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestReleaseUsageBillingBatchImageBalance_SkipsWhenHoldNeverReserved(t *testing.T) {
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()

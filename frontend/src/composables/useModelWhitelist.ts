@@ -236,6 +236,22 @@ const perplexityModels = [
   'llama-3-sonar-small-32k-chat', 'llama-3-sonar-large-32k-chat'
 ]
 
+// Drama public video families (must stay aligned with DramaVideoPublicFamilies)
+const dramaModels = [
+  'minimax-h3',
+  'seedance2.0-A',
+  'seedance2.0-fast-A',
+  'seedance2.0-Mini-A',
+  'seedance2.0-B',
+  'seedance2.0-fast-B',
+  'seedance-2.0-C',
+  'seedance2.0-E',
+  'seedance2.0-F',
+  'seedance2.0-fast-F',
+  'seedance2.5-A',
+  'seedance-2.5-B'
+]
+
 // 所有模型（去重）
 const allModelsList: string[] = [
   ...openaiModels,
@@ -255,7 +271,8 @@ const allModelsList: string[] = [
   ...baiduModels,
   ...sparkModels,
   ...hunyuanModels,
-  ...perplexityModels
+  ...perplexityModels,
+  ...dramaModels
 ]
 
 // 转换为下拉选项格式
@@ -444,6 +461,7 @@ export function getModelsByPlatform(platform: string): string[] {
     case 'spark': return sparkModels
     case 'hunyuan': return hunyuanModels
     case 'perplexity': return perplexityModels
+    case 'drama': return dramaModels
     default: return claudeModels
   }
 }
@@ -455,6 +473,7 @@ export function getPresetMappingsByPlatform(platform: string) {
   if (platform === 'grok' || platform === 'xai') return grokPresetMappings
   if (platform === 'antigravity') return antigravityPresetMappings
   if (platform === 'bedrock') return bedrockPresetMappings
+  if (platform === 'drama') return []
   return anthropicPresetMappings
 }
 

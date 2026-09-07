@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 
@@ -153,8 +154,48 @@ func TestDramaVideoServiceCreateHoldsThenCaptures(t *testing.T) {
 	require.True(t, IsDramaVideoTaskID(got.Task.ID))
 	require.Equal(t, DramaFamilySeedance20F, got.Task.Model)
 	require.Len(t, billingRepo.holds, 1)
+	require.Equal(t, DramaVideoHoldRequestID(got.Task.ID), billingRepo.holds[0])
 	require.Len(t, billingRepo.captures, 1)
 	require.Empty(t, billingRepo.releases)
+}
+
+type failingDramaClient struct{}
+
+func (failingDramaClient) CreateVideo(context.Context, *Account, string, []byte) (*DramaVideoUpstreamTask, error) {
+	return nil, errors.New(`Drama upstream error: status=400 body={"code":"invalid_request","message":"model_not_supported","data":null}`)
+}
+func (failingDramaClient) GetVideo(context.Context, *Account, string, string) (*DramaVideoUpstreamTask, error) {
+	return nil, errors.New("unused")
+}
+func (failingDramaClient) DownloadVideo(context.Context, *Account, string) (*DramaVideoDownload, error) {
+	return nil, errors.New("unused")
+}
+
+func TestDramaVideoServiceReleasesHoldAfterUpstreamCreateError(t *testing.T) {
+	gid := int64(7)
+	billingRepo := &stubDramaBillingRepo{}
+	svc := &DramaVideoService{
+		tasks:        &stubDramaTasks{},
+		accounts:     stubDramaAccounts{account: Account{ID: 3, Platform: PlatformDrama, Credentials: map[string]any{"api_key": "tok"}}},
+		client:       failingDramaClient{},
+		billing:      NewBillingService(nil, nil),
+		usageBilling: billingRepo,
+		outputDir:    t.TempDir(),
+		backgroundRunner: func(fn func()) {
+			fn()
+		},
+	}
+	apiKey := &APIKey{
+		ID:      11,
+		UserID:  22,
+		GroupID: &gid,
+		Group:   &Group{ID: gid, Platform: PlatformDrama, RateMultiplier: 1},
+	}
+	got, err := svc.Create(context.Background(), apiKey, []byte(`{"model":"seedance2.0-Mini-A","prompt":"hi","resolution":"480p","seconds":4}`), "/v1/videos")
+	require.NoError(t, err)
+	require.Equal(t, []string{DramaVideoHoldRequestID(got.Task.ID)}, billingRepo.holds)
+	require.Equal(t, []string{DramaVideoReleaseRequestID(got.Task.ID)}, billingRepo.releases)
+	require.Equal(t, DramaVideoHoldRequestID(got.Task.ID), (&BatchImageBalanceHoldCommand{BatchID: got.Task.ID}).HoldClaimRequestID())
 }
 
 func TestDramaVideoServiceIsolatesOwner(t *testing.T) {

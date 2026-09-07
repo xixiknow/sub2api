@@ -166,7 +166,9 @@
                     ? 'sk-...'
                     : account.platform === 'grok'
                       ? 'xai-...'
-                      : 'sk-ant-...'
+                      : account.platform === 'drama'
+                        ? 'sk-...'
+                        : 'sk-ant-...'
             "
           />
           <p class="input-hint">{{ t('admin.accounts.leaveEmptyToKeep') }}</p>
@@ -2981,6 +2983,7 @@ const baseUrlHint = computed(() => {
   if (!props.account) return t('admin.accounts.baseUrlHint')
   if (props.account.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (props.account.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
+  if (props.account.platform === 'drama') return t('admin.accounts.drama.baseUrlHint')
   if (props.account.platform === 'grok') return ''
   return t('admin.accounts.baseUrlHint')
 })

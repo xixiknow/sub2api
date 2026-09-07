@@ -56,3 +56,22 @@ func TestDramaVideoClientGetVideoUsesCreatePath(t *testing.T) {
 	require.Equal(t, "up_2", task.PublicID())
 	require.True(t, strings.HasPrefix(gotPath, "/v1/videos/"))
 }
+
+func TestDramaVideoClientGetVideoPollsVideosPathForGenerationsModels(t *testing.T) {
+	var gotPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"task_b","status":"completed","progress":100}`))
+	}))
+	defer server.Close()
+
+	client := &dramaVideoClient{httpClient: server.Client()}
+	account := &service.Account{Credentials: map[string]any{"api_key": "k", "base_url": server.URL}}
+	task, err := client.GetVideo(context.Background(), account, service.DramaVideoCreatePathGens, "task_b")
+	require.NoError(t, err)
+	require.Equal(t, "task_b", task.PublicID())
+	require.Equal(t, service.DramaVideoStatusCompleted, service.NormalizeDramaUpstreamStatus(task.Status))
+	require.Equal(t, "/v1/videos/task_b", gotPath)
+	require.NotContains(t, gotPath, "/video/generations/")
+}

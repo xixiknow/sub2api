@@ -645,6 +645,10 @@ export default {
       apiKeyRequired: 'API Key *',
       apiKeyPlaceholder: 'sk-ant-api03-...',
       apiKeyHint: '您的 Claude Console API Key',
+      drama: {
+        baseUrlHint: '默认 https://drama.dafeiyangapi.top，可按实际上游修改',
+        apiKeyHint: '您的 Drama 上游 API Key',
+      },
       // OpenAI specific hints
       openai: {
         baseUrlHint: '留空使用官方 OpenAI API',

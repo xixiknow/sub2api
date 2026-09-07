@@ -560,6 +560,10 @@ export default {
       apiKeyRequired: 'API Key *',
       apiKeyPlaceholder: 'sk-ant-api03-...',
       apiKeyHint: 'Your Claude Console API Key',
+      drama: {
+        baseUrlHint: 'Defaults to https://drama.dafeiyangapi.top; change if your upstream differs',
+        apiKeyHint: 'Your Drama upstream API key',
+      },
       // OpenAI specific hints
       openai: {
         baseUrlHint: 'Leave default for official OpenAI API',

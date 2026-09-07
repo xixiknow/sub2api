@@ -4,7 +4,8 @@ vi.mock('@/api/admin/accounts', () => ({
   getAntigravityDefaultModelMapping: vi.fn()
 }))
 
-import { buildModelMappingObject, getModelsByPlatform, splitModelMappingObject } from '../useModelWhitelist'
+import { dramaVideoPriceFamilies } from '@/views/admin/groupsVideoModelPricing'
+import { buildModelMappingObject, getModelsByPlatform, getPresetMappingsByPlatform, splitModelMappingObject } from '../useModelWhitelist'
 
 describe('useModelWhitelist', () => {
   it('openai 模型列表包含 GPT-5.4 官方快照', () => {
@@ -104,6 +105,15 @@ describe('useModelWhitelist', () => {
     const models = getModelsByPlatform('antigravity')
 
     expect(models).toContain('gemini-3.1-pro')
+  })
+
+  it('drama 白名单是 12 个公开视频家族，不再回落到 Claude', () => {
+    const models = getModelsByPlatform('drama')
+
+    expect(models).toEqual(dramaVideoPriceFamilies.map(family => family.key))
+    expect(models).toHaveLength(12)
+    expect(models.some(model => model.startsWith('claude-'))).toBe(false)
+    expect(getPresetMappingsByPlatform('drama')).toEqual([])
   })
 
   it('whitelist 模式会忽略通配符条目', () => {

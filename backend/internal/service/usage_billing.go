@@ -193,6 +193,19 @@ func (c *BatchImageBalanceHoldCommand) Normalize() {
 	}
 }
 
+// HoldClaimRequestID is the dedup key written by reserve. Release must look
+// this up; batch-image jobs use batch_image_hold:, Drama video tasks use
+// drama_video_hold:. Using the wrong prefix skips the thaw and leaks frozen balance.
+func (c *BatchImageBalanceHoldCommand) HoldClaimRequestID() string {
+	if c == nil {
+		return ""
+	}
+	if IsDramaVideoTaskID(c.BatchID) {
+		return DramaVideoHoldRequestID(c.BatchID)
+	}
+	return BatchImageHoldRequestID(c.BatchID)
+}
+
 func buildBatchImageBalanceHoldFingerprint(c *BatchImageBalanceHoldCommand) string {
 	if c == nil {
 		return ""
