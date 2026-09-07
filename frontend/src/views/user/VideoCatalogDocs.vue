@@ -41,7 +41,7 @@ const sourceMarkdown = computed(() => (String(locale.value).startsWith('zh') ? z
 
 const resolvedMarkdown = computed(() => {
   const origin = typeof window !== 'undefined' ? window.location.origin : '<BASE_URL>'
-  return sourceMarkdown.value.replaceAll('<BASE_URL>', origin)
+  return sourceMarkdown.value.split('<BASE_URL>').join(origin)
 })
 
 const renderedHtml = computed(() => {
