@@ -53,6 +53,8 @@ export default {
     generateNewKey: '生成新的 API 密钥',
     batchImageAgent: '批量生图助手',
     batchImageAgentDesc: '复制给 Agent 的任务说明',
+    videoModels: '视频模型',
+    videoModelsDesc: '价格、特性与接入文档',
     viewUsage: '查看使用记录',
     checkDetailedLogs: '查看详细的使用日志',
     redeemCode: '兑换码',

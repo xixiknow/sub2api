@@ -53,6 +53,8 @@ export default {
     generateNewKey: 'Generate a new API key',
     batchImageAgent: 'Batch Image Assistant',
     batchImageAgentDesc: 'Copy instructions for an agent',
+    videoModels: 'Video models',
+    videoModelsDesc: 'Prices, capabilities, and docs',
     viewUsage: 'View Usage',
     checkDetailedLogs: 'Check detailed usage logs',
     redeemCode: 'Redeem Code',

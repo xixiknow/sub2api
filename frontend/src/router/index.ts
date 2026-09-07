@@ -229,6 +229,19 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/video-models',
+    name: 'VideoCatalog',
+    alias: '/docs/video',
+    component: () => import('@/views/user/VideoCatalogView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Video Models',
+      titleKey: 'videoCatalog.title',
+      descriptionKey: 'videoCatalog.description'
+    }
+  },
+  {
     path: '/usage',
     name: 'Usage',
     component: () => import('@/views/user/UsageView.vue'),

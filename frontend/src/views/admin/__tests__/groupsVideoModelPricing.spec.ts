@@ -4,6 +4,7 @@ import {
   createVideoModelPricesForm,
   serializeVideoModelPrices,
   videoModelPriceFamilyRows,
+  videoPriceUnitLabel,
   videoResolutionEnabledForFamily
 } from '../groupsVideoModelPricing'
 
@@ -72,5 +73,14 @@ describe('Drama video model pricing form', () => {
     expect(videoResolutionEnabledForFamily('seedance2.0-B', '4k', 'drama')).toBe(true)
     expect(videoResolutionEnabledForFamily('seedance2.0-F', '4k', 'drama')).toBe(false)
     expect(videoResolutionEnabledForFamily('seedance2.0-F', '1080p', 'drama')).toBe(true)
+  })
+
+  it('disables unpriced Drama resolutions and labels clip families per clip', () => {
+    expect(videoResolutionEnabledForFamily('seedance2.0-fast-A', '720p', 'drama')).toBe(false)
+    expect(videoResolutionEnabledForFamily('seedance-2.0-C', '480p', 'drama')).toBe(false)
+    expect(videoResolutionEnabledForFamily('seedance-2.0-C', '720p', 'drama')).toBe(true)
+    expect(videoPriceUnitLabel('seedance2.0-A', 'drama')).toBe('$/s')
+    expect(videoPriceUnitLabel('seedance-2.0-C', 'drama')).toBe('$/条')
+    expect(videoPriceUnitLabel('grok-imagine-video', 'grok')).toBe('$/s')
   })
 })

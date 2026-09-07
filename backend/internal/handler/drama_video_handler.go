@@ -9,6 +9,7 @@ import (
 
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,11 @@ type DramaVideoHandler struct {
 
 func NewDramaVideoHandler(service *service.DramaVideoService) *DramaVideoHandler {
 	return &DramaVideoHandler{service: service}
+}
+
+func (h *DramaVideoHandler) Catalog(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	response.Success(c, service.BuildDramaVideoCatalog())
 }
 
 func (h *DramaVideoHandler) Create(c *gin.Context) {

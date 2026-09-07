@@ -1132,7 +1132,7 @@
                   class="block"
                 >
                   <span class="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                    {{ resolution.label }} ($/s)
+                    {{ resolution.label }} ({{ videoPriceUnitLabel(family.key, createForm.platform) }})
                   </span>
                   <input
                     v-model.number="createForm.video_model_prices[family.key][resolution.key]"
@@ -2935,7 +2935,7 @@
                   class="block"
                 >
                   <span class="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                    {{ resolution.label }} ($/s)
+                    {{ resolution.label }} ({{ videoPriceUnitLabel(family.key, editForm.platform) }})
                   </span>
                   <input
                     v-model.number="editForm.video_model_prices[family.key][resolution.key]"
@@ -4665,6 +4665,7 @@ import {
   serializeVideoModelPrices,
   videoModelPriceFamilyRows,
   videoPriceResolutionsFor,
+  videoPriceUnitLabel,
   videoResolutionEnabledForFamily,
 } from "./groupsVideoModelPricing";
 

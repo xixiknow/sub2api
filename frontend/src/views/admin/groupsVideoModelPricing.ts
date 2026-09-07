@@ -56,11 +56,47 @@ export function videoPriceFamiliesFor(platform?: string) {
   return platform === 'drama' ? dramaVideoPriceFamilies : grokVideoPriceFamilies
 }
 
+const dramaFamilyPricedResolutions: Record<string, readonly string[]> = {
+  'minimax-h3': ['480p', '720p', '1080p'],
+  'seedance2.0-A': ['480p', '720p', '1080p'],
+  'seedance2.0-fast-A': ['480p'],
+  'seedance2.0-Mini-A': ['480p', '720p'],
+  'seedance2.0-B': ['480p', '720p', '1080p', '4k'],
+  'seedance2.0-fast-B': ['480p', '720p'],
+  'seedance-2.0-C': ['720p'],
+  'seedance2.0-E': ['720p'],
+  'seedance2.0-F': ['720p', '1080p'],
+  'seedance2.0-fast-F': ['720p'],
+  'seedance2.5-A': ['480p', '720p', '1080p'],
+  'seedance-2.5-B': ['720p']
+}
+
+const dramaPerClipFamilies = new Set([
+  'seedance2.0-B',
+  'seedance2.0-fast-B',
+  'seedance-2.0-C',
+  'seedance2.0-E',
+  'seedance2.0-F',
+  'seedance2.0-fast-F',
+  'seedance-2.5-B'
+])
+
 export function videoResolutionEnabledForFamily(family: string, resolution: string, platform?: string): boolean {
-  if (platform !== 'drama' || resolution !== '4k') {
+  if (platform !== 'drama') {
     return true
   }
-  return family === 'seedance2.0-B'
+  const priced = dramaFamilyPricedResolutions[family]
+  if (!priced) {
+    return resolution !== '4k' || family === 'seedance2.0-B'
+  }
+  return priced.includes(resolution)
+}
+
+export function videoPriceUnitLabel(family: string, platform?: string): string {
+  if (platform === 'drama' && dramaPerClipFamilies.has(family)) {
+    return '$/条'
+  }
+  return '$/s'
 }
 
 function emptyTiers(platform?: string): Record<string, number | string | null> {
