@@ -29,7 +29,7 @@ var defaultDramaVideoPrices = map[string]map[string]float64{
 		VideoBillingResolution720P: 3.00,
 	},
 	DramaFamilySeedance20C: {
-		VideoBillingResolution720P: 0.20,
+		VideoBillingResolution720P: 3.50,
 	},
 	DramaFamilySeedance20E: {
 		VideoBillingResolution720P: 4.20,

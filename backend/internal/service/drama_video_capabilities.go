@@ -88,7 +88,7 @@ var dramaVideoCapabilities = map[string]dramaVideoCapability{
 		maxImages: 9, maxVideos: 0, maxAudios: 3, maxReferences: 12, allowAudio: true, allowFirstLast: true, allowSOptional: true,
 	},
 	DramaFamilySeedance20C: {
-		family: DramaFamilySeedance20C, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerSecond,
+		family: DramaFamilySeedance20C, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 5, maxDuration: 15, durationRequired: true, defaultResolution: VideoBillingResolution720P,
 		resolutions: map[string]string{VideoBillingResolution720P: DramaFamilySeedance20C},
 		aspectRatios: ratioSet("16:9", "9:16"), defaultAspect: "16:9",

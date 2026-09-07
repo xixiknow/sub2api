@@ -25,6 +25,13 @@ func TestCalculateDramaVideoCostPerSecondAndPerClip(t *testing.T) {
 	fourK := billing.CalculateDramaVideoCost(b4k, 8, nil, 1)
 	require.NotNil(t, fourK)
 	require.InDelta(t, 40.0, fourK.ActualCost, 0.0001)
+
+	perClipC, err := resolveDramaVideoModel(DramaFamilySeedance20C, "720p")
+	require.NoError(t, err)
+	require.Equal(t, DramaVideoBillingPerClip, perClipC.BillingUnit)
+	clipC := billing.CalculateDramaVideoCost(perClipC, 15, nil, 1)
+	require.NotNil(t, clipC)
+	require.InDelta(t, 3.5, clipC.ActualCost, 0.0001)
 }
 
 func TestLookupVideoModelPriceUsesDramaFamily(t *testing.T) {

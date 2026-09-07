@@ -99,6 +99,7 @@ func TestParseDramaVideoCreatePayloadAllowsCGenerateAudio(t *testing.T) {
 	_, resolved, err := parseDramaVideoCreatePayload([]byte(`{"model":"seedance-2.0-C","prompt":"hello","seconds":8,"generate_audio":true}`), dramaVideoSurfaceVideos)
 	require.NoError(t, err)
 	require.Equal(t, DramaFamilySeedance20C, resolved.Family)
+	require.Equal(t, DramaVideoBillingPerClip, resolved.BillingUnit)
 }
 
 func TestParseDramaVideoCreatePayloadFirstLastAndMedia(t *testing.T) {
