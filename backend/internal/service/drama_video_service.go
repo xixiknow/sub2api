@@ -270,6 +270,9 @@ func (s *DramaVideoService) prepareCreate(ctx context.Context, apiKey *APIKey, r
 		}
 		assetIDs = resolvedIDs
 	}
+	if assetIDs == nil {
+		assetIDs = []string{}
+	}
 	account, err := s.selectAccount(ctx, *apiKey.GroupID)
 	if err != nil {
 		return nil, err

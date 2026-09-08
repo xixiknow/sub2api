@@ -35,7 +35,7 @@ func (r *dramaVideoRepository) Create(ctx context.Context, params service.Create
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
 			$8, $9, $10, $11, $12,
-			$13, $14, $15, NOW(), NOW()
+			$13, $14, COALESCE($15, '{}'), NOW(), NOW()
 		)
 		RETURNING ` + dramaVideoSelectColumns
 	return scanDramaVideoTask(r.db.QueryRowContext(ctx, query,
@@ -53,7 +53,7 @@ func (r *dramaVideoRepository) Create(ctx context.Context, params service.Create
 		dramaNullString(params.AspectRatio),
 		dramaNullInt(params.DurationSeconds),
 		params.HoldAmount,
-		pq.StringArray(params.AssetIDs),
+		dramaVideoAssetIDs(params.AssetIDs),
 	))
 }
 
@@ -326,6 +326,13 @@ func scanDramaVideoTask(row rowScanner) (*service.DramaVideoTask, error) {
 		task.OutputDeletedAt = &v
 	}
 	return &task, nil
+}
+
+func dramaVideoAssetIDs(ids []string) pq.StringArray {
+	if ids == nil {
+		return pq.StringArray{}
+	}
+	return pq.StringArray(ids)
 }
 
 func dramaNullString(s string) sql.NullString {
