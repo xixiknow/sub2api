@@ -238,6 +238,23 @@ func TestSettingService_UpdateSettings_PersistsCompactHomeEnabled(t *testing.T) 
 	require.Equal(t, "true", repo.updates[SettingKeyCompactHomeEnabled])
 }
 
+func TestSettingService_UpdateSettings_DramaVideoPublicBaseURL(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		DramaVideoPublicBaseURL: "https://localhost",
+	})
+	require.Error(t, err)
+	require.Nil(t, repo.updates)
+
+	err = svc.UpdateSettings(context.Background(), &SystemSettings{
+		DramaVideoPublicBaseURL: "https://video.example.com/extra",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "https://video.example.com", repo.updates[SettingKeyDramaVideoPublicBaseURL])
+}
+
 func TestSettingService_UpdateSettings_DefaultSubscriptions_ValidGroup(t *testing.T) {
 	repo := &settingUpdateRepoStub{}
 	groupReader := &defaultSubGroupReaderStub{

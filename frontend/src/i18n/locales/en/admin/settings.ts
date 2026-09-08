@@ -60,14 +60,17 @@ export default {
         },
         videoWorkbench: {
           title: 'Video workbench',
-          description: 'Retention for generated videos and uploaded assets. Changes apply only to newly completed jobs and newly uploaded assets.',
+          description: 'Retention for generated videos and uploaded assets, plus the public HTTPS origin used when upstream fetches assets. Retention changes apply only to newly completed jobs and newly uploaded assets.',
           outputRetention: 'Generated video retention (days)',
           outputRetentionHint: 'Files are deleted after this many days and cannot be recovered. Set 0 to keep them forever.',
           assetRetention: 'Unused asset retention (days)',
           assetRetentionHint: 'Assets unused for this many days are cleaned up. Set 0 to keep them forever.',
           assetQuota: 'Per-user asset quota (bytes)',
           assetQuotaHint: 'Maximum storage per user. Set 0 for no limit. Default is 2 GiB.',
-          applyHint: 'Changes apply only to newly completed jobs / newly uploaded assets.'
+          publicBaseUrl: 'Public HTTPS origin',
+          publicBaseUrlPlaceholder: 'https://video.example.com',
+          publicBaseUrlHint: 'Upstream must be able to fetch signed asset URLs. Use a public HTTPS origin (not localhost or a private host). Leave empty to fall back to the site frontend URL. Takes effect immediately after save.',
+          applyHint: 'Retention changes apply only to newly completed jobs / newly uploaded assets. The public origin is used immediately for new signed asset URLs.'
         },
         riskControl: {
           title: 'Risk Control',

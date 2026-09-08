@@ -153,6 +153,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DramaVideoOutputRetentionDays:                        settings.DramaVideoOutputRetentionDays,
 		DramaVideoAssetRetentionDays:                         settings.DramaVideoAssetRetentionDays,
 		DramaVideoAssetQuotaBytesPerUser:                   settings.DramaVideoAssetQuotaBytesPerUser,
+		DramaVideoPublicBaseURL:                             settings.DramaVideoPublicBaseURL,
 		LoginAgreementEnabled:                                  settings.LoginAgreementEnabled,
 		LoginAgreementMode:                                     settings.LoginAgreementMode,
 		LoginAgreementUpdatedAt:                                settings.LoginAgreementUpdatedAt,

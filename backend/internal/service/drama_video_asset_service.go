@@ -222,7 +222,7 @@ func (s *DramaVideoAssetService) ResolveSources(ctx context.Context, userID int6
 		if asset.DeletedAt != nil || asset.UserID != userID {
 			return nil, nil, ErrDramaVideoAssetNotFound
 		}
-		signed, signErr := s.SignURL(asset.AssetID)
+		signed, signErr := s.SignURL(ctx, asset.AssetID)
 		if signErr != nil {
 			return nil, nil, signErr
 		}
@@ -238,10 +238,10 @@ func (s *DramaVideoAssetService) ResolveSources(ctx context.Context, userID int6
 	return rewritten, assetIDs, nil
 }
 
-func (s *DramaVideoAssetService) SignURL(assetID string) (string, error) {
-	base := s.publicBaseURL()
+func (s *DramaVideoAssetService) SignURL(ctx context.Context, assetID string) (string, error) {
+	base := s.publicBaseURL(ctx)
 	if base == "" {
-		return "", infraerrors.ServiceUnavailable("DRAMA_VIDEO_PUBLIC_BASE_URL", "drama_video.public_base_url or server.frontend_url must be set to serve asset links")
+		return "", infraerrors.ServiceUnavailable("DRAMA_VIDEO_PUBLIC_BASE_URL", "set a public HTTPS origin on the video workbench so upstream can fetch assets")
 	}
 	ttl := 120
 	if s.cfg != nil && s.cfg.DramaVideo.AssetURLTTLMinutes > 0 {
@@ -323,14 +323,36 @@ func (s *DramaVideoAssetService) signingSecret() string {
 	return "drama-video-asset-dev-secret"
 }
 
-func (s *DramaVideoAssetService) publicBaseURL() string {
-	if s.cfg == nil {
+func (s *DramaVideoAssetService) SetPublicBaseURL(ctx context.Context, raw string) (string, error) {
+	if s == nil || s.settings == nil {
+		return "", infraerrors.ServiceUnavailable("DRAMA_VIDEO_UNAVAILABLE", "Drama video service is not available")
+	}
+	return s.settings.SetDramaVideoPublicBaseURL(ctx, raw)
+}
+
+func (s *DramaVideoAssetService) publicBaseURL(ctx context.Context) string {
+	if s == nil {
 		return ""
 	}
-	if u := strings.TrimSpace(s.cfg.DramaVideo.PublicBaseURL); u != "" {
-		return strings.TrimRight(u, "/")
+	if s.cfg != nil {
+		if u := strings.TrimSpace(s.cfg.DramaVideo.PublicBaseURL); DramaVideoPublicBaseURLUsable(u) {
+			return strings.TrimRight(u, "/")
+		}
 	}
-	return strings.TrimRight(strings.TrimSpace(s.cfg.Server.FrontendURL), "/")
+	if s.settings != nil {
+		if u := s.settings.GetDramaVideoPublicBaseURL(ctx); DramaVideoPublicBaseURLUsable(u) {
+			return u
+		}
+		if u := s.settings.GetFrontendURL(ctx); DramaVideoPublicBaseURLUsable(u) {
+			return strings.TrimRight(u, "/")
+		}
+	}
+	if s.cfg != nil {
+		if u := strings.TrimSpace(s.cfg.Server.FrontendURL); DramaVideoPublicBaseURLUsable(u) {
+			return strings.TrimRight(u, "/")
+		}
+	}
+	return ""
 }
 
 func (s *DramaVideoAssetService) assetsDir() string {

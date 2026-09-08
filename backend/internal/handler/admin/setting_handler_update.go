@@ -39,6 +39,7 @@ type UpdateSettingsRequest struct {
 	DramaVideoOutputRetentionDays     *int                         `json:"drama_video_output_retention_days"`
 	DramaVideoAssetRetentionDays      *int                         `json:"drama_video_asset_retention_days"`
 	DramaVideoAssetQuotaBytesPerUser *int64                        `json:"drama_video_asset_quota_bytes_per_user"`
+	DramaVideoPublicBaseURL          *string                      `json:"drama_video_public_base_url"`
 	LoginAgreementEnabled               bool                         `json:"login_agreement_enabled"`
 	LoginAgreementMode                  string                       `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt             string                       `json:"login_agreement_updated_at"`
@@ -541,6 +542,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		if dramaVideoAssetQuotaBytes < 0 {
 			dramaVideoAssetQuotaBytes = 0
 		}
+	}
+	dramaVideoPublicBaseURL := previousSettings.DramaVideoPublicBaseURL
+	if req.DramaVideoPublicBaseURL != nil {
+		dramaVideoPublicBaseURL = strings.TrimSpace(*req.DramaVideoPublicBaseURL)
 	}
 	registrationEmailDomainQuotaEnabled := previousSettings.RegistrationEmailDomainQuotaEnabled
 	if req.RegistrationEmailDomainQuotaEnabled != nil {
@@ -1539,6 +1544,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DramaVideoOutputRetentionDays:      dramaVideoOutputRetentionDays,
 		DramaVideoAssetRetentionDays:       dramaVideoAssetRetentionDays,
 		DramaVideoAssetQuotaBytesPerUser:  dramaVideoAssetQuotaBytes,
+		DramaVideoPublicBaseURL:             dramaVideoPublicBaseURL,
 		LoginAgreementEnabled:               req.LoginAgreementEnabled,
 		LoginAgreementMode:                  loginAgreementMode,
 		LoginAgreementUpdatedAt:             loginAgreementUpdatedAt,
@@ -2175,6 +2181,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DramaVideoOutputRetentionDays:                        updatedSettings.DramaVideoOutputRetentionDays,
 		DramaVideoAssetRetentionDays:                         updatedSettings.DramaVideoAssetRetentionDays,
 		DramaVideoAssetQuotaBytesPerUser:                   updatedSettings.DramaVideoAssetQuotaBytesPerUser,
+		DramaVideoPublicBaseURL:                             updatedSettings.DramaVideoPublicBaseURL,
 		LoginAgreementEnabled:                                  updatedSettings.LoginAgreementEnabled,
 		LoginAgreementMode:                                     updatedSettings.LoginAgreementMode,
 		LoginAgreementUpdatedAt:                                updatedSettings.LoginAgreementUpdatedAt,

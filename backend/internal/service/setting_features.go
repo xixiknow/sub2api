@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
 
 // IsRegistrationEnabled 检查是否开放注册
@@ -317,6 +319,35 @@ func (s *SettingService) GetDramaVideoAssetQuotaBytesPerUser(ctx context.Context
 	return parseDramaVideoAssetQuotaBytes(value)
 }
 
+func (s *SettingService) GetDramaVideoPublicBaseURL(ctx context.Context) string {
+	if s == nil || s.settingRepo == nil {
+		return ""
+	}
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyDramaVideoPublicBaseURL)
+	if err != nil {
+		return ""
+	}
+	normalized, err := NormalizeDramaVideoPublicBaseURL(value)
+	if err != nil {
+		return ""
+	}
+	return normalized
+}
+
+func (s *SettingService) SetDramaVideoPublicBaseURL(ctx context.Context, raw string) (string, error) {
+	normalized, err := NormalizeDramaVideoPublicBaseURL(raw)
+	if err != nil {
+		return "", err
+	}
+	if s == nil || s.settingRepo == nil {
+		return "", infraerrors.ServiceUnavailable("DRAMA_VIDEO_UNAVAILABLE", "Drama video service is not available")
+	}
+	if err := s.settingRepo.Set(ctx, SettingKeyDramaVideoPublicBaseURL, normalized); err != nil {
+		return "", err
+	}
+	return normalized, nil
+}
+
 func parseDramaVideoRetentionDays(value string, fallback int) int {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -345,6 +376,14 @@ func parseDramaVideoAssetQuotaBytes(value string) int64 {
 		return 0
 	}
 	return n
+}
+
+func parseStoredDramaVideoPublicBaseURL(value string) string {
+	normalized, err := NormalizeDramaVideoPublicBaseURL(value)
+	if err != nil {
+		return ""
+	}
+	return normalized
 }
 
 // GetSiteName 获取网站名称

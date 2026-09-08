@@ -274,6 +274,7 @@ const (
 	SettingKeyDramaVideoOutputRetentionDays    = "drama_video_output_retention_days"     // 生成视频保留天数，默认 30，<=0 永久
 	SettingKeyDramaVideoAssetRetentionDays     = "drama_video_asset_retention_days"      // 素材未使用保留天数，默认 30，<=0 永久
 	SettingKeyDramaVideoAssetQuotaBytesPerUser = "drama_video_asset_quota_bytes_per_user" // 每用户素材配额字节，默认 2GiB，0 不限制
+	SettingKeyDramaVideoPublicBaseURL          = "drama_video_public_base_url"            // 上游拉取素材用的公网 HTTPS 根地址
 
 	// LinuxDo Connect OAuth 登录设置
 	SettingKeyLinuxDoConnectEnabled      = "linuxdo_connect_enabled"

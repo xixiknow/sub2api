@@ -25,9 +25,10 @@ type SystemSettings struct {
 	SessionBindingEnabled               bool // 会话 IP/UA 绑定（变更即失效）
 	StepUpEnabled                       bool // 敏感操作 step-up 2FA 门控
 	AuditLogRetentionDays               int  // 审计日志保留天数（<=0 永久保留）
-	DramaVideoOutputRetentionDays     int  // 生成视频保留天数（<=0 永久保留）
-	DramaVideoAssetRetentionDays      int  // 素材未使用保留天数（<=0 永久保留）
-	DramaVideoAssetQuotaBytesPerUser  int64 // 每用户素材配额（0 不限制）
+	DramaVideoOutputRetentionDays     int
+	DramaVideoAssetRetentionDays      int
+	DramaVideoAssetQuotaBytesPerUser  int64
+	DramaVideoPublicBaseURL           string
 	LoginAgreementEnabled               bool
 	LoginAgreementMode                  string
 	LoginAgreementUpdatedAt             string

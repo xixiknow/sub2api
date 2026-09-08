@@ -60,14 +60,17 @@ export default {
         },
         videoWorkbench: {
           title: '视频工作台',
-          description: '生成视频与素材的保留策略。修改后仅影响新完成的任务和新上传的素材。',
+          description: '生成视频与素材的保留策略，以及上游拉取素材用的公网地址。保留天数修改后仅影响新完成的任务和新上传的素材。',
           outputRetention: '生成视频保留天数',
           outputRetentionHint: '完成后超过该天数自动删除文件且不可找回。填 0 表示永久保留。',
           assetRetention: '素材未使用保留天数',
           assetRetentionHint: '超过该天数未被生成任务使用的素材将自动清理。填 0 表示永久保留。',
           assetQuota: '每用户素材配额（字节）',
           assetQuotaHint: '单个用户素材库占用上限。填 0 表示不限制。默认 2GiB。',
-          applyHint: '修改后仅影响新完成的任务 / 新上传的素材。'
+          publicBaseUrl: '公网 HTTPS 根地址',
+          publicBaseUrlPlaceholder: 'https://video.example.com',
+          publicBaseUrlHint: '上游需要能访问素材签名链接。必须填写公网 HTTPS origin（不要填 localhost / 内网）。留空则尝试使用站点前端地址。保存后立即生效。',
+          applyHint: '保留天数修改后仅影响新完成的任务 / 新上传的素材。公网地址保存后立即用于新的素材签名链接。'
         },
         riskControl: {
           title: '风控中心',

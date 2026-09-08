@@ -182,7 +182,7 @@ func TestDramaVideoAssetSignAndResolve(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, got.ID, again.ID)
 
-	signed, err := svc.SignURL(got.ID)
+	signed, err := svc.SignURL(context.Background(), got.ID)
 	require.NoError(t, err)
 	require.Contains(t, signed, "/api/v1/public/video-assets/")
 	require.Contains(t, signed, "sig=")
@@ -216,4 +216,73 @@ func TestDramaVideoCleanupRemovesExpiredOutput(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, os.IsNotExist(err))
 	require.NotNil(t, tasks.byID["vidtask_1"].OutputDeletedAt)
+}
+
+func TestNormalizeDramaVideoPublicBaseURL(t *testing.T) {
+	_, err := NormalizeDramaVideoPublicBaseURL("http://example.com")
+	require.Error(t, err)
+	_, err = NormalizeDramaVideoPublicBaseURL("https://localhost")
+	require.Error(t, err)
+	_, err = NormalizeDramaVideoPublicBaseURL("https://127.0.0.1")
+	require.Error(t, err)
+	got, err := NormalizeDramaVideoPublicBaseURL("https://video.example.com/extra")
+	require.NoError(t, err)
+	require.Equal(t, "https://video.example.com", got)
+	got, err = NormalizeDramaVideoPublicBaseURL("")
+	require.NoError(t, err)
+	require.Empty(t, got)
+	require.False(t, DramaVideoPublicBaseURLUsable("http://127.0.0.1:8081"))
+	require.True(t, DramaVideoPublicBaseURLUsable("https://tunnel.example.com"))
+	require.Empty(t, parseStoredDramaVideoPublicBaseURL("http://localhost"))
+	require.Equal(t, "https://video.example.com", parseStoredDramaVideoPublicBaseURL("https://video.example.com/path"))
+}
+
+type memorySettingsRepo struct {
+	values map[string]string
+}
+
+func (m *memorySettingsRepo) Get(context.Context, string) (*Setting, error) {
+	return nil, ErrSettingNotFound
+}
+func (m *memorySettingsRepo) GetValue(_ context.Context, key string) (string, error) {
+	if m.values == nil {
+		return "", ErrSettingNotFound
+	}
+	v, ok := m.values[key]
+	if !ok {
+		return "", ErrSettingNotFound
+	}
+	return v, nil
+}
+func (m *memorySettingsRepo) Set(_ context.Context, key, value string) error {
+	if m.values == nil {
+		m.values = map[string]string{}
+	}
+	m.values[key] = value
+	return nil
+}
+func (m *memorySettingsRepo) GetMultiple(context.Context, []string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
+func (m *memorySettingsRepo) SetMultiple(context.Context, map[string]string) error { return nil }
+func (m *memorySettingsRepo) GetAll(context.Context) (map[string]string, error) {
+	return map[string]string{}, nil
+}
+func (m *memorySettingsRepo) Delete(context.Context, string) error { return nil }
+
+func TestDramaVideoSignURLUsesWorkbenchSetting(t *testing.T) {
+	repo := &memorySettingsRepo{values: map[string]string{
+		SettingKeyDramaVideoPublicBaseURL: "https://assets.example.com",
+	}}
+	settings := NewSettingService(repo, &config.Config{})
+	svc := NewDramaVideoAssetService(&memoryDramaAssets{}, settings, &config.Config{})
+	signed, err := svc.SignURL(context.Background(), "vidasset_1")
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(signed, "https://assets.example.com/api/v1/public/video-assets/vidasset_1"))
+
+	_, err = svc.SetPublicBaseURL(context.Background(), "https://localhost")
+	require.Error(t, err)
+	got, err := svc.SetPublicBaseURL(context.Background(), "https://tunnel.example.net/")
+	require.NoError(t, err)
+	require.Equal(t, "https://tunnel.example.net", got)
 }

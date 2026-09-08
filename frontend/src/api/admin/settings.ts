@@ -415,6 +415,7 @@ export interface SystemSettings {
   drama_video_output_retention_days: number;
   drama_video_asset_retention_days: number;
   drama_video_asset_quota_bytes_per_user: number;
+  drama_video_public_base_url: string;
   login_agreement_enabled: boolean;
   login_agreement_mode: "modal" | "checkbox" | string;
   login_agreement_updated_at: string;
@@ -760,6 +761,7 @@ export interface UpdateSettingsRequest {
   drama_video_output_retention_days?: number;
   drama_video_asset_retention_days?: number;
   drama_video_asset_quota_bytes_per_user?: number;
+  drama_video_public_base_url?: string;
   login_agreement_enabled?: boolean;
   login_agreement_mode?: "modal" | "checkbox" | string;
   login_agreement_updated_at?: string;

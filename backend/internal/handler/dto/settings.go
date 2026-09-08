@@ -47,6 +47,7 @@ type SystemSettings struct {
 	DramaVideoOutputRetentionDays      int                      `json:"drama_video_output_retention_days"`
 	DramaVideoAssetRetentionDays       int                      `json:"drama_video_asset_retention_days"`
 	DramaVideoAssetQuotaBytesPerUser  int64                    `json:"drama_video_asset_quota_bytes_per_user"`
+	DramaVideoPublicBaseURL            string                   `json:"drama_video_public_base_url"`
 	LoginAgreementEnabled               bool                     `json:"login_agreement_enabled"`
 	LoginAgreementMode                  string                   `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt             string                   `json:"login_agreement_updated_at"`

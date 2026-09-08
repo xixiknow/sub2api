@@ -326,6 +326,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		DramaVideoOutputRetentionDays:         parseDramaVideoRetentionDays(settings[SettingKeyDramaVideoOutputRetentionDays], defaultDramaVideoOutputRetentionDays),
 		DramaVideoAssetRetentionDays:          parseDramaVideoRetentionDays(settings[SettingKeyDramaVideoAssetRetentionDays], defaultDramaVideoAssetRetentionDays),
 		DramaVideoAssetQuotaBytesPerUser:     parseDramaVideoAssetQuotaBytes(settings[SettingKeyDramaVideoAssetQuotaBytesPerUser]),
+		DramaVideoPublicBaseURL:              parseStoredDramaVideoPublicBaseURL(settings[SettingKeyDramaVideoPublicBaseURL]),
 		LoginAgreementEnabled:                  settings[SettingKeyLoginAgreementEnabled] == "true",
 		LoginAgreementMode:                     normalizeLoginAgreementMode(settings[SettingKeyLoginAgreementMode]),
 		LoginAgreementUpdatedAt:                loginAgreementUpdatedAt,

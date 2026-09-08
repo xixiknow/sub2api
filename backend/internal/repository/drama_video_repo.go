@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -27,17 +28,7 @@ func (r *dramaVideoRepository) Create(ctx context.Context, params service.Create
 	if strings.TrimSpace(params.Status) == "" {
 		params.Status = service.DramaVideoStatusQueued
 	}
-	query := `
-		INSERT INTO drama_video_tasks (
-			task_id, user_id, api_key_id, group_id, account_id, model, upstream_model,
-			status, progress, request_hash, resolution, aspect_ratio,
-			duration_seconds, hold_amount, asset_ids, created_at, updated_at
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7,
-			$8, $9, $10, $11, $12,
-			$13, $14, COALESCE($15, '{}'), NOW(), NOW()
-		)
-		RETURNING ` + dramaVideoSelectColumns
+	query := dramaVideoCreateQuery + dramaVideoSelectColumns
 	return scanDramaVideoTask(r.db.QueryRowContext(ctx, query,
 		params.TaskID,
 		params.UserID,
@@ -245,7 +236,7 @@ const dramaVideoSelectColumns = `
 	COALESCE(output_mime, ''),
 	COALESCE(output_bytes, 0),
 	COALESCE(output_sha256, ''),
-	COALESCE(asset_ids, '{}'),
+	COALESCE(asset_ids, ARRAY[]::text[]),
 	error,
 	created_at,
 	updated_at,
@@ -328,11 +319,29 @@ func scanDramaVideoTask(row rowScanner) (*service.DramaVideoTask, error) {
 	return &task, nil
 }
 
-func dramaVideoAssetIDs(ids []string) pq.StringArray {
+// dramaVideoCreateQuery binds asset_ids as text[]. The previous
+// COALESCE($15, '{}') typed $15 as text and failed with:
+// column "asset_ids" is of type text[] but expression is of type text.
+const dramaVideoCreateQuery = `
+		INSERT INTO drama_video_tasks (
+			task_id, user_id, api_key_id, group_id, account_id, model, upstream_model,
+			status, progress, request_hash, resolution, aspect_ratio,
+			duration_seconds, hold_amount, asset_ids, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7,
+			$8, $9, $10, $11, $12,
+			$13, $14, COALESCE($15, ARRAY[]::text[]), NOW(), NOW()
+		)
+		RETURNING `
+
+func dramaVideoAssetIDs(ids []string) interface {
+	driver.Valuer
+	sql.Scanner
+} {
 	if ids == nil {
-		return pq.StringArray{}
+		ids = []string{}
 	}
-	return pq.StringArray(ids)
+	return pq.Array(ids)
 }
 
 func dramaNullString(s string) sql.NullString {

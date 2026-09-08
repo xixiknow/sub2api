@@ -68,6 +68,18 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.StepUpEnabled != after.StepUpEnabled {
 		changed = append(changed, "step_up_enabled")
 	}
+	if before.DramaVideoOutputRetentionDays != after.DramaVideoOutputRetentionDays {
+		changed = append(changed, "drama_video_output_retention_days")
+	}
+	if before.DramaVideoAssetRetentionDays != after.DramaVideoAssetRetentionDays {
+		changed = append(changed, "drama_video_asset_retention_days")
+	}
+	if before.DramaVideoAssetQuotaBytesPerUser != after.DramaVideoAssetQuotaBytesPerUser {
+		changed = append(changed, "drama_video_asset_quota_bytes_per_user")
+	}
+	if before.DramaVideoPublicBaseURL != after.DramaVideoPublicBaseURL {
+		changed = append(changed, "drama_video_public_base_url")
+	}
 	if before.LoginAgreementEnabled != after.LoginAgreementEnabled {
 		changed = append(changed, "login_agreement_enabled")
 	}
