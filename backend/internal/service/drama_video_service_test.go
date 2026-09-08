@@ -5,13 +5,14 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 type stubDramaTasks struct {
-	mu    sync.Mutex
-	byID  map[string]*DramaVideoTask
+	mu   sync.Mutex
+	byID map[string]*DramaVideoTask
 }
 
 func (s *stubDramaTasks) Create(_ context.Context, params CreateDramaVideoTaskParams) (*DramaVideoTask, error) {
@@ -59,6 +60,31 @@ func (s *stubDramaTasks) GetForOwner(ctx context.Context, owner DramaVideoOwner,
 	return task, nil
 }
 
+func (s *stubDramaTasks) ListByAPIKey(_ context.Context, userID, apiKeyID int64, limit, offset int) ([]*DramaVideoTask, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	out := make([]*DramaVideoTask, 0)
+	for _, task := range s.byID {
+		if task.UserID == userID && task.APIKeyID == apiKeyID {
+			out = append(out, task)
+		}
+	}
+	if offset >= len(out) {
+		return []*DramaVideoTask{}, nil
+	}
+	end := offset + limit
+	if end > len(out) {
+		end = len(out)
+	}
+	return out[offset:end], nil
+}
+
 func (s *stubDramaTasks) UpdateStatus(_ context.Context, update DramaVideoTaskStatusUpdate) (*DramaVideoTask, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -78,7 +104,32 @@ func (s *stubDramaTasks) MarkCompleted(_ context.Context, update DramaVideoTaskC
 	task.OutputPath = update.OutputPath
 	cost := update.ActualCost
 	task.ActualCost = &cost
+	task.OutputExpiresAt = update.OutputExpiresAt
 	return task, nil
+}
+
+func (s *stubDramaTasks) ListOutputsDueForCleanup(_ context.Context, now time.Time, _ int) ([]*DramaVideoTask, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]*DramaVideoTask, 0)
+	for _, task := range s.byID {
+		if task.Status == DramaVideoStatusCompleted && task.OutputDeletedAt == nil && task.OutputExpiresAt != nil && !task.OutputExpiresAt.After(now) {
+			out = append(out, task)
+		}
+	}
+	return out, nil
+}
+
+func (s *stubDramaTasks) MarkOutputDeleted(_ context.Context, taskID string, deletedAt time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	task := s.byID[taskID]
+	if task == nil {
+		return ErrDramaVideoTaskNotFound
+	}
+	task.OutputDeletedAt = &deletedAt
+	task.OutputPath = ""
+	return nil
 }
 
 type stubDramaAccounts struct {
@@ -191,7 +242,7 @@ func TestDramaVideoServiceReleasesHoldAfterUpstreamCreateError(t *testing.T) {
 		GroupID: &gid,
 		Group:   &Group{ID: gid, Platform: PlatformDrama, RateMultiplier: 1},
 	}
-	got, err := svc.Create(context.Background(), apiKey, []byte(`{"model":"seedance2.0-Mini-A","prompt":"hi","resolution":"480p","seconds":4}`), "/v1/videos")
+	got, err := svc.Create(context.Background(), apiKey, []byte(`{"model":"seedance2.0-A","prompt":"hi","resolution":"480p","seconds":4}`), "/v1/videos")
 	require.NoError(t, err)
 	require.Equal(t, []string{DramaVideoHoldRequestID(got.Task.ID)}, billingRepo.holds)
 	require.Equal(t, []string{DramaVideoReleaseRequestID(got.Task.ID)}, billingRepo.releases)
@@ -233,4 +284,24 @@ func TestDramaVideoServiceRejectsWrongCreatePath(t *testing.T) {
 	apiKey := &APIKey{ID: 1, UserID: 2, GroupID: &gid, Group: &Group{ID: gid, Platform: PlatformDrama}}
 	_, err := svc.Create(context.Background(), apiKey, []byte(`{"model":"seedance2.0-B","prompt":"hi"}`), "/v1/videos")
 	require.Error(t, err)
+}
+
+func TestDramaVideoServiceList(t *testing.T) {
+	tasks := &stubDramaTasks{byID: map[string]*DramaVideoTask{
+		"vidtask_a": {TaskID: "vidtask_a", UserID: 22, APIKeyID: 11, Model: "seedance2.0-A", Status: DramaVideoStatusQueued},
+		"vidtask_b": {TaskID: "vidtask_b", UserID: 22, APIKeyID: 99, Model: "seedance2.0-B", Status: DramaVideoStatusCompleted},
+		"vidtask_c": {TaskID: "vidtask_c", UserID: 22, APIKeyID: 11, Model: "minimax-h3", Status: DramaVideoStatusInProgress},
+	}}
+	svc := &DramaVideoService{tasks: tasks}
+	got, err := svc.List(context.Background(), DramaVideoOwner{UserID: 22, APIKeyID: 11}, 20, 0)
+	require.NoError(t, err)
+	require.Equal(t, "list", got.Object)
+	require.Len(t, got.Data, 2)
+	ids := map[string]bool{}
+	for _, item := range got.Data {
+		ids[item.ID] = true
+	}
+	require.True(t, ids["vidtask_a"])
+	require.True(t, ids["vidtask_c"])
+	require.False(t, ids["vidtask_b"])
 }

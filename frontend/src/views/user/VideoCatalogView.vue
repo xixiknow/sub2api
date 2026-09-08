@@ -1,6 +1,6 @@
 <template>
-  <AppLayout>
-    <div class="mx-auto max-w-6xl space-y-6">
+  <component :is="embedded ? 'div' : AppLayout">
+    <div :class="embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6'">
       <div class="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white/90 px-3 py-2 backdrop-blur dark:border-dark-700 dark:bg-dark-900/90">
         <a href="#video-prices" class="btn btn-secondary btn-sm">{{ t('videoCatalog.prices') }}</a>
         <a href="#video-docs" class="btn btn-secondary btn-sm">{{ t('videoCatalog.docs') }}</a>
@@ -117,7 +117,7 @@
 
       <VideoCatalogDocs ref="docsRef" :families="allFamilies" />
     </div>
-  </AppLayout>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -128,6 +128,10 @@ import { getVideoCatalog, type VideoCatalogFamily, type VideoCatalogPrice } from
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import VideoCatalogDocs from './VideoCatalogDocs.vue'
+
+defineProps<{
+  embedded?: boolean
+}>()
 
 const { t } = useI18n()
 const appStore = useAppStore()

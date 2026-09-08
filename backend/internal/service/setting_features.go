@@ -287,6 +287,66 @@ func parseAuditLogRetentionDays(value string) int {
 	return n
 }
 
+const (
+	defaultDramaVideoOutputRetentionDays   = 30
+	defaultDramaVideoAssetRetentionDays    = 30
+	defaultDramaVideoAssetQuotaBytesPerUser int64 = 2 * 1024 * 1024 * 1024
+)
+
+func (s *SettingService) GetDramaVideoOutputRetentionDays(ctx context.Context) int {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyDramaVideoOutputRetentionDays)
+	if err != nil {
+		return defaultDramaVideoOutputRetentionDays
+	}
+	return parseDramaVideoRetentionDays(value, defaultDramaVideoOutputRetentionDays)
+}
+
+func (s *SettingService) GetDramaVideoAssetRetentionDays(ctx context.Context) int {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyDramaVideoAssetRetentionDays)
+	if err != nil {
+		return defaultDramaVideoAssetRetentionDays
+	}
+	return parseDramaVideoRetentionDays(value, defaultDramaVideoAssetRetentionDays)
+}
+
+func (s *SettingService) GetDramaVideoAssetQuotaBytesPerUser(ctx context.Context) int64 {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyDramaVideoAssetQuotaBytesPerUser)
+	if err != nil {
+		return defaultDramaVideoAssetQuotaBytesPerUser
+	}
+	return parseDramaVideoAssetQuotaBytes(value)
+}
+
+func parseDramaVideoRetentionDays(value string, fallback int) int {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	if n < 0 {
+		return 0
+	}
+	return n
+}
+
+func parseDramaVideoAssetQuotaBytes(value string) int64 {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return defaultDramaVideoAssetQuotaBytesPerUser
+	}
+	n, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return defaultDramaVideoAssetQuotaBytesPerUser
+	}
+	if n < 0 {
+		return 0
+	}
+	return n
+}
+
 // GetSiteName 获取网站名称
 func (s *SettingService) GetSiteName(ctx context.Context) string {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)

@@ -240,8 +240,6 @@ const perplexityModels = [
 const dramaModels = [
   'minimax-h3',
   'seedance2.0-A',
-  'seedance2.0-fast-A',
-  'seedance2.0-Mini-A',
   'seedance2.0-B',
   'seedance2.0-fast-B',
   'seedance-2.0-C',

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/lib/pq"
 )
 
 type dramaVideoRepository struct {
@@ -30,11 +31,11 @@ func (r *dramaVideoRepository) Create(ctx context.Context, params service.Create
 		INSERT INTO drama_video_tasks (
 			task_id, user_id, api_key_id, group_id, account_id, model, upstream_model,
 			status, progress, request_hash, resolution, aspect_ratio,
-			duration_seconds, hold_amount, created_at, updated_at
+			duration_seconds, hold_amount, asset_ids, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
 			$8, $9, $10, $11, $12,
-			$13, $14, NOW(), NOW()
+			$13, $14, $15, NOW(), NOW()
 		)
 		RETURNING ` + dramaVideoSelectColumns
 	return scanDramaVideoTask(r.db.QueryRowContext(ctx, query,
@@ -52,6 +53,7 @@ func (r *dramaVideoRepository) Create(ctx context.Context, params service.Create
 		dramaNullString(params.AspectRatio),
 		dramaNullInt(params.DurationSeconds),
 		params.HoldAmount,
+		pq.StringArray(params.AssetIDs),
 	))
 }
 
@@ -76,6 +78,37 @@ func (r *dramaVideoRepository) GetForOwner(ctx context.Context, owner service.Dr
 		return nil, service.ErrDramaVideoTaskNotFound
 	}
 	return task, nil
+}
+
+func (r *dramaVideoRepository) ListByAPIKey(ctx context.Context, userID, apiKeyID int64, limit, offset int) ([]*service.DramaVideoTask, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("drama video repository db is nil")
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	query := `SELECT ` + dramaVideoSelectColumns + `
+		FROM drama_video_tasks
+		WHERE user_id = $1 AND api_key_id = $2
+		ORDER BY created_at DESC, id DESC
+		LIMIT $3 OFFSET $4`
+	rows, err := r.db.QueryContext(ctx, query, userID, apiKeyID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	tasks := make([]*service.DramaVideoTask, 0, limit)
+	for rows.Next() {
+		task, err := scanDramaVideoTask(rows)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, rows.Err()
 }
 
 func (r *dramaVideoRepository) UpdateStatus(ctx context.Context, update service.DramaVideoTaskStatusUpdate) (*service.DramaVideoTask, error) {
@@ -126,6 +159,7 @@ func (r *dramaVideoRepository) MarkCompleted(ctx context.Context, update service
 			output_bytes = $6,
 			output_sha256 = NULLIF($7, ''),
 			completed_at = $8,
+			output_expires_at = $9,
 			updated_at = NOW()
 		WHERE task_id = $1
 		RETURNING ` + dramaVideoSelectColumns
@@ -138,11 +172,55 @@ func (r *dramaVideoRepository) MarkCompleted(ctx context.Context, update service
 		update.OutputBytes,
 		update.OutputSHA256,
 		update.CompletedAt,
+		dramaNullTimePtr(update.OutputExpiresAt),
 	))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, service.ErrDramaVideoTaskNotFound
 	}
 	return task, err
+}
+
+func (r *dramaVideoRepository) ListOutputsDueForCleanup(ctx context.Context, now time.Time, limit int) ([]*service.DramaVideoTask, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("drama video repository db is nil")
+	}
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	query := `SELECT ` + dramaVideoSelectColumns + `
+		FROM drama_video_tasks
+		WHERE output_deleted_at IS NULL
+			AND status = $1
+			AND output_expires_at IS NOT NULL
+			AND output_expires_at <= $2
+		ORDER BY output_expires_at ASC
+		LIMIT $3`
+	rows, err := r.db.QueryContext(ctx, query, service.DramaVideoStatusCompleted, now, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	tasks := make([]*service.DramaVideoTask, 0, limit)
+	for rows.Next() {
+		task, err := scanDramaVideoTask(rows)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, rows.Err()
+}
+
+func (r *dramaVideoRepository) MarkOutputDeleted(ctx context.Context, taskID string, deletedAt time.Time) error {
+	if r == nil || r.db == nil {
+		return errors.New("drama video repository db is nil")
+	}
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE drama_video_tasks
+		SET output_deleted_at = $2, output_path = '', updated_at = NOW()
+		WHERE task_id = $1 AND output_deleted_at IS NULL`,
+		strings.TrimSpace(taskID), deletedAt)
+	return err
 }
 
 const dramaVideoSelectColumns = `
@@ -167,11 +245,14 @@ const dramaVideoSelectColumns = `
 	COALESCE(output_mime, ''),
 	COALESCE(output_bytes, 0),
 	COALESCE(output_sha256, ''),
+	COALESCE(asset_ids, '{}'),
 	error,
 	created_at,
 	updated_at,
 	submitted_at,
-	completed_at`
+	completed_at,
+	output_expires_at,
+	output_deleted_at`
 
 func scanDramaVideoTask(row rowScanner) (*service.DramaVideoTask, error) {
 	var task service.DramaVideoTask
@@ -180,6 +261,9 @@ func scanDramaVideoTask(row rowScanner) (*service.DramaVideoTask, error) {
 	var errRaw []byte
 	var submittedAt sql.NullTime
 	var completedAt sql.NullTime
+	var expiresAt sql.NullTime
+	var deletedAt sql.NullTime
+	var assetIDs pq.StringArray
 	if err := row.Scan(
 		&task.ID,
 		&task.TaskID,
@@ -202,14 +286,18 @@ func scanDramaVideoTask(row rowScanner) (*service.DramaVideoTask, error) {
 		&task.OutputMIME,
 		&task.OutputBytes,
 		&task.OutputSHA256,
+		&assetIDs,
 		&errRaw,
 		&task.CreatedAt,
 		&task.UpdatedAt,
 		&submittedAt,
 		&completedAt,
+		&expiresAt,
+		&deletedAt,
 	); err != nil {
 		return nil, err
 	}
+	task.AssetIDs = []string(assetIDs)
 	if accountID.Valid {
 		v := accountID.Int64
 		task.AccountID = &v
@@ -228,6 +316,14 @@ func scanDramaVideoTask(row rowScanner) (*service.DramaVideoTask, error) {
 	if completedAt.Valid {
 		v := completedAt.Time
 		task.CompletedAt = &v
+	}
+	if expiresAt.Valid {
+		v := expiresAt.Time
+		task.OutputExpiresAt = &v
+	}
+	if deletedAt.Valid {
+		v := deletedAt.Time
+		task.OutputDeletedAt = &v
 	}
 	return &task, nil
 }

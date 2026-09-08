@@ -270,6 +270,11 @@ const (
 	// 操作审计日志设置
 	SettingKeyAuditLogRetentionDays = "audit_log_retention_days" // 审计日志保留天数（<=0 永久保留），默认 180
 
+	// 视频工作台（仅管理端 settings，不进 config.yaml）
+	SettingKeyDramaVideoOutputRetentionDays    = "drama_video_output_retention_days"     // 生成视频保留天数，默认 30，<=0 永久
+	SettingKeyDramaVideoAssetRetentionDays     = "drama_video_asset_retention_days"      // 素材未使用保留天数，默认 30，<=0 永久
+	SettingKeyDramaVideoAssetQuotaBytesPerUser = "drama_video_asset_quota_bytes_per_user" // 每用户素材配额字节，默认 2GiB，0 不限制
+
 	// LinuxDo Connect OAuth 登录设置
 	SettingKeyLinuxDoConnectEnabled      = "linuxdo_connect_enabled"
 	SettingKeyLinuxDoConnectClientID     = "linuxdo_connect_client_id"

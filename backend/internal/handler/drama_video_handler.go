@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,10 +18,11 @@ import (
 
 type DramaVideoHandler struct {
 	service *service.DramaVideoService
+	assets  *service.DramaVideoAssetService
 }
 
-func NewDramaVideoHandler(service *service.DramaVideoService) *DramaVideoHandler {
-	return &DramaVideoHandler{service: service}
+func NewDramaVideoHandler(svc *service.DramaVideoService, assets *service.DramaVideoAssetService) *DramaVideoHandler {
+	return &DramaVideoHandler{service: svc, assets: assets}
 }
 
 func (h *DramaVideoHandler) Catalog(c *gin.Context) {
@@ -59,6 +61,23 @@ func (h *DramaVideoHandler) Get(c *gin.Context) {
 		return
 	}
 	got, err := h.service.Get(c.Request.Context(), owner, c.Param("request_id"))
+	if err != nil {
+		dramaVideoError(c, err)
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	c.JSON(http.StatusOK, got)
+}
+
+func (h *DramaVideoHandler) List(c *gin.Context) {
+	owner, ok := dramaVideoOwnerFromContext(c)
+	if !ok {
+		dramaVideoError(c, infraerrors.Unauthorized("API_KEY_REQUIRED", "API key is required"))
+		return
+	}
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	offset, _ := strconv.Atoi(c.Query("offset"))
+	got, err := h.service.List(c.Request.Context(), owner, limit, offset)
 	if err != nil {
 		dramaVideoError(c, err)
 		return

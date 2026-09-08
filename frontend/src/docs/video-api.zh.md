@@ -32,7 +32,7 @@ Content-Type: application/json
 
 | 创建接口 | 模型 |
 | --- | --- |
-| `POST /v1/videos` | `minimax-h3`、`seedance2.0-A`、`seedance2.0-fast-A`、`seedance2.0-Mini-A`、`seedance-2.0-C`、`seedance2.5-A`、`seedance-2.5-B` |
+| `POST /v1/videos` | `minimax-h3`、`seedance2.0-A`、`seedance-2.0-C`、`seedance2.5-A`、`seedance-2.5-B` |
 | `POST /v1/video/generations` | `seedance2.0-B`、`seedance2.0-fast-B`、`seedance2.0-E`、`seedance2.0-F`、`seedance2.0-fast-F` |
 
 成功时 HTTP `202`，响应头带 `Location: /v1/videos/{id}` 和 `Retry-After: 5`。请保存 `id`（形如 `vidtask_...`）。`task_id` 与 `id` 相同，仅作兼容。
@@ -100,7 +100,15 @@ curl --request GET "<BASE_URL>/v1/videos/<TASK_ID>/content" \
 
 ## 7. 参考素材
 
-素材放在 `references` 数组。`source` 必须是服务端能直接访问的公网 HTTPS URL（或 Data URI），无需登录。
+素材放在 `references` 数组。`source` 必须是服务端能直接访问的公网 HTTPS URL（或 Data URI），无需登录。控制台素材库提交时会使用 `asset://<id>`，由本站改写成带签名的 HTTPS 直链再转给上游。
+
+```json
+{
+  "type": "image",
+  "role": "reference",
+  "source": "https://cdn.example.com/ref.png"
+}
+```
 
 ```json
 {
@@ -155,38 +163,6 @@ curl --request POST "<BASE_URL>/v1/videos" \
     "seconds": 8,
     "resolution": "720p",
     "aspect_ratio": "16:9"
-  }'
-```
-
-### `seedance2.0-fast-A` — `POST /v1/videos`
-
-按秒，快速版。仅 480p。时长 4–15，默认 4。
-
-```bash
-curl --request POST "<BASE_URL>/v1/videos" \
-  --header "Authorization: Bearer <API_KEY>" \
-  --header "Content-Type: application/json" \
-  --data '{
-    "model": "seedance2.0-fast-A",
-    "prompt": "海浪拍岸，阳光碎在水面上",
-    "seconds": 4,
-    "resolution": "480p"
-  }'
-```
-
-### `seedance2.0-Mini-A` — `POST /v1/videos`
-
-按秒，Mini。分辨率 480p / 720p。时长 4–15，默认 4。
-
-```bash
-curl --request POST "<BASE_URL>/v1/videos" \
-  --header "Authorization: Bearer <API_KEY>" \
-  --header "Content-Type: application/json" \
-  --data '{
-    "model": "seedance2.0-Mini-A",
-    "prompt": "微距镜头下露珠从叶尖落下",
-    "seconds": 4,
-    "resolution": "720p"
   }'
 ```
 
@@ -347,6 +323,15 @@ curl --request POST "<BASE_URL>/v1/videos" \
 | 403 | `DRAMA_VIDEO_FORBIDDEN` | 任务不属于这把 key |
 | 404 | `DRAMA_VIDEO_TASK_NOT_FOUND` | 核对 `id` |
 | 409 | `DRAMA_VIDEO_NOT_READY` | 尚未 `completed`，继续轮询 |
+| 410 | `DRAMA_VIDEO_CONTENT_MISSING` | 文件已过期清理或不存在，无法再下载 |
 | 503 | `DRAMA_VIDEO_NO_ACCOUNT` | 当前分组没有可用账号，稍后或联系管理员 |
 
 轮询请看任务 JSON 里的 `status` 和 `error`，不要只看 HTTP 200。
+
+## 10. 数据保留与安全
+
+生成视频和上传素材只作临时中转。平台不保证文件不丢失、不损坏或可恢复，请自行下载并妥善保管。
+
+- 查询任务 JSON 可能带 `expires_at`（Unix 秒）。到期后 `GET /v1/videos/{id}/content` 返回 410。
+- 默认保留约 30 天，管理员可在系统设置里改（0 表示不自动清理）。改设置不会回溯已完成任务的过期时间。
+- 素材库文件超过保留期未使用也会被清理。请勿上传无权使用或涉及他人隐私的内容。

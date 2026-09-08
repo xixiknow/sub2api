@@ -49,6 +49,8 @@ func RegisterAdminRoutes(
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
 
+		registerDramaVideoAssetRoutes(admin, h)
+
 		// OpenAI OAuth
 		registerOpenAIOAuthRoutes(admin, h)
 
@@ -425,6 +427,17 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAu
 		accounts.POST("/exchange-setup-token-code", h.Admin.OAuth.ExchangeSetupTokenCode)
 		accounts.POST("/cookie-auth", h.Admin.OAuth.CookieAuth)
 		accounts.POST("/setup-token-cookie-auth", h.Admin.OAuth.SetupTokenCookieAuth)
+	}
+}
+
+func registerDramaVideoAssetRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	if h == nil || h.DramaVideo == nil {
+		return
+	}
+	assets := admin.Group("/video-assets")
+	{
+		assets.GET("", h.DramaVideo.AdminListAssets)
+		assets.DELETE("/:id", h.DramaVideo.AdminDeleteAsset)
 	}
 }
 

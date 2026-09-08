@@ -49,13 +49,11 @@ describe('Grok video model pricing form', () => {
 })
 
 describe('Drama video model pricing form', () => {
-  it('exposes the 12 public families and a 4K column', () => {
+  it('exposes the 10 public families and a 4K column', () => {
     const form = createVideoModelPricesForm(null, 'drama')
     expect(videoModelPriceFamilyRows(form, 'drama').map(({ key }) => key)).toEqual([
       'minimax-h3',
       'seedance2.0-A',
-      'seedance2.0-fast-A',
-      'seedance2.0-Mini-A',
       'seedance2.0-B',
       'seedance2.0-fast-B',
       'seedance-2.0-C',
@@ -76,7 +74,7 @@ describe('Drama video model pricing form', () => {
   })
 
   it('disables unpriced Drama resolutions and labels clip families per clip', () => {
-    expect(videoResolutionEnabledForFamily('seedance2.0-fast-A', '720p', 'drama')).toBe(false)
+    expect(videoResolutionEnabledForFamily('seedance2.0-A', '4k', 'drama')).toBe(false)
     expect(videoResolutionEnabledForFamily('seedance-2.0-C', '480p', 'drama')).toBe(false)
     expect(videoResolutionEnabledForFamily('seedance-2.0-C', '720p', 'drama')).toBe(true)
     expect(videoPriceUnitLabel('seedance2.0-A', 'drama')).toBe('$/s')

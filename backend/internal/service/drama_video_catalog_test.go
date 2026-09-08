@@ -8,7 +8,7 @@ import (
 
 func TestBuildDramaVideoCatalog(t *testing.T) {
 	catalog := BuildDramaVideoCatalog()
-	require.Len(t, catalog.Families, 12)
+	require.Len(t, catalog.Families, 10)
 	require.Equal(t, DramaVideoPublicFamilies(), catalogFamilyNames(catalog))
 
 	byName := map[string]DramaVideoCatalogFamily{}

@@ -7241,6 +7241,70 @@
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.videoWorkbench.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.videoWorkbench.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.videoWorkbench.outputRetention') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.videoWorkbench.outputRetentionHint') }}
+                </p>
+              </div>
+              <input
+                v-model.number="form.drama_video_output_retention_days"
+                type="number"
+                min="0"
+                class="input w-28"
+              />
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.videoWorkbench.assetRetention') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.videoWorkbench.assetRetentionHint') }}
+                </p>
+              </div>
+              <input
+                v-model.number="form.drama_video_asset_retention_days"
+                type="number"
+                min="0"
+                class="input w-28"
+              />
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.videoWorkbench.assetQuota') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.videoWorkbench.assetQuotaHint') }}
+                </p>
+              </div>
+              <input
+                v-model.number="form.drama_video_asset_quota_bytes_per_user"
+                type="number"
+                min="0"
+                class="input w-40"
+              />
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.videoWorkbench.applyHint') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
               {{ t('admin.settings.features.riskControl.title') }}
             </h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -9542,6 +9606,9 @@ const form = reactive<SettingsForm>({
   session_binding_enabled: false,
   step_up_enabled: false,
   audit_log_retention_days: 180,
+  drama_video_output_retention_days: 30,
+  drama_video_asset_retention_days: 30,
+  drama_video_asset_quota_bytes_per_user: 2147483648,
   login_agreement_enabled: false,
   login_agreement_mode: "modal",
   login_agreement_updated_at: "2026-03-31",
@@ -11173,6 +11240,15 @@ async function saveSettings() {
       audit_log_retention_days: Number.isFinite(form.audit_log_retention_days)
         ? form.audit_log_retention_days
         : 180,
+      drama_video_output_retention_days: Number.isFinite(form.drama_video_output_retention_days)
+        ? form.drama_video_output_retention_days
+        : 30,
+      drama_video_asset_retention_days: Number.isFinite(form.drama_video_asset_retention_days)
+        ? form.drama_video_asset_retention_days
+        : 30,
+      drama_video_asset_quota_bytes_per_user: Number.isFinite(form.drama_video_asset_quota_bytes_per_user)
+        ? form.drama_video_asset_quota_bytes_per_user
+        : 2147483648,
       login_agreement_enabled: form.login_agreement_enabled,
       login_agreement_mode: form.login_agreement_mode,
       login_agreement_updated_at: form.login_agreement_updated_at,

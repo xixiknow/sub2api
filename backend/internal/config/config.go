@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -104,6 +105,7 @@ type Config struct {
 	BatchImage              BatchImageConfig              `mapstructure:"batch_image"`
 	ImageStorage            ImageStorageConfig            `mapstructure:"image_storage"`
 	Plugins                 PluginConfig                  `mapstructure:"plugins"`
+	DramaVideo              DramaVideoConfig           `mapstructure:"drama_video"`
 }
 
 // PluginConfig 控制管理员手动上传的本地进程插件。
@@ -267,6 +269,35 @@ type ImageStorageConfig struct {
 // IsConfigured 检查对象存储必要字段是否已配置
 func (c *ImageStorageConfig) IsConfigured() bool {
 	return c.Bucket != "" && c.AccessKeyID != "" && c.SecretAccessKey != ""
+}
+
+// DramaVideoConfig 视频工作台部署级配置。保留期/配额不在这里，由管理端 settings 控制。
+type DramaVideoConfig struct {
+	StorageDir             string `mapstructure:"storage_dir"`
+	PublicBaseURL          string `mapstructure:"public_base_url"`
+	AssetURLTTLMinutes     int    `mapstructure:"asset_url_ttl_minutes"`
+	MaxAssetBytesImage     int64  `mapstructure:"max_asset_bytes_image"`
+	MaxAssetBytesVideo     int64  `mapstructure:"max_asset_bytes_video"`
+	MaxAssetBytesAudio     int64  `mapstructure:"max_asset_bytes_audio"`
+	AssetSigningSecret     string `mapstructure:"asset_signing_secret"`
+	CleanupIntervalMinutes int    `mapstructure:"cleanup_interval_minutes"`
+	CleanupBatchSize       int    `mapstructure:"cleanup_batch_size"`
+}
+
+func (c DramaVideoConfig) ResolvedStorageDir() string {
+	dir := strings.TrimSpace(c.StorageDir)
+	if dir == "" {
+		return "data/drama-video"
+	}
+	return dir
+}
+
+func (c DramaVideoConfig) OutputDir() string {
+	return filepath.Join(c.ResolvedStorageDir(), "outputs")
+}
+
+func (c DramaVideoConfig) AssetsDir() string {
+	return filepath.Join(c.ResolvedStorageDir(), "assets")
 }
 
 // Active 返回异步图片任务是否可用：开关打开且凭证齐全
@@ -2225,6 +2256,16 @@ func setDefaults() {
 	viper.SetDefault("batch_image.vertex_output_retention_hours", 72)
 	viper.SetDefault("batch_image.vertex_batch_prediction_base_url", "")
 	viper.SetDefault("batch_image.vertex_gcs_base_url", "")
+
+	viper.SetDefault("drama_video.storage_dir", "data/drama-video")
+	viper.SetDefault("drama_video.public_base_url", "")
+	viper.SetDefault("drama_video.asset_url_ttl_minutes", 120)
+	viper.SetDefault("drama_video.max_asset_bytes_image", 10*1024*1024)
+	viper.SetDefault("drama_video.max_asset_bytes_video", 40*1024*1024)
+	viper.SetDefault("drama_video.max_asset_bytes_audio", 20*1024*1024)
+	viper.SetDefault("drama_video.asset_signing_secret", "")
+	viper.SetDefault("drama_video.cleanup_interval_minutes", 30)
+	viper.SetDefault("drama_video.cleanup_batch_size", 100)
 
 	// Image storage (async image task result offload to S3-compatible object storage)
 	viper.SetDefault("image_storage.enabled", false)

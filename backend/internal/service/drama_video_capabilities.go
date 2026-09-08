@@ -17,25 +17,25 @@ const (
 )
 
 type dramaVideoCapability struct {
-	family            string
-	createPath        string
-	billingUnit       string
-	minDuration       int
-	maxDuration       int
-	durationRequired  bool
-	fixedDuration     int
-	defaultDuration   int
-	defaultResolution string
-	resolutions       map[string]string // public resolution -> upstream model
-	aspectRatios      map[string]struct{}
-	defaultAspect     string
-	maxImages         int
-	maxVideos         int
-	maxAudios         int
-	maxReferences     int
-	maxVideoAudio     int
-	allowVideo        bool
-	allowAudio        bool
+	family                   string
+	createPath               string
+	billingUnit              string
+	minDuration              int
+	maxDuration              int
+	durationRequired         bool
+	fixedDuration            int
+	defaultDuration          int
+	defaultResolution        string
+	resolutions              map[string]string // public resolution -> upstream model
+	aspectRatios             map[string]struct{}
+	defaultAspect            string
+	maxImages                int
+	maxVideos                int
+	maxAudios                int
+	maxReferences            int
+	maxVideoAudio            int
+	allowVideo               bool
+	allowAudio               bool
 	allowFirstLast           bool
 	allowSOptional           bool
 	allowGenerateAudio       bool
@@ -48,114 +48,100 @@ var dramaVideoCapabilities = map[string]dramaVideoCapability{
 	DramaFamilyMinimaxH3: {
 		family: DramaFamilyMinimaxH3, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerSecond,
 		minDuration: 4, maxDuration: 15, defaultDuration: 4, defaultResolution: VideoBillingResolution480P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilyMinimaxH3, VideoBillingResolution720P: DramaFamilyMinimaxH3, VideoBillingResolution1080P: DramaFamilyMinimaxH3},
+		resolutions:  map[string]string{VideoBillingResolution480P: DramaFamilyMinimaxH3, VideoBillingResolution720P: DramaFamilyMinimaxH3, VideoBillingResolution1080P: DramaFamilyMinimaxH3},
 		aspectRatios: ratioSet("16:9", "9:16"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 3, maxAudios: 3, maxReferences: 12, maxVideoAudio: 3, allowVideo: true, allowAudio: true,
 	},
 	DramaFamilySeedance20A: {
 		family: DramaFamilySeedance20A, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerSecond,
 		minDuration: 4, maxDuration: 15, defaultDuration: 4, defaultResolution: VideoBillingResolution480P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilySeedance20A, VideoBillingResolution720P: DramaFamilySeedance20A, VideoBillingResolution1080P: DramaFamilySeedance20A},
-		aspectRatios: ratioSet("21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"), defaultAspect: "16:9",
-		maxImages: 9, maxVideos: 3, maxAudios: 3, maxReferences: 12, allowVideo: true, allowAudio: true, allowFirstLast: true, firstLastRequiresAuto: true, requireAPlaceholders: true,
-	},
-	DramaFamilySeedance20FA: {
-		family: DramaFamilySeedance20FA, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerSecond,
-		minDuration: 4, maxDuration: 15, defaultDuration: 4, defaultResolution: VideoBillingResolution480P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilySeedance20FA},
-		aspectRatios: ratioSet("21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"), defaultAspect: "16:9",
-		maxImages: 9, maxVideos: 3, maxAudios: 3, maxReferences: 12, allowVideo: true, allowAudio: true, allowFirstLast: true, firstLastRequiresAuto: true, requireAPlaceholders: true,
-	},
-	DramaFamilySeedance20MA: {
-		family: DramaFamilySeedance20MA, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerSecond,
-		minDuration: 4, maxDuration: 15, defaultDuration: 4, defaultResolution: VideoBillingResolution480P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilySeedance20MA, VideoBillingResolution720P: DramaFamilySeedance20MA},
+		resolutions:  map[string]string{VideoBillingResolution480P: DramaFamilySeedance20A, VideoBillingResolution720P: DramaFamilySeedance20A, VideoBillingResolution1080P: DramaFamilySeedance20A},
 		aspectRatios: ratioSet("21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 3, maxAudios: 3, maxReferences: 12, allowVideo: true, allowAudio: true, allowFirstLast: true, firstLastRequiresAuto: true, requireAPlaceholders: true,
 	},
 	DramaFamilySeedance20B: {
 		family: DramaFamilySeedance20B, createPath: DramaVideoCreatePathGens, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 4, maxDuration: 15, defaultDuration: 4, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilySeedance20B, VideoBillingResolution720P: DramaFamilySeedance20B, VideoBillingResolution1080P: DramaFamilySeedance20B, VideoBillingResolution4K: DramaFamilySeedance20B},
+		resolutions:  map[string]string{VideoBillingResolution480P: DramaFamilySeedance20B, VideoBillingResolution720P: DramaFamilySeedance20B, VideoBillingResolution1080P: DramaFamilySeedance20B, VideoBillingResolution4K: DramaFamilySeedance20B},
 		aspectRatios: ratioSet("adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 0, maxAudios: 3, maxReferences: 12, allowAudio: true, allowFirstLast: true, allowSOptional: true,
 	},
 	DramaFamilySeedance20FB: {
 		family: DramaFamilySeedance20FB, createPath: DramaVideoCreatePathGens, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 4, maxDuration: 15, defaultDuration: 4, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilySeedance20FB, VideoBillingResolution720P: DramaFamilySeedance20FB},
+		resolutions:  map[string]string{VideoBillingResolution480P: DramaFamilySeedance20FB, VideoBillingResolution720P: DramaFamilySeedance20FB},
 		aspectRatios: ratioSet("adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 0, maxAudios: 3, maxReferences: 12, allowAudio: true, allowFirstLast: true, allowSOptional: true,
 	},
 	DramaFamilySeedance20C: {
 		family: DramaFamilySeedance20C, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 5, maxDuration: 15, durationRequired: true, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution720P: DramaFamilySeedance20C},
+		resolutions:  map[string]string{VideoBillingResolution720P: DramaFamilySeedance20C},
 		aspectRatios: ratioSet("16:9", "9:16"), defaultAspect: "16:9",
 		maxImages: 30, maxVideos: 0, maxAudios: 10, maxReferences: 40, allowAudio: true, allowGenerateAudio: true, requireImagePlaceholders: true,
 	},
 	DramaFamilySeedance20E: {
 		family: DramaFamilySeedance20E, createPath: DramaVideoCreatePathGens, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 5, maxDuration: 15, defaultDuration: 5, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution720P: "seedance2.0-E-720p"},
+		resolutions:  map[string]string{VideoBillingResolution720P: "seedance2.0-E-720p"},
 		aspectRatios: ratioSet("16:9", "4:3", "1:1", "3:4", "9:16", "21:9"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 3, maxAudios: 3, maxReferences: 15, allowVideo: true, allowAudio: true,
 	},
 	DramaFamilySeedance20F: {
 		family: DramaFamilySeedance20F, createPath: DramaVideoCreatePathGens, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 5, maxDuration: 15, defaultDuration: 5, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution720P: "seedance2.0-F-720p", VideoBillingResolution1080P: "seedance2.0-F-1080p"},
+		resolutions:  map[string]string{VideoBillingResolution720P: "seedance2.0-F-720p", VideoBillingResolution1080P: "seedance2.0-F-1080p"},
 		aspectRatios: ratioSet("16:9", "4:3", "1:1", "3:4", "9:16", "21:9"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 0, maxAudios: 3, maxReferences: 12, allowAudio: true,
 	},
 	DramaFamilySeedance20FF: {
 		family: DramaFamilySeedance20FF, createPath: DramaVideoCreatePathGens, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 5, maxDuration: 15, defaultDuration: 5, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution720P: "seedance2.0-fast-F-720p"},
+		resolutions:  map[string]string{VideoBillingResolution720P: "seedance2.0-fast-F-720p"},
 		aspectRatios: ratioSet("16:9", "4:3", "1:1", "3:4", "9:16", "21:9"), defaultAspect: "16:9",
 		maxImages: 9, maxVideos: 0, maxAudios: 3, maxReferences: 12, allowAudio: true,
 	},
 	DramaFamilySeedance25A: {
 		family: DramaFamilySeedance25A, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerSecond,
 		minDuration: 4, maxDuration: 30, defaultDuration: 4, defaultResolution: VideoBillingResolution480P,
-		resolutions: map[string]string{VideoBillingResolution480P: DramaFamilySeedance25A, VideoBillingResolution720P: DramaFamilySeedance25A, VideoBillingResolution1080P: DramaFamilySeedance25A},
+		resolutions:  map[string]string{VideoBillingResolution480P: DramaFamilySeedance25A, VideoBillingResolution720P: DramaFamilySeedance25A, VideoBillingResolution1080P: DramaFamilySeedance25A},
 		aspectRatios: ratioSet("21:9", "16:9", "4:3", "1:1", "3:4", "9:16"), defaultAspect: "16:9",
 		maxImages: 30, maxVideos: 10, maxAudios: 10, maxReferences: 50, allowVideo: true, allowAudio: true, allowFirstLast: true, requireAPlaceholders: true,
 	},
 	DramaFamilySeedance25B: {
 		family: DramaFamilySeedance25B, createPath: DramaVideoCreatePathVideos, billingUnit: DramaVideoBillingPerClip,
 		minDuration: 30, maxDuration: 30, durationRequired: true, fixedDuration: 30, defaultResolution: VideoBillingResolution720P,
-		resolutions: map[string]string{VideoBillingResolution720P: DramaFamilySeedance25B},
+		resolutions:  map[string]string{VideoBillingResolution720P: DramaFamilySeedance25B},
 		aspectRatios: ratioSet("21:9", "16:9", "4:3", "1:1", "3:4", "9:16"), defaultAspect: "16:9",
 		maxImages: 30, maxVideos: 3, maxAudios: 0, maxReferences: 33, allowVideo: true,
 	},
 }
 
 type dramaVideoCreatePayload struct {
-	Model           string                  `json:"model"`
-	Prompt          string                  `json:"prompt"`
-	Seconds         json.RawMessage         `json:"seconds"`
-	Duration        json.RawMessage         `json:"duration"`
-	AspectRatio     string                  `json:"aspect_ratio"`
-	Ratio           string                  `json:"ratio"`
-	AspectRatioAlt  string                  `json:"aspectRatio"`
-	Resolution      string                  `json:"resolution"`
-	TaskMode        string                  `json:"task_mode"`
-	GenerateAudio   *bool                   `json:"generate_audio"`
-	GenerateAudio2  *bool                   `json:"generateAudio"`
-	ReturnLastFrame *bool                   `json:"return_last_frame"`
-	WebSearch       *bool                   `json:"web_search"`
-	Priority        *int                    `json:"priority"`
-	References      []dramaVideoReference   `json:"references"`
-	ReferenceImages []dramaVideoReference   `json:"referenceImages"`
-	ReferenceVideos []dramaVideoReference   `json:"referenceVideos"`
-	ReferenceAudios []dramaVideoReference   `json:"referenceAudios"`
-	FirstFrameURL   string                  `json:"first_frame_url"`
-	LastFrameURL    string                  `json:"last_frame_url"`
-	FirstFrame      string                  `json:"first_frame"`
-	LastFrame       string                  `json:"last_frame"`
-	FirstImage      string                  `json:"first_image"`
-	LastImage       string                  `json:"last_image"`
+	Model           string                `json:"model"`
+	Prompt          string                `json:"prompt"`
+	Seconds         json.RawMessage       `json:"seconds"`
+	Duration        json.RawMessage       `json:"duration"`
+	AspectRatio     string                `json:"aspect_ratio"`
+	Ratio           string                `json:"ratio"`
+	AspectRatioAlt  string                `json:"aspectRatio"`
+	Resolution      string                `json:"resolution"`
+	TaskMode        string                `json:"task_mode"`
+	GenerateAudio   *bool                 `json:"generate_audio"`
+	GenerateAudio2  *bool                 `json:"generateAudio"`
+	ReturnLastFrame *bool                 `json:"return_last_frame"`
+	WebSearch       *bool                 `json:"web_search"`
+	Priority        *int                  `json:"priority"`
+	References      []dramaVideoReference `json:"references"`
+	ReferenceImages []dramaVideoReference `json:"referenceImages"`
+	ReferenceVideos []dramaVideoReference `json:"referenceVideos"`
+	ReferenceAudios []dramaVideoReference `json:"referenceAudios"`
+	FirstFrameURL   string                `json:"first_frame_url"`
+	LastFrameURL    string                `json:"last_frame_url"`
+	FirstFrame      string                `json:"first_frame"`
+	LastFrame       string                `json:"last_frame"`
+	FirstImage      string                `json:"first_image"`
+	LastImage       string                `json:"last_image"`
 }
 
 type dramaVideoReference struct {
@@ -165,10 +151,10 @@ type dramaVideoReference struct {
 }
 
 var (
-	dramaAImagePlaceholder  = regexp.MustCompile(`@(?:图|图片)([1-9][0-9]*)`)
-	dramaAVideoPlaceholder  = regexp.MustCompile(`@视频([1-9][0-9]*)`)
-	dramaAAudioPlaceholder  = regexp.MustCompile(`@音频([1-9][0-9]*)`)
-	dramaCImagePlaceholder  = regexp.MustCompile(`@Image([1-9][0-9]*)`)
+	dramaAImagePlaceholder = regexp.MustCompile(`@(?:图|图片)([1-9][0-9]*)`)
+	dramaAVideoPlaceholder = regexp.MustCompile(`@视频([1-9][0-9]*)`)
+	dramaAAudioPlaceholder = regexp.MustCompile(`@音频([1-9][0-9]*)`)
+	dramaCImagePlaceholder = regexp.MustCompile(`@Image([1-9][0-9]*)`)
 )
 
 func ratioSet(values ...string) map[string]struct{} {
@@ -519,6 +505,9 @@ func validatePlaceholderSet(prompt string, re *regexp.Regexp, count int, kind st
 }
 
 func isPublicDramaMediaSource(source string) bool {
+	if strings.HasPrefix(strings.ToLower(source), DramaVideoAssetScheme) {
+		return strings.TrimSpace(source[len(DramaVideoAssetScheme):]) != ""
+	}
 	if strings.HasPrefix(strings.ToLower(source), "data:") {
 		return strings.Contains(source, ",")
 	}

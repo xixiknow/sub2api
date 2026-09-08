@@ -17,6 +17,10 @@ func RegisterUserRoutes(
 	settingService *service.SettingService,
 	panelRateLimiter *middleware.PanelRateLimiter,
 ) {
+	if h.DramaVideo != nil {
+		v1.GET("/public/video-assets/:id", h.DramaVideo.PublicAssetContent)
+	}
+
 	authenticated := v1.Group("")
 	authenticated.Use(gin.HandlerFunc(jwtAuth))
 	authenticated.Use(middleware.BackendModeUserGuard(settingService))
@@ -97,6 +101,14 @@ func RegisterUserRoutes(
 
 		if h.DramaVideo != nil {
 			authenticated.GET("/video-catalog", h.DramaVideo.Catalog)
+			authenticated.GET("/video-workbench-meta", h.DramaVideo.WorkbenchMeta)
+			assets := authenticated.Group("/video-assets")
+			{
+				assets.POST("", h.DramaVideo.UploadAsset)
+				assets.GET("", h.DramaVideo.ListAssets)
+				assets.DELETE("/:id", h.DramaVideo.DeleteAsset)
+				assets.GET("/:id/content", h.DramaVideo.AssetContent)
+			}
 		}
 
 		// 使用记录（聚合统计属重查询，叠加更严格的按用户限流）

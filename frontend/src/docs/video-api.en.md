@@ -32,7 +32,7 @@ Each model accepts only one create path. The wrong path returns `DRAMA_VIDEO_INV
 
 | Endpoint | Models |
 | --- | --- |
-| `POST /v1/videos` | `minimax-h3`, `seedance2.0-A`, `seedance2.0-fast-A`, `seedance2.0-Mini-A`, `seedance-2.0-C`, `seedance2.5-A`, `seedance-2.5-B` |
+| `POST /v1/videos` | `minimax-h3`, `seedance2.0-A`, `seedance-2.0-C`, `seedance2.5-A`, `seedance-2.5-B` |
 | `POST /v1/video/generations` | `seedance2.0-B`, `seedance2.0-fast-B`, `seedance2.0-E`, `seedance2.0-F`, `seedance2.0-fast-F` |
 
 Success is HTTP `202` with `Location: /v1/videos/{id}` and `Retry-After: 5`. Save `id` (`vidtask_...`). `task_id` matches `id` for compatibility.
@@ -100,7 +100,7 @@ Only send fields the model supports. If both `seconds` and `duration` are presen
 
 ## 7. References
 
-Put assets in `references`. `source` must be a public HTTPS URL (or Data URI) the server can fetch with no login.
+Put assets in `references`. `source` must be a public HTTPS URL (or Data URI) the server can fetch with no login. The console asset library submits `asset://<id>`; this site rewrites it to a signed HTTPS URL before calling upstream.
 
 ```json
 {
@@ -153,38 +153,6 @@ curl --request POST "<BASE_URL>/v1/videos" \
     "seconds": 8,
     "resolution": "720p",
     "aspect_ratio": "16:9"
-  }'
-```
-
-### `seedance2.0-fast-A` — `POST /v1/videos`
-
-Per second, fast. 480p only. 4–15s, default 4.
-
-```bash
-curl --request POST "<BASE_URL>/v1/videos" \
-  --header "Authorization: Bearer <API_KEY>" \
-  --header "Content-Type: application/json" \
-  --data '{
-    "model": "seedance2.0-fast-A",
-    "prompt": "Waves hitting the shore, sunlight on the water",
-    "seconds": 4,
-    "resolution": "480p"
-  }'
-```
-
-### `seedance2.0-Mini-A` — `POST /v1/videos`
-
-Per second, Mini. 480p / 720p. 4–15s, default 4.
-
-```bash
-curl --request POST "<BASE_URL>/v1/videos" \
-  --header "Authorization: Bearer <API_KEY>" \
-  --header "Content-Type: application/json" \
-  --data '{
-    "model": "seedance2.0-Mini-A",
-    "prompt": "Macro dew drop falling from a leaf tip",
-    "seconds": 4,
-    "resolution": "720p"
   }'
 ```
 
@@ -345,6 +313,15 @@ curl --request POST "<BASE_URL>/v1/videos" \
 | 403 | `DRAMA_VIDEO_FORBIDDEN` | The job does not belong to this key |
 | 404 | `DRAMA_VIDEO_TASK_NOT_FOUND` | Check `id` |
 | 409 | `DRAMA_VIDEO_NOT_READY` | Still not `completed`; keep polling |
+| 410 | `DRAMA_VIDEO_CONTENT_MISSING` | The file expired or was removed; download is no longer available |
 | 503 | `DRAMA_VIDEO_NO_ACCOUNT` | No account available in this group |
 
 When polling, read `status` and `error` in the JSON. Do not treat HTTP 200 as success by itself.
+
+## 10. Retention and data safety
+
+Generated videos and uploaded assets are a temporary relay. We do not guarantee files will not be lost, corrupted, or unrecoverable. Download and keep your own copies.
+
+- Task JSON may include `expires_at` (Unix seconds). After that, `GET /v1/videos/{id}/content` returns 410.
+- Default retention is about 30 days. Admins can change it in system settings (`0` means no automatic cleanup). Changing the setting does not rewrite expiry on already completed jobs.
+- Unused library assets are also cleaned up after the asset retention window. Do not upload content you do not have the right to use.

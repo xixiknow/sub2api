@@ -11,13 +11,6 @@ var defaultDramaVideoPrices = map[string]map[string]float64{
 		VideoBillingResolution720P:  0.50,
 		VideoBillingResolution1080P: 0.90,
 	},
-	DramaFamilySeedance20FA: {
-		VideoBillingResolution480P: 0.20,
-	},
-	DramaFamilySeedance20MA: {
-		VideoBillingResolution480P: 0.10,
-		VideoBillingResolution720P: 0.25,
-	},
 	DramaFamilySeedance20B: {
 		VideoBillingResolution480P:  1.90,
 		VideoBillingResolution720P:  3.50,

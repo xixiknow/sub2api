@@ -107,11 +107,11 @@ describe('useModelWhitelist', () => {
     expect(models).toContain('gemini-3.1-pro')
   })
 
-  it('drama 白名单是 12 个公开视频家族，不再回落到 Claude', () => {
+  it('drama 白名单是 10 个公开视频家族，不再回落到 Claude', () => {
     const models = getModelsByPlatform('drama')
 
     expect(models).toEqual(dramaVideoPriceFamilies.map(family => family.key))
-    expect(models).toHaveLength(12)
+    expect(models).toHaveLength(10)
     expect(models.some(model => model.startsWith('claude-'))).toBe(false)
     expect(getPresetMappingsByPlatform('drama')).toEqual([])
   })

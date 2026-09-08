@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	DramaVideoStatusQueued      = "queued"
-	DramaVideoStatusInProgress  = "in_progress"
-	DramaVideoStatusCompleted   = "completed"
-	DramaVideoStatusFailed      = "failed"
-	DramaVideoStatusCanceled    = "canceled"
+	DramaVideoStatusQueued     = "queued"
+	DramaVideoStatusInProgress = "in_progress"
+	DramaVideoStatusCompleted  = "completed"
+	DramaVideoStatusFailed     = "failed"
+	DramaVideoStatusCanceled   = "canceled"
 
 	DramaVideoObjectTask       = "video"
 	DramaVideoDefaultBaseURL   = "https://drama.dafeiyangapi.top"
@@ -31,18 +31,16 @@ const (
 )
 
 const (
-	DramaFamilyMinimaxH3     = "minimax-h3"
-	DramaFamilySeedance20A   = "seedance2.0-A"
-	DramaFamilySeedance20FA  = "seedance2.0-fast-A"
-	DramaFamilySeedance20MA  = "seedance2.0-Mini-A"
-	DramaFamilySeedance20B   = "seedance2.0-B"
-	DramaFamilySeedance20FB  = "seedance2.0-fast-B"
-	DramaFamilySeedance20C   = "seedance-2.0-C"
-	DramaFamilySeedance20E   = "seedance2.0-E"
-	DramaFamilySeedance20F   = "seedance2.0-F"
-	DramaFamilySeedance20FF  = "seedance2.0-fast-F"
-	DramaFamilySeedance25A   = "seedance2.5-A"
-	DramaFamilySeedance25B   = "seedance-2.5-B"
+	DramaFamilyMinimaxH3    = "minimax-h3"
+	DramaFamilySeedance20A  = "seedance2.0-A"
+	DramaFamilySeedance20B  = "seedance2.0-B"
+	DramaFamilySeedance20FB = "seedance2.0-fast-B"
+	DramaFamilySeedance20C  = "seedance-2.0-C"
+	DramaFamilySeedance20E  = "seedance2.0-E"
+	DramaFamilySeedance20F  = "seedance2.0-F"
+	DramaFamilySeedance20FF = "seedance2.0-fast-F"
+	DramaFamilySeedance25A  = "seedance2.5-A"
+	DramaFamilySeedance25B  = "seedance-2.5-B"
 )
 
 var (
@@ -52,6 +50,8 @@ var (
 	ErrDramaVideoUpstream       = infraerrors.New(http.StatusBadGateway, "DRAMA_VIDEO_UPSTREAM_ERROR", "Drama upstream request failed")
 	ErrDramaVideoNotReady       = infraerrors.New(http.StatusConflict, "DRAMA_VIDEO_NOT_READY", "video task is not completed")
 	ErrDramaVideoContentMissing = infraerrors.New(http.StatusGone, "DRAMA_VIDEO_CONTENT_MISSING", "video content is not available")
+	ErrDramaVideoAssetNotFound  = infraerrors.New(http.StatusNotFound, "DRAMA_VIDEO_ASSET_NOT_FOUND", "video asset not found")
+	ErrDramaVideoAssetForbidden = infraerrors.New(http.StatusForbidden, "DRAMA_VIDEO_ASSET_FORBIDDEN", "video asset does not belong to this user")
 )
 
 // DramaVideoPublicFamilies is the operator-facing catalog. Channel and group
@@ -60,8 +60,6 @@ func DramaVideoPublicFamilies() []string {
 	return []string{
 		DramaFamilyMinimaxH3,
 		DramaFamilySeedance20A,
-		DramaFamilySeedance20FA,
-		DramaFamilySeedance20MA,
 		DramaFamilySeedance20B,
 		DramaFamilySeedance20FB,
 		DramaFamilySeedance20C,
@@ -104,11 +102,14 @@ type DramaVideoTask struct {
 	OutputMIME      string
 	OutputBytes     int64
 	OutputSHA256    string
+	AssetIDs        []string
 	Error           json.RawMessage
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	SubmittedAt     *time.Time
 	CompletedAt     *time.Time
+	OutputExpiresAt *time.Time
+	OutputDeletedAt *time.Time
 }
 
 type DramaVideoPublicTask struct {
@@ -122,7 +123,16 @@ type DramaVideoPublicTask struct {
 	CreatedAt   int64           `json:"created_at"`
 	CompletedAt *int64          `json:"completed_at,omitempty"`
 	Seconds     string          `json:"seconds,omitempty"`
+	HoldAmount  *float64        `json:"hold_amount,omitempty"`
+	ActualCost  *float64        `json:"actual_cost,omitempty"`
+	ExpiresAt   *int64         `json:"expires_at,omitempty"`
 	Metadata    map[string]any  `json:"metadata,omitempty"`
+}
+
+type DramaVideoPublicListResponse struct {
+	Object  string                  `json:"object"`
+	Data    []*DramaVideoPublicTask `json:"data"`
+	HasMore bool                    `json:"has_more"`
 }
 
 type DramaVideoCreateResult struct {
@@ -150,6 +160,7 @@ type CreateDramaVideoTaskParams struct {
 	AspectRatio     string
 	DurationSeconds int
 	HoldAmount      float64
+	AssetIDs        []string
 }
 
 type DramaVideoTaskStatusUpdate struct {
@@ -168,16 +179,20 @@ type DramaVideoTaskCompletionUpdate struct {
 	OutputPath   string
 	OutputMIME   string
 	OutputBytes  int64
-	OutputSHA256 string
-	CompletedAt  time.Time
+	OutputSHA256    string
+	CompletedAt     time.Time
+	OutputExpiresAt *time.Time
 }
 
 type DramaVideoTaskRepository interface {
 	Create(ctx context.Context, params CreateDramaVideoTaskParams) (*DramaVideoTask, error)
 	GetByTaskID(ctx context.Context, taskID string) (*DramaVideoTask, error)
 	GetForOwner(ctx context.Context, owner DramaVideoOwner, taskID string) (*DramaVideoTask, error)
+	ListByAPIKey(ctx context.Context, userID, apiKeyID int64, limit, offset int) ([]*DramaVideoTask, error)
 	UpdateStatus(ctx context.Context, update DramaVideoTaskStatusUpdate) (*DramaVideoTask, error)
 	MarkCompleted(ctx context.Context, update DramaVideoTaskCompletionUpdate) (*DramaVideoTask, error)
+	ListOutputsDueForCleanup(ctx context.Context, now time.Time, limit int) ([]*DramaVideoTask, error)
+	MarkOutputDeleted(ctx context.Context, taskID string, deletedAt time.Time) error
 }
 
 type DramaVideoAccountSelector interface {
@@ -302,6 +317,18 @@ func DramaVideoTaskToPublic(task *DramaVideoTask) *DramaVideoPublicTask {
 	}
 	if task.DurationSeconds > 0 {
 		out.Seconds = strconv.Itoa(task.DurationSeconds)
+	}
+	if task.HoldAmount > 0 {
+		hold := task.HoldAmount
+		out.HoldAmount = &hold
+	}
+	if task.ActualCost != nil {
+		cost := *task.ActualCost
+		out.ActualCost = &cost
+	}
+	if task.OutputExpiresAt != nil && !task.OutputExpiresAt.IsZero() {
+		v := task.OutputExpiresAt.Unix()
+		out.ExpiresAt = &v
 	}
 	if task.AspectRatio != "" || task.Resolution != "" {
 		out.Metadata = map[string]any{}

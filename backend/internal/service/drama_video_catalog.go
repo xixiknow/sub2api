@@ -50,7 +50,7 @@ var catalogResolutionOrder = []string{
 	VideoBillingResolution4K,
 }
 
-// BuildDramaVideoCatalog returns the 12 public families with priced resolutions only.
+// BuildDramaVideoCatalog returns the public families with priced resolutions only.
 func BuildDramaVideoCatalog() DramaVideoCatalog {
 	defaults := DefaultDramaVideoModelPrices()
 	out := DramaVideoCatalog{Families: make([]DramaVideoCatalogFamily, 0, len(DramaVideoPublicFamilies()))}
@@ -127,7 +127,7 @@ func dramaVideoCatalogTags(family string) []string {
 	switch family {
 	case DramaFamilyMinimaxH3:
 		return []string{"skills"}
-	case DramaFamilySeedance20A, DramaFamilySeedance20FA, DramaFamilySeedance20MA, DramaFamilySeedance25A:
+	case DramaFamilySeedance20A, DramaFamilySeedance25A:
 		return []string{"不卡人脸", "不排队"}
 	case DramaFamilySeedance20B:
 		return []string{"933"}

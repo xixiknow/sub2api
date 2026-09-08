@@ -323,6 +323,9 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		SessionBindingEnabled:                  settings[SettingKeySessionBindingEnabled] == "true", // 默认关闭
 		StepUpEnabled:                          settings[SettingKeyStepUpEnabled] == "true",         // 默认关闭
 		AuditLogRetentionDays:                  parseAuditLogRetentionDays(settings[SettingKeyAuditLogRetentionDays]),
+		DramaVideoOutputRetentionDays:         parseDramaVideoRetentionDays(settings[SettingKeyDramaVideoOutputRetentionDays], defaultDramaVideoOutputRetentionDays),
+		DramaVideoAssetRetentionDays:          parseDramaVideoRetentionDays(settings[SettingKeyDramaVideoAssetRetentionDays], defaultDramaVideoAssetRetentionDays),
+		DramaVideoAssetQuotaBytesPerUser:     parseDramaVideoAssetQuotaBytes(settings[SettingKeyDramaVideoAssetQuotaBytesPerUser]),
 		LoginAgreementEnabled:                  settings[SettingKeyLoginAgreementEnabled] == "true",
 		LoginAgreementMode:                     normalizeLoginAgreementMode(settings[SettingKeyLoginAgreementMode]),
 		LoginAgreementUpdatedAt:                loginAgreementUpdatedAt,

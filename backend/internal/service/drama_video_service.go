@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
 
@@ -32,6 +33,8 @@ type DramaVideoService struct {
 	apiKeyQuota      APIKeyQuotaUpdater
 	authCache        apiKeyAuthCacheInvalidator
 	resolver         *ModelPricingResolver
+	assets           *DramaVideoAssetService
+	settings         *SettingService
 	outputDir        string
 	pollInterval     time.Duration
 	pollTimeout      time.Duration
@@ -51,6 +54,7 @@ type dramaVideoCreatePlan struct {
 	actualCost      float64
 	account         Account
 	videoRate       float64
+	assetIDs        []string
 }
 
 func NewDramaVideoService(
@@ -88,6 +92,29 @@ func NewDramaVideoService(
 			go fn()
 		},
 	}
+}
+
+func ProvideDramaVideoService(
+	tasks DramaVideoTaskRepository,
+	accounts DramaVideoAccountSelector,
+	client DramaVideoClient,
+	billing *BillingService,
+	usageBilling DramaVideoBalanceHolder,
+	usageLogs UsageLogRepository,
+	userGroupRates UserGroupRateRepository,
+	apiKeyService *APIKeyService,
+	resolver *ModelPricingResolver,
+	assets *DramaVideoAssetService,
+	settings *SettingService,
+	cfg *config.Config,
+) *DramaVideoService {
+	svc := NewDramaVideoService(tasks, accounts, client, billing, usageBilling, usageLogs, userGroupRates, apiKeyService, resolver)
+	svc.assets = assets
+	svc.settings = settings
+	if cfg != nil {
+		svc.outputDir = cfg.DramaVideo.OutputDir()
+	}
+	return svc
 }
 
 func (s *DramaVideoService) Create(ctx context.Context, apiKey *APIKey, rawBody []byte, inboundPath string) (*DramaVideoCreateResult, error) {
@@ -130,6 +157,7 @@ func (s *DramaVideoService) Create(ctx context.Context, apiKey *APIKey, rawBody 
 		AspectRatio:     plan.aspectRatio,
 		DurationSeconds: plan.durationSeconds,
 		HoldAmount:      plan.holdAmount,
+		AssetIDs:        plan.assetIDs,
 	})
 	if err != nil {
 		_ = s.releaseHold(context.Background(), apiKey, taskID, plan.requestHash, plan.holdAmount)
@@ -158,6 +186,36 @@ func (s *DramaVideoService) Get(ctx context.Context, owner DramaVideoOwner, task
 	return DramaVideoTaskToPublic(task), nil
 }
 
+func (s *DramaVideoService) List(ctx context.Context, owner DramaVideoOwner, limit, offset int) (*DramaVideoPublicListResponse, error) {
+	if s == nil || s.tasks == nil {
+		return nil, infraerrors.ServiceUnavailable("DRAMA_VIDEO_UNAVAILABLE", "Drama video service is not available")
+	}
+	if owner.UserID <= 0 || owner.APIKeyID <= 0 {
+		return nil, ErrDramaVideoForbidden
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	tasks, err := s.tasks.ListByAPIKey(ctx, owner.UserID, owner.APIKeyID, limit, offset)
+	if err != nil {
+		return nil, infraerrors.InternalServer("DRAMA_VIDEO_LIST_FAILED", "failed to list video tasks").WithCause(err)
+	}
+	data := make([]*DramaVideoPublicTask, 0, len(tasks))
+	for _, task := range tasks {
+		if pub := DramaVideoTaskToPublic(task); pub != nil {
+			data = append(data, pub)
+		}
+	}
+	return &DramaVideoPublicListResponse{
+		Object:  "list",
+		Data:    data,
+		HasMore: len(data) == limit,
+	}, nil
+}
+
 func (s *DramaVideoService) Content(ctx context.Context, owner DramaVideoOwner, taskID string) (*DramaVideoContent, error) {
 	if s == nil || s.tasks == nil {
 		return nil, infraerrors.ServiceUnavailable("DRAMA_VIDEO_UNAVAILABLE", "Drama video service is not available")
@@ -166,7 +224,10 @@ func (s *DramaVideoService) Content(ctx context.Context, owner DramaVideoOwner, 
 	if err != nil {
 		return nil, err
 	}
-	if NormalizeDramaUpstreamStatus(task.Status) != DramaVideoStatusCompleted || strings.TrimSpace(task.OutputPath) == "" {
+	if NormalizeDramaUpstreamStatus(task.Status) != DramaVideoStatusCompleted || strings.TrimSpace(task.OutputPath) == "" || task.OutputDeletedAt != nil {
+		if task.OutputDeletedAt != nil {
+			return nil, ErrDramaVideoContentMissing
+		}
 		return nil, ErrDramaVideoNotReady
 	}
 	info, err := os.Stat(task.OutputPath)
@@ -194,6 +255,20 @@ func (s *DramaVideoService) prepareCreate(ctx context.Context, apiKey *APIKey, r
 	payload, resolved, err := parseDramaVideoCreatePayload(rawBody, surface)
 	if err != nil {
 		return nil, err
+	}
+	var assetIDs []string
+	if s.assets != nil && len(payload.References) > 0 {
+		sources := extractDramaVideoReferenceSources(payload)
+		rewritten, resolvedIDs, resolveErr := s.assets.ResolveSources(ctx, apiKey.UserID, sources)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+		for i := range payload.References {
+			if i < len(rewritten) {
+				payload.References[i].Source = rewritten[i]
+			}
+		}
+		assetIDs = resolvedIDs
 	}
 	account, err := s.selectAccount(ctx, *apiKey.GroupID)
 	if err != nil {
@@ -272,6 +347,7 @@ func (s *DramaVideoService) prepareCreate(ctx context.Context, apiKey *APIKey, r
 		actualCost:      cost.ActualCost,
 		account:         account,
 		videoRate:       videoRate,
+		assetIDs:        assetIDs,
 	}, nil
 }
 
@@ -440,14 +516,23 @@ func (s *DramaVideoService) processTask(ctx context.Context, taskID string, apiK
 		return
 	}
 	completedAt := time.Now()
+	var expiresAt *time.Time
+	if s.settings != nil {
+		days := s.settings.GetDramaVideoOutputRetentionDays(ctx)
+		if days > 0 {
+			v := completedAt.AddDate(0, 0, days)
+			expiresAt = &v
+		}
+	}
 	_, err = s.tasks.MarkCompleted(ctx, DramaVideoTaskCompletionUpdate{
-		TaskID:       taskID,
-		ActualCost:   plan.actualCost,
-		OutputPath:   path,
-		OutputMIME:   download.ContentType,
-		OutputBytes:  int64(len(download.Data)),
-		OutputSHA256: sha,
-		CompletedAt:  completedAt,
+		TaskID:          taskID,
+		ActualCost:      plan.actualCost,
+		OutputPath:      path,
+		OutputMIME:      download.ContentType,
+		OutputBytes:     int64(len(download.Data)),
+		OutputSHA256:    sha,
+		CompletedAt:     completedAt,
+		OutputExpiresAt: expiresAt,
 	})
 	if err != nil {
 		slog.Warn("drama_video_mark_completed_failed", "task_id", taskID, "error", err)

@@ -89,7 +89,9 @@ func TestParseDramaVideoCreatePayloadDurationAndResolution(t *testing.T) {
 	require.Equal(t, DramaFamilySeedance25B, resolved.Family)
 	require.Equal(t, VideoBillingResolution720P, resolved.Resolution)
 
-	_, _, err = parseDramaVideoCreatePayload([]byte(`{"model":"seedance2.0-fast-A","prompt":"hello","resolution":"720p"}`), dramaVideoSurfaceVideos)
+	_, _, err = parseDramaVideoCreatePayload([]byte(`{"model":"seedance2.0-fast-A","prompt":"hello","resolution":"480p"}`), dramaVideoSurfaceVideos)
+	require.Error(t, err)
+	_, _, err = parseDramaVideoCreatePayload([]byte(`{"model":"seedance2.0-Mini-A","prompt":"hello","resolution":"720p"}`), dramaVideoSurfaceVideos)
 	require.Error(t, err)
 	_, _, err = parseDramaVideoCreatePayload([]byte(`{"model":"minimax-h3","prompt":"hello","aspect_ratio":"1:1"}`), dramaVideoSurfaceVideos)
 	require.Error(t, err)
@@ -144,4 +146,13 @@ func TestMarshalDramaVideoUpstreamBodyUsesIndependentName(t *testing.T) {
 	body, err := marshalDramaVideoUpstreamBody(payload, "seedance2.0-F-1080p")
 	require.NoError(t, err)
 	require.Contains(t, string(body), `"model":"seedance2.0-F-1080p"`)
+}
+
+func TestIsPublicDramaMediaSource(t *testing.T) {
+	require.True(t, isPublicDramaMediaSource("asset://vidasset_abc"))
+	require.True(t, isPublicDramaMediaSource("https://cdn.example.com/a.png"))
+	require.True(t, isPublicDramaMediaSource("data:image/png;base64,aa"))
+	require.False(t, isPublicDramaMediaSource("asset://"))
+	require.False(t, isPublicDramaMediaSource("http://cdn.example.com/a.png"))
+	require.False(t, isPublicDramaMediaSource("file:///tmp/a.png"))
 }

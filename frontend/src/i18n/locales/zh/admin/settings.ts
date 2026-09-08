@@ -58,6 +58,17 @@ export default {
           enabled: '显示插件管理菜单',
           enabledHint: '关闭后仅隐藏侧边栏菜单；已加载或正在运行的插件不会因此停止。',
         },
+        videoWorkbench: {
+          title: '视频工作台',
+          description: '生成视频与素材的保留策略。修改后仅影响新完成的任务和新上传的素材。',
+          outputRetention: '生成视频保留天数',
+          outputRetentionHint: '完成后超过该天数自动删除文件且不可找回。填 0 表示永久保留。',
+          assetRetention: '素材未使用保留天数',
+          assetRetentionHint: '超过该天数未被生成任务使用的素材将自动清理。填 0 表示永久保留。',
+          assetQuota: '每用户素材配额（字节）',
+          assetQuotaHint: '单个用户素材库占用上限。填 0 表示不限制。默认 2GiB。',
+          applyHint: '修改后仅影响新完成的任务 / 新上传的素材。'
+        },
         riskControl: {
           title: '风控中心',
           description: '启用内容审计菜单和全端点请求审核入口。默认关闭。',

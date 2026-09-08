@@ -19,8 +19,6 @@ export const grokVideoPriceFamilies = [
 export const dramaVideoPriceFamilies = [
   { key: 'minimax-h3', label: 'minimax-h3' },
   { key: 'seedance2.0-A', label: 'seedance2.0-A' },
-  { key: 'seedance2.0-fast-A', label: 'seedance2.0-fast-A' },
-  { key: 'seedance2.0-Mini-A', label: 'seedance2.0-Mini-A' },
   { key: 'seedance2.0-B', label: 'seedance2.0-B' },
   { key: 'seedance2.0-fast-B', label: 'seedance2.0-fast-B' },
   { key: 'seedance-2.0-C', label: 'seedance-2.0-C' },
@@ -59,8 +57,6 @@ export function videoPriceFamiliesFor(platform?: string) {
 const dramaFamilyPricedResolutions: Record<string, readonly string[]> = {
   'minimax-h3': ['480p', '720p', '1080p'],
   'seedance2.0-A': ['480p', '720p', '1080p'],
-  'seedance2.0-fast-A': ['480p'],
-  'seedance2.0-Mini-A': ['480p', '720p'],
   'seedance2.0-B': ['480p', '720p', '1080p', '4k'],
   'seedance2.0-fast-B': ['480p', '720p'],
   'seedance-2.0-C': ['720p'],

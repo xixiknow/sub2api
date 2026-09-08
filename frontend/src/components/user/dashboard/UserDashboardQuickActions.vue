@@ -49,13 +49,13 @@
         />
       </button>
 
-      <button @click="router.push('/video-models')" class="group flex w-full items-center gap-4 rounded-xl bg-gray-50 p-4 text-left transition-all duration-200 hover:bg-gray-100 dark:bg-dark-800/50 dark:hover:bg-dark-800">
+      <button @click="router.push('/video-workbench')" class="group flex w-full items-center gap-4 rounded-xl bg-gray-50 p-4 text-left transition-all duration-200 hover:bg-gray-100 dark:bg-dark-800/50 dark:hover:bg-dark-800">
         <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100 transition-transform group-hover:scale-105 dark:bg-violet-900/30">
           <Icon name="play" size="lg" class="text-violet-600 dark:text-violet-400" />
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t('dashboard.videoModels') }}</p>
-          <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('dashboard.videoModelsDesc') }}</p>
+          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t('dashboard.videoWorkbench') }}</p>
+          <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('dashboard.videoWorkbenchDesc') }}</p>
         </div>
         <Icon
           name="chevronRight"

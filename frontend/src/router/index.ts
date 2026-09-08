@@ -229,17 +229,28 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/video-models',
-    name: 'VideoCatalog',
-    alias: '/docs/video',
-    component: () => import('@/views/user/VideoCatalogView.vue'),
+    path: '/video-workbench',
+    name: 'VideoWorkbench',
+    component: () => import('@/views/user/VideoWorkbenchView.vue'),
     meta: {
       requiresAuth: true,
       requiresAdmin: false,
-      title: 'Video Models',
-      titleKey: 'videoCatalog.title',
-      descriptionKey: 'videoCatalog.description'
+      title: 'Video Workbench',
+      titleKey: 'videoWorkbench.title',
+      descriptionKey: 'videoWorkbench.description'
     }
+  },
+  {
+    path: '/video-models',
+    redirect: { path: '/video-workbench', query: { tab: 'catalog' } }
+  },
+  {
+    path: '/docs/video',
+    redirect: { path: '/video-workbench', query: { tab: 'catalog' } }
+  },
+  {
+    path: '/video-studio',
+    redirect: { path: '/video-workbench', query: { tab: 'studio' } }
   },
   {
     path: '/usage',
@@ -547,6 +558,18 @@ const routes: RouteRecordRaw[] = [
       title: 'Plugin Management',
       titleKey: 'admin.plugins.title',
       descriptionKey: 'admin.plugins.description'
+    }
+  },
+  {
+    path: '/admin/video-assets',
+    name: 'AdminVideoAssets',
+    component: () => import('@/views/admin/VideoAssetsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Video Assets',
+      titleKey: 'videoWorkbench.adminTitle',
+      descriptionKey: 'videoWorkbench.adminDescription'
     }
   },
   {

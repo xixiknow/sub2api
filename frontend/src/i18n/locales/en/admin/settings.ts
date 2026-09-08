@@ -58,6 +58,17 @@ export default {
           enabled: 'Show Plugin Management',
           enabledHint: 'Turning this off only hides the sidebar entry; loaded or running plugins are not stopped.',
         },
+        videoWorkbench: {
+          title: 'Video workbench',
+          description: 'Retention for generated videos and uploaded assets. Changes apply only to newly completed jobs and newly uploaded assets.',
+          outputRetention: 'Generated video retention (days)',
+          outputRetentionHint: 'Files are deleted after this many days and cannot be recovered. Set 0 to keep them forever.',
+          assetRetention: 'Unused asset retention (days)',
+          assetRetentionHint: 'Assets unused for this many days are cleaned up. Set 0 to keep them forever.',
+          assetQuota: 'Per-user asset quota (bytes)',
+          assetQuotaHint: 'Maximum storage per user. Set 0 for no limit. Default is 2 GiB.',
+          applyHint: 'Changes apply only to newly completed jobs / newly uploaded assets.'
+        },
         riskControl: {
           title: 'Risk Control',
           description: 'Enable the content moderation menu and gateway audit entry point. Disabled by default.',

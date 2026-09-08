@@ -36,6 +36,9 @@ type UpdateSettingsRequest struct {
 	SessionBindingEnabled               *bool                        `json:"session_binding_enabled"`  // 会话 IP/UA 绑定（省略=保持现值）
 	StepUpEnabled                       *bool                        `json:"step_up_enabled"`          // 敏感操作 step-up 2FA（省略=保持现值）
 	AuditLogRetentionDays               int                          `json:"audit_log_retention_days"` // 审计日志保留天数
+	DramaVideoOutputRetentionDays     *int                         `json:"drama_video_output_retention_days"`
+	DramaVideoAssetRetentionDays      *int                         `json:"drama_video_asset_retention_days"`
+	DramaVideoAssetQuotaBytesPerUser *int64                        `json:"drama_video_asset_quota_bytes_per_user"`
 	LoginAgreementEnabled               bool                         `json:"login_agreement_enabled"`
 	LoginAgreementMode                  string                       `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt             string                       `json:"login_agreement_updated_at"`
@@ -517,6 +520,27 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	passkeyEnabled := previousSettings.PasskeyEnabled
 	if req.PasskeyEnabled != nil {
 		passkeyEnabled = *req.PasskeyEnabled
+	}
+	dramaVideoOutputRetentionDays := previousSettings.DramaVideoOutputRetentionDays
+	if req.DramaVideoOutputRetentionDays != nil {
+		dramaVideoOutputRetentionDays = *req.DramaVideoOutputRetentionDays
+		if dramaVideoOutputRetentionDays < 0 {
+			dramaVideoOutputRetentionDays = 0
+		}
+	}
+	dramaVideoAssetRetentionDays := previousSettings.DramaVideoAssetRetentionDays
+	if req.DramaVideoAssetRetentionDays != nil {
+		dramaVideoAssetRetentionDays = *req.DramaVideoAssetRetentionDays
+		if dramaVideoAssetRetentionDays < 0 {
+			dramaVideoAssetRetentionDays = 0
+		}
+	}
+	dramaVideoAssetQuotaBytes := previousSettings.DramaVideoAssetQuotaBytesPerUser
+	if req.DramaVideoAssetQuotaBytesPerUser != nil {
+		dramaVideoAssetQuotaBytes = *req.DramaVideoAssetQuotaBytesPerUser
+		if dramaVideoAssetQuotaBytes < 0 {
+			dramaVideoAssetQuotaBytes = 0
+		}
 	}
 	registrationEmailDomainQuotaEnabled := previousSettings.RegistrationEmailDomainQuotaEnabled
 	if req.RegistrationEmailDomainQuotaEnabled != nil {
@@ -1512,6 +1536,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SessionBindingEnabled:               sessionBindingEnabled,
 		StepUpEnabled:                       stepUpEnabled,
 		AuditLogRetentionDays:               req.AuditLogRetentionDays,
+		DramaVideoOutputRetentionDays:      dramaVideoOutputRetentionDays,
+		DramaVideoAssetRetentionDays:       dramaVideoAssetRetentionDays,
+		DramaVideoAssetQuotaBytesPerUser:  dramaVideoAssetQuotaBytes,
 		LoginAgreementEnabled:               req.LoginAgreementEnabled,
 		LoginAgreementMode:                  loginAgreementMode,
 		LoginAgreementUpdatedAt:             loginAgreementUpdatedAt,
@@ -2145,6 +2172,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SessionBindingEnabled:                                  updatedSettings.SessionBindingEnabled,
 		StepUpEnabled:                                          updatedSettings.StepUpEnabled,
 		AuditLogRetentionDays:                                  updatedSettings.AuditLogRetentionDays,
+		DramaVideoOutputRetentionDays:                        updatedSettings.DramaVideoOutputRetentionDays,
+		DramaVideoAssetRetentionDays:                         updatedSettings.DramaVideoAssetRetentionDays,
+		DramaVideoAssetQuotaBytesPerUser:                   updatedSettings.DramaVideoAssetQuotaBytesPerUser,
 		LoginAgreementEnabled:                                  updatedSettings.LoginAgreementEnabled,
 		LoginAgreementMode:                                     updatedSettings.LoginAgreementMode,
 		LoginAgreementUpdatedAt:                                updatedSettings.LoginAgreementUpdatedAt,
