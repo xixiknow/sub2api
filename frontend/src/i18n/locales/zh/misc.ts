@@ -1,4 +1,19 @@
 export default {
+  rechargeCard: {
+    "title": "充值卡网",
+    "settingsHint": "在用户菜单显示充值卡网入口，供用户购买充值卡。",
+    "urlLabel": "卡网地址",
+    "modeLabel": "默认打开方式",
+    "embedded": "内置打开",
+    "newWindow": "新窗口打开",
+    "embedHint": "内置打开需卡网站点支持嵌入；如页面显示异常或支付受限，请使用新窗口打开。",
+    "invalidUrl": "请输入完整的 http:// 或 https:// 卡网地址。",
+    "unavailable": "充值卡网暂未开放",
+    "description": "购买充值卡后，回到兑换页面使用卡密充值。",
+    "redeem": "兑换充值卡",
+    "loading": "正在加载卡网…",
+    "loadError": "页面加载异常，请尝试新窗口打开。"
+},
 
   // Subscription Progress (Header component)
   subscriptionProgress: {

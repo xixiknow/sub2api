@@ -160,6 +160,9 @@ type SystemSettings struct {
 	HomeContent                 string
 	CompactHomeEnabled          bool
 	HideCcsImportButton         bool
+	RechargeCardEnabled         bool
+	RechargeCardURL             string
+	RechargeCardOpenMode        string
 	PurchaseSubscriptionEnabled bool
 	PurchaseSubscriptionURL     string
 	TableDefaultPageSize        int
@@ -354,8 +357,8 @@ type PublicSettings struct {
 	AliyunCaptchaRegion                 string
 	SiteName                            string
 	SiteLogo                            string
-	CommunityLinkURL                 string
-	CommunityImageURL                string
+	CommunityLinkURL                    string
+	CommunityImageURL                   string
 	SiteSubtitle                        string
 	APIBaseURL                          string
 	ContactInfo                         string
@@ -363,6 +366,9 @@ type PublicSettings struct {
 	HomeContent                         string
 	CompactHomeEnabled                  bool
 	HideCcsImportButton                 bool
+	RechargeCardEnabled                 bool
+	RechargeCardURL                     string
+	RechargeCardOpenMode                string
 
 	PurchaseSubscriptionEnabled bool
 	PurchaseSubscriptionURL     string

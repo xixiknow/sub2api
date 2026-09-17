@@ -347,6 +347,15 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.CompactHomeEnabled != after.CompactHomeEnabled {
 		changed = append(changed, "compact_home_enabled")
 	}
+	if before.RechargeCardEnabled != after.RechargeCardEnabled {
+		changed = append(changed, "recharge_card_enabled")
+	}
+	if before.RechargeCardURL != after.RechargeCardURL {
+		changed = append(changed, "recharge_card_url")
+	}
+	if before.RechargeCardOpenMode != after.RechargeCardOpenMode {
+		changed = append(changed, "recharge_card_open_mode")
+	}
 	if before.HideCcsImportButton != after.HideCcsImportButton {
 		changed = append(changed, "hide_ccs_import_button")
 	}

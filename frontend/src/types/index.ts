@@ -311,6 +311,9 @@ export interface PublicSettings {
   home_content: string
   compact_home_enabled: boolean
   hide_ccs_import_button: boolean
+  recharge_card_enabled?: boolean;
+  recharge_card_url?: string;
+  recharge_card_open_mode?: 'iframe' | 'new_tab';
   payment_enabled: boolean
   risk_control_enabled: boolean
   table_default_page_size: number

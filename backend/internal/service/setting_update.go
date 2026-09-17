@@ -345,6 +345,14 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyHomeContent] = settings.HomeContent
 	updates[SettingKeyCompactHomeEnabled] = strconv.FormatBool(settings.CompactHomeEnabled)
 	updates[SettingKeyHideCcsImportButton] = strconv.FormatBool(settings.HideCcsImportButton)
+	settings.RechargeCardURL = strings.TrimSpace(settings.RechargeCardURL)
+	settings.RechargeCardOpenMode = normalizeRechargeCardOpenMode(settings.RechargeCardOpenMode)
+	if err := ValidateRechargeCardSettings(settings.RechargeCardEnabled, settings.RechargeCardURL, settings.RechargeCardOpenMode); err != nil {
+		return nil, err
+	}
+	updates[SettingKeyRechargeCardEnabled] = strconv.FormatBool(settings.RechargeCardEnabled)
+	updates[SettingKeyRechargeCardURL] = settings.RechargeCardURL
+	updates[SettingKeyRechargeCardOpenMode] = settings.RechargeCardOpenMode
 	updates[SettingKeyPurchaseSubscriptionEnabled] = strconv.FormatBool(settings.PurchaseSubscriptionEnabled)
 	updates[SettingKeyPurchaseSubscriptionURL] = strings.TrimSpace(settings.PurchaseSubscriptionURL)
 	tableDefaultPageSize, tablePageSizeOptions := normalizeTablePreferences(

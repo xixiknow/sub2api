@@ -164,6 +164,9 @@ type UpdateSettingsRequest struct {
 	HomeContent                 string                `json:"home_content"`
 	CompactHomeEnabled          bool                  `json:"compact_home_enabled"`
 	HideCcsImportButton         bool                  `json:"hide_ccs_import_button"`
+	RechargeCardEnabled         *bool                 `json:"recharge_card_enabled"`
+	RechargeCardURL             *string               `json:"recharge_card_url"`
+	RechargeCardOpenMode        *string               `json:"recharge_card_open_mode"`
 	PurchaseSubscriptionEnabled *bool                 `json:"purchase_subscription_enabled"`
 	PurchaseSubscriptionURL     *string               `json:"purchase_subscription_url"`
 	TableDefaultPageSize        int                   `json:"table_default_page_size"`
@@ -1266,6 +1269,23 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		}
 	}
 
+	rechargeCardEnabled := previousSettings.RechargeCardEnabled
+	if req.RechargeCardEnabled != nil {
+		rechargeCardEnabled = *req.RechargeCardEnabled
+	}
+	rechargeCardURL := previousSettings.RechargeCardURL
+	if req.RechargeCardURL != nil {
+		rechargeCardURL = strings.TrimSpace(*req.RechargeCardURL)
+	}
+	rechargeCardOpenMode := previousSettings.RechargeCardOpenMode
+	if req.RechargeCardOpenMode != nil {
+		rechargeCardOpenMode = *req.RechargeCardOpenMode
+	}
+	if err := service.ValidateRechargeCardSettings(rechargeCardEnabled, rechargeCardURL, rechargeCardOpenMode); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
 	// Frontend URL 验证
 	req.FrontendURL = strings.TrimSpace(req.FrontendURL)
 	if req.FrontendURL != "" {
@@ -1645,6 +1665,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		HomeContent:                            req.HomeContent,
 		CompactHomeEnabled:                     req.CompactHomeEnabled,
 		HideCcsImportButton:                    req.HideCcsImportButton,
+		RechargeCardEnabled:                    rechargeCardEnabled,
+		RechargeCardURL:                        rechargeCardURL,
+		RechargeCardOpenMode:                   rechargeCardOpenMode,
 		PurchaseSubscriptionEnabled:            purchaseEnabled,
 		PurchaseSubscriptionURL:                purchaseURL,
 		TableDefaultPageSize:                   req.TableDefaultPageSize,
@@ -2296,6 +2319,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		HomeContent:                                            updatedSettings.HomeContent,
 		CompactHomeEnabled:                                     updatedSettings.CompactHomeEnabled,
 		HideCcsImportButton:                                    updatedSettings.HideCcsImportButton,
+		RechargeCardEnabled:                                    updatedSettings.RechargeCardEnabled,
+		RechargeCardURL:                                        updatedSettings.RechargeCardURL,
+		RechargeCardOpenMode:                                   updatedSettings.RechargeCardOpenMode,
 		PurchaseSubscriptionEnabled:                            updatedSettings.PurchaseSubscriptionEnabled,
 		PurchaseSubscriptionURL:                                updatedSettings.PurchaseSubscriptionURL,
 		TableDefaultPageSize:                                   updatedSettings.TableDefaultPageSize,

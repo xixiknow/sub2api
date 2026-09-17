@@ -6661,6 +6661,29 @@
             </div>
           </div>
 
+          <!-- Recharge card shop -->
+          <div class="card p-6 space-y-5">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('rechargeCard.title') }}</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ t('rechargeCard.settingsHint') }}</p>
+              </div>
+              <Toggle v-model="form.recharge_card_enabled" />
+            </div>
+            <div>
+              <label for="recharge-card-url" class="input-label">{{ t('rechargeCard.urlLabel') }}</label>
+              <input id="recharge-card-url" v-model="form.recharge_card_url" type="url" class="input" placeholder="https://shop.xiaome.me" />
+            </div>
+            <div>
+              <label for="recharge-card-mode" class="input-label">{{ t('rechargeCard.modeLabel') }}</label>
+              <select id="recharge-card-mode" v-model="form.recharge_card_open_mode" class="input">
+                <option value="iframe">{{ t('rechargeCard.embedded') }}</option>
+                <option value="new_tab">{{ t('rechargeCard.newWindow') }}</option>
+              </select>
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ t('rechargeCard.embedHint') }}</p>
+            </div>
+          </div>
+
           <!-- Custom Menu Items -->
           <div class="card">
             <div
@@ -9742,6 +9765,7 @@ type SettingsForm = Omit<
   | "wechat_connect_mobile_enabled"
   | "payment_recharge_bonus_rules"
 > & {
+  recharge_card_enabled: boolean;
   /** Form always binds a concrete boolean (SystemSettings marks this optional). */
   channel_monitor_hide_throughput: boolean;
   channel_monitor_show_quota: boolean;
@@ -9837,6 +9861,9 @@ const form = reactive<SettingsForm>({
   compact_home_enabled: false,
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
+  recharge_card_enabled: false,
+  recharge_card_url: "",
+  recharge_card_open_mode: "iframe",
   payment_enabled: false,
   risk_control_enabled: false,
   cyber_session_block_enabled: false,
@@ -11498,6 +11525,11 @@ async function saveSettings() {
         return false;
       }
     };
+    form.recharge_card_url = (form.recharge_card_url || "").trim();
+    if ((form.recharge_card_enabled && !form.recharge_card_url) || !isValidHttpUrl(form.recharge_card_url)) {
+      appStore.showError(t('rechargeCard.invalidUrl'));
+      return;
+    }
     // Optional URL fields: auto-clear invalid values so they don't cause backend 400 errors
     if (!isValidHttpUrl(form.frontend_url)) form.frontend_url = "";
     if (!isValidHttpUrl(form.doc_url)) form.doc_url = "";
@@ -11570,6 +11602,9 @@ async function saveSettings() {
       compact_home_enabled: form.compact_home_enabled,
       backend_mode_enabled: form.backend_mode_enabled,
       hide_ccs_import_button: form.hide_ccs_import_button,
+      recharge_card_enabled: form.recharge_card_enabled,
+      recharge_card_url: form.recharge_card_url,
+      recharge_card_open_mode: form.recharge_card_open_mode,
       table_default_page_size: form.table_default_page_size,
       table_page_size_options: form.table_page_size_options,
       custom_menu_items: form.custom_menu_items,

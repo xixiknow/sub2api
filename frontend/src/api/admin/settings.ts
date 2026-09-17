@@ -514,6 +514,9 @@ export interface SystemSettings {
   home_content: string;
   compact_home_enabled: boolean;
   hide_ccs_import_button: boolean;
+  recharge_card_enabled?: boolean;
+  recharge_card_url?: string;
+  recharge_card_open_mode?: 'iframe' | 'new_tab';
   table_default_page_size: number;
   table_page_size_options: number[];
   backend_mode_enabled: boolean;
@@ -863,6 +866,9 @@ export interface UpdateSettingsRequest {
   home_content?: string;
   compact_home_enabled?: boolean;
   hide_ccs_import_button?: boolean;
+  recharge_card_enabled?: boolean;
+  recharge_card_url?: string;
+  recharge_card_open_mode?: 'iframe' | 'new_tab';
   table_default_page_size?: number;
   table_page_size_options?: number[];
   backend_mode_enabled?: boolean;

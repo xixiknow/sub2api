@@ -27,6 +27,7 @@ This directory contains the Vue Router configuration for the Sub2API frontend ap
 | `/keys`      | KeysView      | API key management           |
 | `/usage`     | UsageView     | Usage records and statistics |
 | `/redeem`    | RedeemView    | Redeem code interface        |
+| `/recharge-card` | RechargeCardView | Configurable recharge card shop (embedded or external link) |
 | `/profile`   | ProfileView   | User profile settings        |
 
 ### Admin Routes (Admin Role Required)

@@ -191,6 +191,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyHomeContent,
 		SettingKeyCompactHomeEnabled,
 		SettingKeyHideCcsImportButton,
+		SettingKeyRechargeCardEnabled,
+		SettingKeyRechargeCardURL,
+		SettingKeyRechargeCardOpenMode,
 		SettingKeyPurchaseSubscriptionEnabled,
 		SettingKeyPurchaseSubscriptionURL,
 		SettingKeyTableDefaultPageSize,
@@ -328,8 +331,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		AliyunCaptchaRegion:                 normalizeAliyunCaptchaRegion(settings[SettingKeyAliyunCaptchaRegion]),
 		SiteName:                            s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                            settings[SettingKeySiteLogo],
-		CommunityLinkURL:                 strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
-		CommunityImageURL:                strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
+		CommunityLinkURL:                    strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
+		CommunityImageURL:                   strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
 		SiteSubtitle:                        s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                          settings[SettingKeyAPIBaseURL],
 		ContactInfo:                         settings[SettingKeyContactInfo],
@@ -337,6 +340,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		HomeContent:                         settings[SettingKeyHomeContent],
 		CompactHomeEnabled:                  settings[SettingKeyCompactHomeEnabled] == "true",
 		HideCcsImportButton:                 settings[SettingKeyHideCcsImportButton] == "true",
+		RechargeCardEnabled:                 settings[SettingKeyRechargeCardEnabled] == "true",
+		RechargeCardURL:                     settings[SettingKeyRechargeCardURL],
+		RechargeCardOpenMode:                normalizeRechargeCardOpenMode(settings[SettingKeyRechargeCardOpenMode]),
 		PurchaseSubscriptionEnabled:         settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
 		PurchaseSubscriptionURL:             strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
 		TableDefaultPageSize:                tableDefaultPageSize,
@@ -589,8 +595,8 @@ type PublicSettingsInjectionPayload struct {
 	AliyunCaptchaRegion                 string                   `json:"aliyun_captcha_region"`
 	SiteName                            string                   `json:"site_name"`
 	SiteLogo                            string                   `json:"site_logo"`
-	CommunityLinkURL                 string                   `json:"community_link_url"`
-	CommunityImageURL                string                   `json:"community_image_url"`
+	CommunityLinkURL                    string                   `json:"community_link_url"`
+	CommunityImageURL                   string                   `json:"community_image_url"`
 	SiteSubtitle                        string                   `json:"site_subtitle"`
 	APIBaseURL                          string                   `json:"api_base_url"`
 	ContactInfo                         string                   `json:"contact_info"`
@@ -598,6 +604,9 @@ type PublicSettingsInjectionPayload struct {
 	HomeContent                         string                   `json:"home_content"`
 	CompactHomeEnabled                  bool                     `json:"compact_home_enabled"`
 	HideCcsImportButton                 bool                     `json:"hide_ccs_import_button"`
+	RechargeCardEnabled                 bool                     `json:"recharge_card_enabled"`
+	RechargeCardURL                     string                   `json:"recharge_card_url"`
+	RechargeCardOpenMode                string                   `json:"recharge_card_open_mode"`
 	PurchaseSubscriptionEnabled         bool                     `json:"purchase_subscription_enabled"`
 	PurchaseSubscriptionURL             string                   `json:"purchase_subscription_url"`
 	TableDefaultPageSize                int                      `json:"table_default_page_size"`
@@ -685,8 +694,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		AliyunCaptchaRegion:                 settings.AliyunCaptchaRegion,
 		SiteName:                            settings.SiteName,
 		SiteLogo:                            settings.SiteLogo,
-		CommunityLinkURL:                 settings.CommunityLinkURL,
-		CommunityImageURL:                settings.CommunityImageURL,
+		CommunityLinkURL:                    settings.CommunityLinkURL,
+		CommunityImageURL:                   settings.CommunityImageURL,
 		SiteSubtitle:                        settings.SiteSubtitle,
 		APIBaseURL:                          settings.APIBaseURL,
 		ContactInfo:                         settings.ContactInfo,
@@ -694,6 +703,9 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		HomeContent:                         settings.HomeContent,
 		CompactHomeEnabled:                  settings.CompactHomeEnabled,
 		HideCcsImportButton:                 settings.HideCcsImportButton,
+		RechargeCardEnabled:                 settings.RechargeCardEnabled,
+		RechargeCardURL:                     settings.RechargeCardURL,
+		RechargeCardOpenMode:                settings.RechargeCardOpenMode,
 		PurchaseSubscriptionEnabled:         settings.PurchaseSubscriptionEnabled,
 		PurchaseSubscriptionURL:             settings.PurchaseSubscriptionURL,
 		TableDefaultPageSize:                settings.TableDefaultPageSize,
@@ -808,6 +820,10 @@ func (s *SettingService) GetFrameSrcOrigins(ctx context.Context) ([]string, erro
 
 	// home content URL (when home_content is set to a URL for iframe embedding)
 	addOrigin(settings.HomeContent)
+
+	if settings.RechargeCardEnabled && settings.RechargeCardOpenMode == "iframe" {
+		addOrigin(settings.RechargeCardURL)
+	}
 
 	// purchase subscription URL
 	if settings.PurchaseSubscriptionEnabled {

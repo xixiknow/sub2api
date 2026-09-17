@@ -1,4 +1,19 @@
 export default {
+  rechargeCard: {
+    "title": "Recharge Card Shop",
+    "settingsHint": "Show a card shop in the user menu for purchasing recharge cards.",
+    "urlLabel": "Shop URL",
+    "modeLabel": "Default opening mode",
+    "embedded": "Open embedded",
+    "newWindow": "Open in new window",
+    "embedHint": "Embedding requires support from the shop. If the page or payment has issues, open it in a new window.",
+    "invalidUrl": "Enter a complete http:// or https:// shop URL.",
+    "unavailable": "The recharge card shop is not available",
+    "description": "After purchasing a card, return to the redeem page to add credit.",
+    "redeem": "Redeem a card",
+    "loading": "Loading shop…",
+    "loadError": "The page did not load. Try opening it in a new window."
+},
 
   // Subscription Progress (Header component)
   subscriptionProgress: {

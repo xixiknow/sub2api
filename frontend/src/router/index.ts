@@ -302,6 +302,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/recharge-card',
+    name: 'RechargeCard',
+    component: () => import('@/views/user/RechargeCardView.vue'),
+    meta: { requiresAuth: true, title: 'Recharge Card Shop', titleKey: 'rechargeCard.title' }
+  },
+  {
     path: '/purchase',
     name: 'PurchaseSubscription',
     component: () => import('@/views/user/PaymentView.vue'),
