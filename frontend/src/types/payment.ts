@@ -25,24 +25,10 @@ export type OrderType = 'balance' | 'subscription'
 
 // ==================== Configuration ====================
 
-export interface PaymentRechargeBonusRule {
-  id?: string
-  name?: string
+/** 充值赠送档位：支付金额 ≥ min_amount 时在到账基数上赠送 bonus_percent% */
+export interface RechargeBonusTier {
   min_amount: number
-  bonus_amount?: number
-  bonus_percent?: number
-  disabled?: boolean
-}
-
-export interface PaymentRechargeBonusSnapshot {
-  rule_id?: string
-  rule_name?: string
-  min_amount: number
-  bonus_amount: number
-  bonus_percent?: number
-  payment_amount: number
-  base_amount: number
-  credited_amount: number
+  bonus_percent: number
 }
 
 export interface PaymentConfig {
@@ -54,7 +40,6 @@ export interface PaymentConfig {
   order_timeout_minutes: number
   balance_disabled: boolean
   balance_recharge_multiplier: number
-  recharge_bonus_rules?: PaymentRechargeBonusRule[]
   subscription_usd_to_cny_rate: number
   enabled_payment_types: PaymentType[]
   help_image_url: string
@@ -92,7 +77,12 @@ export interface CheckoutInfoResponse {
   /** Subscription CNY conversion rate (1 USD = X CNY); 0 = disabled, plan price is charged as-is */
   subscription_usd_to_cny_rate: number
   recharge_fee_rate: number
-  recharge_bonus_rules: PaymentRechargeBonusRule[]
+  /** 充值赠送阶梯（按 min_amount 升序）；缺失/空数组 = 不赠送 */
+  recharge_bonus_tiers?: RechargeBonusTier[]
+  /** 阶梯模式：bonus 赠金 / discount 折扣；缺失按 bonus */
+  recharge_bonus_mode?: string
+  /** 充值页金额区顶部的 Markdown 活动文案；空 = 不展示 */
+  recharge_bonus_notice?: string
   help_text: string
   help_image_url: string
   stripe_publishable_key: string
@@ -111,6 +101,8 @@ export interface PaymentOrder {
   pay_amount: number
   currency?: string
   fee_rate: number
+  /** 充值赠送额度（USD），已计入 amount */
+  bonus_amount?: number
   payment_type: string
   out_trade_no: string
   status: OrderStatus
@@ -233,7 +225,6 @@ export interface CreateOrderResult {
   pay_amount: number
   fee_rate: number
   bonus_amount?: number
-  bonus?: PaymentRechargeBonusSnapshot
   expires_at: string
   result_type?: CreateOrderResultType
   payment_type?: string

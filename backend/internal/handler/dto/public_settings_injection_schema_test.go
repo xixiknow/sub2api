@@ -31,6 +31,8 @@ func TestPublicSettingsInjectionPayload_SchemaDoesNotDrift(t *testing.T) {
 	dtoOnlyFields := map[string]string{
 		// force_email_on_third_party_signup lives on the DTO but is not injected via SSR.
 		"force_email_on_third_party_signup": "auth-source default, not a feature flag",
+		// sora_client_enabled lives on the DTO but is not injected via SSR.
+		"sora_client_enabled": "sora client flag, not part of SSR injection",
 	}
 
 	var missing []string

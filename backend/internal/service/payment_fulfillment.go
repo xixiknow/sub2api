@@ -742,42 +742,10 @@ func affiliateRebateBaseAmount(o *dbent.PaymentOrder) float64 {
 	}
 	switch o.OrderType {
 	case payment.OrderTypeBalance:
-		// 余额充值：若命中充值赠送规则，返利基数按赠送快照的原始支付金额计算，
-		// 避免把赠送额也计入返利。无快照时回退到订单金额。
-		if bonus, ok := o.ProviderSnapshot["recharge_bonus"].(map[string]any); ok {
-			if baseAmount := psSnapshotFloatValue(bonus["base_amount"]); baseAmount > 0 {
-				return baseAmount
-			}
-			if paymentAmount := psSnapshotFloatValue(bonus["payment_amount"]); paymentAmount > 0 {
-				return paymentAmount
-			}
-		}
-		return o.Amount
+		// 返利只按实充部分计算，赠送额度不参与
+		return paymentOrderAmountWithoutBonus(o)
 	case payment.OrderTypeSubscription:
 		return o.Amount
-	default:
-		return 0
-	}
-}
-
-func psSnapshotFloatValue(value any) float64 {
-	switch typed := value.(type) {
-	case float64:
-		return typed
-	case float32:
-		return float64(typed)
-	case int:
-		return float64(typed)
-	case int64:
-		return float64(typed)
-	case int32:
-		return float64(typed)
-	case json.Number:
-		v, _ := typed.Float64()
-		return v
-	case string:
-		v, _ := strconv.ParseFloat(strings.TrimSpace(typed), 64)
-		return v
 	default:
 		return 0
 	}

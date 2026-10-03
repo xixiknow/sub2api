@@ -4055,7 +4055,7 @@
                       </tr>
                     </thead>
                     <tbody class="space-y-2">
-                      <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity', 'grok'] as const)" :key="p" class="align-top">
+                      <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity', 'grok', 'typesafe'] as const)" :key="p" class="align-top">
                         <td class="pr-4 py-1">
                           <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ p }}</span>
                         </td>
@@ -4390,7 +4390,7 @@
                             </tr>
                           </thead>
                           <tbody>
-                            <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity', 'grok'] as const)" :key="`${authSource.source}-pq-${p}`" class="align-top">
+                            <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity', 'grok', 'typesafe'] as const)" :key="`${authSource.source}-pq-${p}`" class="align-top">
                               <td class="pr-4 py-1">
                                 <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ p }}</span>
                               </td>
@@ -4910,6 +4910,90 @@
             </div>
           </div>
 
+          <!-- OpenCode Go Usage Settings -->
+          <div class="card" data-testid="opencode-go-usage-global-settings">
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.opencodeGoUsage.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.opencodeGoUsage.description") }}
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div v-if="opencodeGoUsageLoading" class="flex items-center gap-2 text-gray-500">
+                <div class="h-4 w-4 animate-spin rounded-full border-b-2 border-primary-600"></div>
+                {{ t("common.loading") }}
+              </div>
+              <template v-else>
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <label class="font-medium text-gray-900 dark:text-white">
+                      {{ t("admin.settings.opencodeGoUsage.enabled") }}
+                    </label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.opencodeGoUsage.enabledHint") }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="opencodeGoUsageForm.enabled"
+                    :aria-label="t('admin.settings.opencodeGoUsage.enabled')"
+                    data-testid="opencode-go-usage-global-enabled"
+                  />
+                </div>
+                <div v-if="opencodeGoUsageForm.enabled" class="space-y-4 border-t border-gray-100 pt-4 dark:border-dark-700">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300" for="opencode-go-usage-debounce">
+                      {{ t("admin.settings.opencodeGoUsage.debounceMinutes") }}
+                    </label>
+                    <input
+                      id="opencode-go-usage-debounce"
+                      v-model.number="opencodeGoUsageForm.debounce_minutes"
+                      type="number"
+                      min="1"
+                      max="60"
+                      class="input w-32"
+                      data-testid="opencode-go-usage-global-debounce"
+                      @keydown.enter.prevent="saveOpenCodeGoUsageSettings"
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.opencodeGoUsage.debounceHint") }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300" for="opencode-go-usage-interval">
+                      {{ t("admin.settings.opencodeGoUsage.intervalMinutes") }}
+                    </label>
+                    <input
+                      id="opencode-go-usage-interval"
+                      v-model.number="opencodeGoUsageForm.interval_minutes"
+                      type="number"
+                      min="5"
+                      max="1440"
+                      class="input w-32"
+                      data-testid="opencode-go-usage-global-interval"
+                      @keydown.enter.prevent="saveOpenCodeGoUsageSettings"
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.opencodeGoUsage.intervalHint") }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex justify-end border-t border-gray-100 pt-4 dark:border-dark-700">
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    :disabled="opencodeGoUsageSaving"
+                    data-testid="opencode-go-usage-global-save"
+                    @click="saveOpenCodeGoUsageSettings"
+                  >
+                    {{ opencodeGoUsageSaving ? t("common.saving") : t("common.save") }}
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- Gateway Scheduling Settings -->
           <div class="card">
             <div
@@ -5053,7 +5137,6 @@
                     class="input pr-8"
                     data-testid="openai-oauth-scheduling-rate-multiplier"
                     min="0"
-                    required
                     step="0.01"
                     type="number"
                   />
@@ -5142,7 +5225,6 @@
                     class="input pr-8"
                     data-testid="openai-oauth-scheduling-rate-multiplier"
                     min="0"
-                    required
                     step="0.01"
                     type="number"
                   />
@@ -5775,6 +5857,61 @@
                   </p>
                 </div>
                 <Toggle v-model="form.openai_codex_version_auto_sync_enabled" />
+              </div>
+
+              <!-- Claude Code 客户端版本号 -->
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {{
+                    t(
+                      "admin.settings.gatewayForwarding.claudeCodeClientVersion",
+                    )
+                  }}
+                </label>
+                <input
+                  v-model="form.claude_code_client_version"
+                  type="text"
+                  class="input w-full font-mono text-sm"
+                  placeholder="2.1.280"
+                />
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{
+                    t(
+                      "admin.settings.gatewayForwarding.claudeCodeClientVersionHint",
+                    )
+                  }}
+                </p>
+              </div>
+
+              <!-- Claude Code 版本号自动同步 -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.claudeCodeVersionAutoSync",
+                      )
+                    }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.claudeCodeVersionAutoSyncHint",
+                      )
+                    }}
+                  </p>
+                  <p
+                    v-if="claudeSyncedVersionLabel"
+                    class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    {{ claudeSyncedVersionLabel }}
+                  </p>
+                </div>
+                <Toggle v-model="form.claude_code_version_auto_sync_enabled" />
               </div>
 
             </div>
@@ -7392,6 +7529,18 @@
               <Toggle v-model="form.risk_control_enabled" />
             </div>
 
+            <div>
+              <label class="input-label">
+                {{ t('admin.settings.features.riskControl.riskControlUserAllowlist') }}
+              </label>
+              <OpenAIFastPolicyUserSelector
+                v-model="riskControlAllowlistedUserIds"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.settings.features.riskControl.riskControlUserAllowlistHint') }}
+              </p>
+            </div>
+
             <div class="flex items-center justify-between">
               <div>
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -8157,112 +8306,6 @@
                     </p>
                   </div>
                 </div>
-                <div
-                  class="rounded-xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900/50 dark:bg-amber-900/[0.14]"
-                >
-                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                        {{ localText("活动充值赠礼", "Recharge bonus campaigns") }}
-                      </h3>
-                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {{
-                          localText(
-                            "按充值金额自动匹配最高门槛档位，例如充 20 送 1、充 50 送 5、充 100 送 11。",
-                            "Automatically match the highest tier, for example pay 20 get 1, pay 50 get 5, pay 100 get 11.",
-                          )
-                        }}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm shrink-0"
-                      @click="addRechargeBonusRule"
-                    >
-                      <Icon name="plus" size="sm" />
-                      <span>{{ localText("添加档位", "Add tier") }}</span>
-                    </button>
-                  </div>
-                  <div
-                    v-if="form.payment_recharge_bonus_rules.length === 0"
-                    class="mt-4 rounded-lg border border-dashed border-amber-300 bg-white/70 px-3 py-4 text-center text-sm text-gray-500 dark:border-amber-900 dark:bg-dark-900/50 dark:text-gray-400"
-                  >
-                    {{ localText("暂无充值赠礼档位。", "No recharge bonus tiers configured.") }}
-                  </div>
-                  <div v-else class="mt-4 space-y-3">
-                    <div
-                      v-for="(rule, index) in form.payment_recharge_bonus_rules"
-                      :key="rule.id || index"
-                      class="rounded-lg border border-white/80 bg-white p-3 dark:border-dark-700 dark:bg-dark-900"
-                    >
-                      <div class="grid gap-3 md:grid-cols-[1.1fr_0.9fr_0.9fr_0.9fr_auto] md:items-end">
-                        <div>
-                          <label class="input-label">{{ localText("档位名称", "Tier name") }}</label>
-                          <input
-                            v-model="rule.name"
-                            type="text"
-                            class="input"
-                            :placeholder="localText('如：充 50 送 5', 'e.g. Pay 50 get 5')"
-                          />
-                        </div>
-                        <div>
-                          <label class="input-label">{{ localText("最低充值", "Minimum") }}</label>
-                          <input
-                            v-model.number="rule.min_amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            class="input"
-                          />
-                        </div>
-                        <div>
-                          <label class="input-label">{{ localText("固定赠送", "Fixed bonus") }}</label>
-                          <input
-                            v-model.number="rule.bonus_amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            class="input"
-                          />
-                        </div>
-                        <div>
-                          <label class="input-label">{{ localText("比例赠送", "Percent bonus") }}</label>
-                          <div class="relative">
-                            <input
-                              v-model.number="rule.bonus_percent"
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              class="input pr-8"
-                            />
-                            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">%</span>
-                          </div>
-                        </div>
-                        <div class="flex items-center gap-2 md:justify-end">
-                          <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
-                            <input
-                              v-model="rule.disabled"
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                            />
-                            {{ localText("停用", "Disabled") }}
-                          </label>
-                          <button
-                            type="button"
-                            class="btn btn-secondary btn-sm text-red-600 hover:text-red-700 dark:text-red-400"
-                            @click="removeRechargeBonusRule(index)"
-                          >
-                            <Icon name="trash" size="sm" />
-                          </button>
-                        </div>
-                      </div>
-                      <p class="mt-2 text-xs text-amber-700 dark:text-amber-200">
-                        {{ rechargeBonusRulePreview(rule) }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
                 <!-- Row 3: Pending orders + load balance + cancel rate limit (all in one row) -->
                 <div class="flex flex-wrap items-end gap-4">
                   <div class="w-28">
@@ -8519,6 +8562,14 @@
               </template>
             </div>
           </div>
+
+          <!-- 充值优惠阶梯（独立卡片，与服务商管理同级） -->
+          <RechargeBonusTierEditor
+            v-if="form.payment_enabled"
+            v-model="form.payment_recharge_bonus_tiers"
+            v-model:mode="form.payment_recharge_bonus_mode"
+            v-model:notice="form.payment_recharge_bonus_notice"
+          />
 
           <!-- Provider Management -->
           <PaymentProviderList
@@ -9061,7 +9112,6 @@ import type {
   SystemSettings,
   UpdateSettingsRequest,
   DefaultSubscriptionSetting,
-  PaymentRechargeBonusRule,
   DefaultPlatformQuotasMap,
   OpenAIFastPolicyRule,
   WeChatConnectMode,
@@ -9096,6 +9146,14 @@ import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";
 import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
+import RechargeBonusTierEditor from "@/components/admin/settings/RechargeBonusTierEditor.vue";
+import {
+  normalizeRechargeBonusMode,
+  normalizeRechargeBonusTiers,
+  sanitizeRechargeBonusTiersForSubmit,
+  type RechargeBonusMode,
+  type RechargeBonusTierDraft,
+} from "@/utils/rechargeBonus";
 import OpenAIFastPolicyUserSelector from "@/views/admin/settings/OpenAIFastPolicyUserSelector.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import {
@@ -9254,6 +9312,14 @@ const ollamaCloudUsageSaving = ref(false);
 const ollamaCloudUsageForm = reactive({
   enabled: false,
   interval_minutes: 60,
+  debounce_minutes: 1,
+});
+
+const opencodeGoUsageLoading = ref(true);
+const opencodeGoUsageSaving = ref(false);
+const opencodeGoUsageForm = reactive({
+  enabled: false,
+  interval_minutes: 15,
   debounce_minutes: 1,
 });
 
@@ -9763,7 +9829,7 @@ type SettingsForm = Omit<
   | "wechat_connect_open_enabled"
   | "wechat_connect_mp_enabled"
   | "wechat_connect_mobile_enabled"
-  | "payment_recharge_bonus_rules"
+  | "openai_oauth_scheduling_rate_multiplier"
 > & {
   recharge_card_enabled: boolean;
   /** Form always binds a concrete boolean (SystemSettings marks this optional). */
@@ -9790,10 +9856,9 @@ type SettingsForm = Omit<
   google_oauth_client_secret: string;
   force_email_on_third_party_signup: boolean;
   openai_low_upstream_rate_priority_enabled: boolean;
-  openai_oauth_scheduling_rate_multiplier: number;
+  openai_oauth_scheduling_rate_multiplier: number | "" | null;
   openai_advanced_scheduler_enabled: boolean;
   affiliate_level_rates: number[];
-  payment_recharge_bonus_rules: PaymentRechargeBonusRule[];
   openai_advanced_scheduler_sticky_weighted_enabled: boolean;
   openai_advanced_scheduler_subscription_priority_enabled: boolean;
   openai_advanced_scheduler_lb_top_k: string;
@@ -9807,6 +9872,10 @@ type SettingsForm = Omit<
   openai_advanced_scheduler_weight_upstream_cost: string;
   openai_advanced_scheduler_weight_previous_response: string;
   openai_advanced_scheduler_weight_session_sticky: string;
+  // 充值赠送阶梯编辑态：允许留空的行，提交时清洗为 RechargeBonusTier[]
+  payment_recharge_bonus_tiers: RechargeBonusTierDraft[];
+  payment_recharge_bonus_mode: RechargeBonusMode;
+  payment_recharge_bonus_notice: string;
   // 系统全局平台限额 map；form 内始终归一化为全 4 平台对象（模板非空绑定依赖此不变量）
   default_platform_quotas: DefaultPlatformQuotasMap;
   account_scheduling_thresholds: ReturnType<typeof normalizeAccountSchedulingThresholdsMap>;
@@ -9866,6 +9935,7 @@ const form = reactive<SettingsForm>({
   recharge_card_open_mode: "iframe",
   payment_enabled: false,
   risk_control_enabled: false,
+  cyber_policy_user_allowlist: "",
   cyber_session_block_enabled: false,
   cyber_session_block_ttl_seconds: 3600,
   payment_min_amount: 1,
@@ -9877,7 +9947,9 @@ const form = reactive<SettingsForm>({
   payment_balance_recharge_multiplier: 1,
   payment_subscription_usd_to_cny_rate: 0,
   payment_recharge_fee_rate: 0,
-  payment_recharge_bonus_rules: [],
+  payment_recharge_bonus_tiers: [],
+  payment_recharge_bonus_mode: "bonus",
+  payment_recharge_bonus_notice: "",
   payment_enabled_types: [],
   payment_help_image_url: "",
   payment_help_text: "",
@@ -10075,6 +10147,10 @@ const form = reactive<SettingsForm>({
   // 只读展示：自动同步任务写入的官方最新稳定版，不参与提交（提交载荷按字段显式构造）
   openai_codex_client_version_synced: "",
   openai_codex_version_auto_sync_enabled: true,
+  claude_code_client_version: "",
+  // 只读展示：自动同步任务写入的官方最新稳定版，不参与提交（提交载荷按字段显式构造）
+  claude_code_client_version_synced: "",
+  claude_code_version_auto_sync_enabled: true,
   // codex_cli_only 加固
   min_codex_version: "",
   max_codex_version: "",
@@ -10123,6 +10199,19 @@ function applyCaptchaSelection(provider: CaptchaProviderSelection | null): void 
   form.tencent_captcha_enabled = provider === "tencent";
   form.aliyun_captcha_enabled = provider === "aliyun";
 }
+
+// Keep the settings API representation as user IDs; the selector displays emails.
+const riskControlAllowlistedUserIds = computed<number[]>({
+  get: () => Array.from(new Set(
+    form.cyber_policy_user_allowlist
+      .split(/[,\s]+/)
+      .map(Number)
+      .filter((id) => Number.isSafeInteger(id) && id > 0),
+  )),
+  set: (ids) => {
+    form.cyber_policy_user_allowlist = ids.join(",");
+  },
+});
 
 const captchaMasterEnabled = computed({
   get: () =>
@@ -10986,60 +11075,6 @@ function normalizeAffiliateLevelRates(values: unknown): number[] {
   );
 }
 
-function normalizeRechargeBonusRules(values: unknown): PaymentRechargeBonusRule[] {
-  if (!Array.isArray(values)) return [];
-  return values
-    .map((item, index) => {
-      const raw = (item || {}) as Partial<PaymentRechargeBonusRule>;
-      const minAmount = Math.max(0, Number(raw.min_amount) || 0);
-      const bonusAmount = Math.max(0, Number(raw.bonus_amount) || 0);
-      const bonusPercent = Math.min(100, Math.max(0, Number(raw.bonus_percent) || 0));
-      return {
-        id: String(raw.id || `bonus_${index + 1}`),
-        name: String(raw.name || "").trim(),
-        min_amount: Math.round(minAmount * 100) / 100,
-        bonus_amount: Math.round(bonusAmount * 100) / 100,
-        bonus_percent: Math.round(bonusPercent * 100) / 100,
-        disabled: Boolean(raw.disabled),
-      };
-    })
-    .filter((rule) => rule.min_amount > 0 && (rule.bonus_amount || 0) + (rule.bonus_percent || 0) > 0)
-    .sort((a, b) => a.min_amount - b.min_amount);
-}
-
-function addRechargeBonusRule() {
-  const presets = [20, 50, 100];
-  const minAmount = presets[form.payment_recharge_bonus_rules.length] || 0;
-  form.payment_recharge_bonus_rules.push({
-    id: `bonus_${Date.now()}`,
-    name: "",
-    min_amount: minAmount,
-    bonus_amount: 0,
-    bonus_percent: 0,
-    disabled: false,
-  });
-}
-
-function removeRechargeBonusRule(index: number) {
-  form.payment_recharge_bonus_rules.splice(index, 1);
-}
-
-function rechargeBonusRulePreview(rule: PaymentRechargeBonusRule): string {
-  const minAmount = Number(rule.min_amount) || 0;
-  const fixed = Number(rule.bonus_amount) || 0;
-  const percent = Number(rule.bonus_percent) || 0;
-  const parts: string[] = [];
-  if (fixed > 0) parts.push(`$${fixed.toFixed(2)}`);
-  if (percent > 0) parts.push(`${percent.toFixed(2)}%`);
-  if (minAmount <= 0 || parts.length === 0) {
-    return localText("请填写最低充值金额和赠送额度。", "Set a minimum amount and bonus value.");
-  }
-  return localText(
-    `充值满 ¥${minAmount.toFixed(2)}，赠送 ${parts.join(" + ")}。`,
-    `Pay at least ¥${minAmount.toFixed(2)} and get ${parts.join(" + ")} bonus.`,
-  );
-}
-
 // ── codex_cli_only 黑/白名单结构化编辑（行 ↔ JSON）──
 interface CodexClientRow {
   originator: string;
@@ -11124,6 +11159,14 @@ const codexSyncedVersionLabel = computed(() => {
   });
 });
 
+const claudeSyncedVersionLabel = computed(() => {
+  const synced = form.claude_code_client_version_synced?.trim();
+  if (!synced) return "";
+  return t("admin.settings.gatewayForwarding.claudeCodeVersionSyncedValue", {
+    version: synced,
+  });
+});
+
 async function loadSettings() {
   loading.value = true;
   loadFailed.value = false;
@@ -11136,6 +11179,10 @@ async function loadSettings() {
       if (value !== null && value !== undefined) {
         (form as Record<string, unknown>)[key] = value;
       }
+    }
+    // For this optional override, null explicitly selects per-account rates.
+    if (settings.openai_oauth_scheduling_rate_multiplier === null) {
+      form.openai_oauth_scheduling_rate_multiplier = null;
     }
     syncCaptchaProviderSelection();
     if (!form.claude_oauth_system_prompt_blocks?.trim()) {
@@ -11181,6 +11228,13 @@ async function loadSettings() {
           }))
         : defaultLoginAgreementDocuments();
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(settings));
+    form.payment_recharge_bonus_tiers = normalizeRechargeBonusTiers(
+      settings.payment_recharge_bonus_tiers,
+    );
+    form.payment_recharge_bonus_mode = normalizeRechargeBonusMode(
+      settings.payment_recharge_bonus_mode,
+    );
+    form.payment_recharge_bonus_notice = settings.payment_recharge_bonus_notice || "";
     form.default_platform_quotas = normalizePlatformQuotasMap(settings.default_platform_quotas);
     form.account_scheduling_thresholds = normalizeAccountSchedulingThresholdsMap(
       settings.account_scheduling_thresholds,
@@ -11191,9 +11245,6 @@ async function loadSettings() {
     );
     form.affiliate_level_rates = normalizeAffiliateLevelRates(
       settings.affiliate_level_rates,
-    );
-    form.payment_recharge_bonus_rules = normalizeRechargeBonusRules(
-      settings.payment_recharge_bonus_rules,
     );
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
@@ -11548,6 +11599,16 @@ async function saveSettings() {
     form.claude_oauth_system_prompt_blocks =
       claudeOAuthSystemPromptBlocksJSON;
 
+    const oauthSchedulingRate = form.openai_oauth_scheduling_rate_multiplier;
+    if (
+      oauthSchedulingRate !== "" &&
+      oauthSchedulingRate !== null &&
+      (!Number.isFinite(oauthSchedulingRate) || oauthSchedulingRate < 0)
+    ) {
+      appStore.showError(t("admin.settings.openaiExperimentalScheduler.oauthRateInvalid"));
+      return;
+    }
+
     const payload: UpdateSettingsRequest = {
       registration_enabled: form.registration_enabled,
       email_verify_enabled: form.email_verify_enabled,
@@ -11764,6 +11825,9 @@ async function saveSettings() {
         form.openai_codex_client_version?.trim() || "",
       openai_codex_version_auto_sync_enabled:
         form.openai_codex_version_auto_sync_enabled,
+      claude_code_client_version: form.claude_code_client_version?.trim() || "",
+      claude_code_version_auto_sync_enabled:
+        form.claude_code_version_auto_sync_enabled,
       min_codex_version: form.min_codex_version?.trim() || "",
       max_codex_version: form.max_codex_version?.trim() || "",
       codex_cli_only_allow_app_server_clients:
@@ -11780,6 +11844,7 @@ async function saveSettings() {
       // Payment configuration
       payment_enabled: form.payment_enabled,
       risk_control_enabled: form.risk_control_enabled,
+      cyber_policy_user_allowlist: form.cyber_policy_user_allowlist,
       cyber_session_block_enabled: form.cyber_session_block_enabled,
       cyber_session_block_ttl_seconds:
         Number(form.cyber_session_block_ttl_seconds) || 3600,
@@ -11795,9 +11860,11 @@ async function saveSettings() {
       payment_subscription_usd_to_cny_rate:
         Number(form.payment_subscription_usd_to_cny_rate) || 0,
       payment_recharge_fee_rate: Number(form.payment_recharge_fee_rate) || 0,
-      payment_recharge_bonus_rules: normalizeRechargeBonusRules(
-        form.payment_recharge_bonus_rules,
+      payment_recharge_bonus_tiers: sanitizeRechargeBonusTiersForSubmit(
+        form.payment_recharge_bonus_tiers,
       ),
+      payment_recharge_bonus_mode: form.payment_recharge_bonus_mode,
+      payment_recharge_bonus_notice: form.payment_recharge_bonus_notice,
       payment_enabled_types: form.payment_enabled_types,
       payment_load_balance_strategy: form.payment_load_balance_strategy,
       payment_product_name_prefix: form.payment_product_name_prefix,
@@ -11818,7 +11885,7 @@ async function saveSettings() {
       openai_low_upstream_rate_priority_enabled:
         form.openai_low_upstream_rate_priority_enabled,
       openai_oauth_scheduling_rate_multiplier:
-        form.openai_oauth_scheduling_rate_multiplier,
+        oauthSchedulingRate === "" ? null : oauthSchedulingRate,
       openai_advanced_scheduler_enabled: form.openai_advanced_scheduler_enabled,
       openai_advanced_scheduler_sticky_weighted_enabled:
         form.openai_advanced_scheduler_sticky_weighted_enabled,
@@ -11930,9 +11997,9 @@ async function saveSettings() {
     form.affiliate_level_rates = normalizeAffiliateLevelRates(
       updated.affiliate_level_rates,
     );
-    form.payment_recharge_bonus_rules = normalizeRechargeBonusRules(
-      updated.payment_recharge_bonus_rules,
-    );
+    if (updated.openai_oauth_scheduling_rate_multiplier === null) {
+      form.openai_oauth_scheduling_rate_multiplier = null;
+    }
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(updated));
     form.default_platform_quotas = normalizePlatformQuotasMap(updated.default_platform_quotas);
     form.account_scheduling_thresholds = normalizeAccountSchedulingThresholdsMap(
@@ -12217,6 +12284,37 @@ async function saveOllamaCloudUsageSettings() {
     );
   } finally {
     ollamaCloudUsageSaving.value = false;
+  }
+}
+
+async function loadOpenCodeGoUsageSettings() {
+  opencodeGoUsageLoading.value = true;
+  try {
+    Object.assign(
+      opencodeGoUsageForm,
+      await adminAPI.accounts.getOpenCodeGoUsageSettings(),
+    );
+  } catch (_error: unknown) {
+    // Keep the fail-safe disabled defaults when this optional setting cannot be loaded.
+  } finally {
+    opencodeGoUsageLoading.value = false;
+  }
+}
+
+async function saveOpenCodeGoUsageSettings() {
+  opencodeGoUsageSaving.value = true;
+  try {
+    const updated = await adminAPI.accounts.updateOpenCodeGoUsageSettings({
+      ...opencodeGoUsageForm,
+    });
+    Object.assign(opencodeGoUsageForm, updated);
+    appStore.showSuccess(t("admin.settings.opencodeGoUsage.saved"));
+  } catch (error: unknown) {
+    appStore.showError(
+      extractApiErrorMessage(error, t("admin.settings.opencodeGoUsage.saveFailed")),
+    );
+  } finally {
+    opencodeGoUsageSaving.value = false;
   }
 }
 
@@ -12972,6 +13070,7 @@ onMounted(() => {
   loadAdminApiKey();
   loadUpstreamBillingProbeSettings();
   loadOllamaCloudUsageSettings();
+  loadOpenCodeGoUsageSettings();
   loadOverloadCooldownSettings();
   loadRateLimit429CooldownSettings();
   loadPanelRateLimitSettings();
