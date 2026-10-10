@@ -89,7 +89,13 @@
             <template v-if="row.payment_type">{{ t('payment.methods.' + row.payment_type, row.payment_type) }}</template>
             <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
           </template>
-          <template #cell-action="{ row }">
+          <!-- rebates 与 transfers 共用 action 列：rebates 展示返佣动作，transfers 展示流出类型 -->
+          <template v-if="props.type === 'transfers'" #cell-action="{ row }">
+            <span :class="['badge whitespace-nowrap', row.action === 'withdraw' ? 'badge-warning' : 'badge-primary']">
+              {{ outflowTypeLabel(row.action) }}
+            </span>
+          </template>
+          <template v-else #cell-action="{ row }">
             <span :class="recordActionClass(row.action)">
               {{ t('admin.affiliates.records.actions.' + (row.action || 'accrue'), row.action || '-') }}
             </span>
@@ -118,11 +124,6 @@
           </template>
           <template #cell-rebate_amount="{ row }">
             <AmountText :value="row.rebate_amount" strong />
-          </template>
-          <template #cell-action="{ row }">
-            <span :class="['badge whitespace-nowrap', row.action === 'withdraw' ? 'badge-warning' : 'badge-primary']">
-              {{ outflowTypeLabel(row.action) }}
-            </span>
           </template>
           <template #cell-amount="{ row }">
             <AmountText :value="row.amount" strong />

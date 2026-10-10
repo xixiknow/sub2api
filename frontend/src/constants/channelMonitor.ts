@@ -50,6 +50,24 @@ export const PROVIDERS: readonly Provider[] = [
   PROVIDER_OPENCODE_GO,
 ]
 
+/**
+ * Display grouping order for provider-grouped views (admin monitor list,
+ * user channel status cards). Providers without monitors are skipped, and any
+ * unknown provider value falls back to a trailing group.
+ */
+export const PROVIDER_ORDER: readonly Provider[] = [
+  PROVIDER_ANTHROPIC,
+  PROVIDER_OPENAI,
+  PROVIDER_GEMINI,
+  PROVIDER_GROK,
+  PROVIDER_ANTIGRAVITY,
+  PROVIDER_KIMI,
+  PROVIDER_ZHIPU,
+  PROVIDER_DEEPSEEK,
+  PROVIDER_MINIMAX,
+  PROVIDER_OPENCODE_GO,
+]
+
 /** 仅支持配额模式（无探活 adapter）的 provider。 */
 export const QUOTA_ONLY_PROVIDERS: readonly Provider[] = [PROVIDER_ANTIGRAVITY]
 

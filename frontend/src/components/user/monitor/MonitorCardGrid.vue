@@ -31,28 +31,45 @@
       :description="t('channelStatus.empty.description')"
     />
 
-    <div
-      v-else
-      class="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-    >
-      <MonitorCard
-        v-for="item in items"
-        :key="item.id"
-        :item="item"
-        :window="window"
-        :availability-value="resolveAvailability(item)"
-        :countdown-seconds="countdownSeconds"
-        @click="emit('cardClick', item)"
-      />
+    <div v-else class="space-y-7">
+      <section v-for="group in groupedItems" :key="group.provider">
+        <div class="mb-3 flex items-center gap-2">
+          <span
+            class="inline-flex h-7 w-7 items-center justify-center rounded-lg ring-1 ring-black/5 dark:ring-white/10"
+            :class="providerGradient(group.provider)"
+          >
+            <ProviderIcon :provider="group.provider" :size="16" />
+          </span>
+          <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+            {{ providerLabel(group.provider) }}
+          </h3>
+          <span class="text-xs text-gray-400 dark:text-dark-500">{{ group.items.length }}</span>
+        </div>
+        <div class="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <MonitorCard
+            v-for="item in group.items"
+            :key="item.id"
+            :item="item"
+            :window="window"
+            :availability-value="resolveAvailability(item)"
+            :countdown-seconds="countdownSeconds"
+            @click="emit('cardClick', item)"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { UserMonitorView, UserMonitorDetail } from '@/api/channelMonitor'
 import EmptyState from '@/components/common/EmptyState.vue'
 import MonitorCard from './MonitorCard.vue'
+import ProviderIcon from './ProviderIcon.vue'
+import { providerGradient, useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
+import { PROVIDER_ORDER } from '@/constants/channelMonitor'
 
 const props = defineProps<{
   items: UserMonitorView[]
@@ -67,6 +84,30 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { providerLabel } = useChannelMonitorFormat()
+
+// 按提供商分组展示（顺序由 PROVIDER_ORDER 决定），组内保持原有卡片网格。
+// 未知 provider 值兜底为末尾分组，避免卡片丢失。
+const groupedItems = computed(() => {
+  const byProvider = new Map<string, UserMonitorView[]>()
+  for (const item of props.items) {
+    const list = byProvider.get(item.provider)
+    if (list) list.push(item)
+    else byProvider.set(item.provider, [item])
+  }
+  const ordered: Array<{ provider: string; items: UserMonitorView[] }> = []
+  for (const provider of PROVIDER_ORDER) {
+    const group = byProvider.get(provider)
+    if (group && group.length > 0) {
+      ordered.push({ provider, items: group })
+      byProvider.delete(provider)
+    }
+  }
+  for (const [provider, group] of byProvider) {
+    ordered.push({ provider, items: group })
+  }
+  return ordered
+})
 
 function resolveAvailability(item: UserMonitorView): number | null {
   if (props.window === '7d') {

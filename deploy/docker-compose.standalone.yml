@@ -12,7 +12,7 @@
 
 services:
   sub2api:
-    image: ${SUB2API_IMAGE:-weishaw/sub2api:latest}
+    image: ${SUB2API_IMAGE:-ghcr.io/xixiknow/sub2api:latest}
     container_name: ${SUB2API_CONTAINER_NAME:-sub2api}
     restart: unless-stopped
     security_opt:

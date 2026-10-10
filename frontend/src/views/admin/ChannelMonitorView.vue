@@ -64,63 +64,82 @@
       </template>
 
       <template #table>
-        <DataTable :columns="columns" :data="monitors" :loading="loading">
-          <template #cell-name="{ row, value }">
-            <div class="flex items-center gap-1.5">
-              <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
-              <HelpTooltip v-if="row.api_key_decrypt_failed" :content="t('admin.channelMonitor.apiKeyDecryptFailed')">
-                <Icon name="exclamationTriangle" size="sm" class="text-red-500" />
-              </HelpTooltip>
-            </div>
-          </template>
+        <div class="h-full overflow-y-auto">
+          <div v-if="loading && monitors.length === 0" class="card p-0">
+            <DataTable :columns="columns" :data="[]" :loading="true" />
+          </div>
 
-          <template #cell-provider="{ row }">
-            <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium" :class="providerBadgeClass(row.provider)">
-              {{ providerLabel(row.provider) }}
-            </span>
-            <!-- 三种检测模式并列展示，quota 系配额数据源与纯探活一眼可分 -->
-            <span class="ml-1 inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium" :class="checkModeBadgeClass(row.check_mode)">
-              {{ checkModeLabel(row.check_mode) }}
-            </span>
-          </template>
+          <EmptyState
+            v-else-if="monitors.length === 0"
+            :title="t('admin.channelMonitor.noMonitorsYet')"
+            :description="t('admin.channelMonitor.createFirstMonitor')"
+            :action-text="t('admin.channelMonitor.createButton')"
+            @action="openCreateDialog"
+          />
 
-          <template #cell-primary_model="{ row }">
-            <MonitorPrimaryModelCell :row="row" />
-          </template>
+          <div v-else class="space-y-6">
+            <section
+              v-for="group in groupedMonitors"
+              :key="group.provider"
+              class="card overflow-hidden !rounded-2xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700"
+            >
+              <div class="flex items-center gap-2 px-5 pt-4 pb-3">
+                <span
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-lg ring-1 ring-black/5 dark:ring-white/10"
+                  :class="providerGradient(group.provider)"
+                >
+                  <ProviderIcon :provider="group.provider" :size="16" />
+                </span>
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                  {{ providerLabel(group.provider) }}
+                </h3>
+                <span class="badge badge-gray text-xs">{{ group.items.length }}</span>
+              </div>
+              <DataTable :columns="columns" :data="group.items">
+                <template #cell-name="{ row, value }">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+                    <!-- 三种检测模式并列展示，quota 系配额数据源与纯探活一眼可分 -->
+                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium" :class="checkModeBadgeClass(row.check_mode)">
+                      {{ checkModeLabel(row.check_mode) }}
+                    </span>
+                    <HelpTooltip v-if="row.api_key_decrypt_failed" :content="t('admin.channelMonitor.apiKeyDecryptFailed')">
+                      <Icon name="exclamationTriangle" size="sm" class="text-red-500" />
+                    </HelpTooltip>
+                  </div>
+                </template>
 
-          <template #cell-availability_7d="{ row }">
-            <span class="text-sm text-gray-900 dark:text-gray-100">{{ formatAvailability(row) }}</span>
-          </template>
+                <template #cell-primary_model="{ row }">
+                  <MonitorPrimaryModelCell :row="row" />
+                </template>
 
-          <template #cell-latency="{ row }">
-            <span class="text-sm text-gray-900 dark:text-gray-100">{{ formatLatency(row.primary_latency_ms) }}</span>
-          </template>
+                <template #cell-availability_7d="{ row }">
+                  <span class="text-sm text-gray-900 dark:text-gray-100">{{ formatAvailability(row) }}</span>
+                </template>
 
-          <template #cell-enabled="{ row }">
-            <Toggle :modelValue="row.enabled" @update:modelValue="toggleEnabled(row)" />
-          </template>
+                <template #cell-latency="{ row }">
+                  <span class="text-sm text-gray-900 dark:text-gray-100">{{ formatLatency(row.primary_latency_ms) }}</span>
+                </template>
 
-          <template #cell-actions="{ row }">
-            <MonitorActionsCell
-              :row="row"
-              :running="runningId === row.id"
-              :duplicating="duplicatingIds.has(row.id)"
-              @run="handleRunNow"
-              @duplicate="handleDuplicate"
-              @edit="openEditDialog"
-              @delete="handleDelete"
-            />
-          </template>
+                <template #cell-enabled="{ row }">
+                  <Toggle :modelValue="row.enabled" @update:modelValue="toggleEnabled(row)" />
+                </template>
 
-          <template #empty>
-            <EmptyState
-              :title="t('admin.channelMonitor.noMonitorsYet')"
-              :description="t('admin.channelMonitor.createFirstMonitor')"
-              :action-text="t('admin.channelMonitor.createButton')"
-              @action="openCreateDialog"
-            />
-          </template>
-        </DataTable>
+                <template #cell-actions="{ row }">
+                  <MonitorActionsCell
+                    :row="row"
+                    :running="runningId === row.id"
+                    :duplicating="duplicatingIds.has(row.id)"
+                    @run="handleRunNow"
+                    @duplicate="handleDuplicate"
+                    @edit="openEditDialog"
+                    @delete="handleDelete"
+                  />
+                </template>
+              </DataTable>
+            </section>
+          </div>
+        </div>
       </template>
 
       <template #pagination>
@@ -196,10 +215,12 @@ import MonitorTemplateManagerDialog from '@/components/admin/monitor/MonitorTemp
 import MonitorRunResultDialog from '@/components/admin/monitor/MonitorRunResultDialog.vue'
 import MonitorPrimaryModelCell from '@/components/admin/monitor/MonitorPrimaryModelCell.vue'
 import MonitorActionsCell from '@/components/admin/monitor/MonitorActionsCell.vue'
+import ProviderIcon from '@/components/user/monitor/ProviderIcon.vue'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
-import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
+import { useChannelMonitorFormat, providerGradient } from '@/composables/useChannelMonitorFormat'
 import MonitorSettingsPanel from '@/features/channel-monitor-v2/MonitorSettingsPanel.vue'
 import { isChannelMonitorV1Mode } from '@/utils/featureFlags'
+import { PROVIDER_ORDER } from '@/constants/channelMonitor'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -207,12 +228,34 @@ const isV1Mode = computed(() => isChannelMonitorV1Mode())
 const adminMonitorTab = ref<'v2' | 'legacy'>(isChannelMonitorV1Mode() ? 'legacy' : 'v2')
 const {
   providerLabel,
-  providerBadgeClass,
   checkModeLabel,
   checkModeBadgeClass,
   formatLatency,
   formatAvailability,
 } = useChannelMonitorFormat()
+
+// 按提供商分组（顺序由 PROVIDER_ORDER 决定），服务端分页不变，
+// 分组只作用于当前页数据。未知 provider 值兜底为末尾分组。
+const groupedMonitors = computed(() => {
+  const byProvider = new Map<string, ChannelMonitor[]>()
+  for (const item of monitors.value) {
+    const list = byProvider.get(item.provider)
+    if (list) list.push(item)
+    else byProvider.set(item.provider, [item])
+  }
+  const ordered: Array<{ provider: Provider; items: ChannelMonitor[] }> = []
+  for (const provider of PROVIDER_ORDER) {
+    const items = byProvider.get(provider)
+    if (items && items.length > 0) {
+      ordered.push({ provider, items })
+      byProvider.delete(provider)
+    }
+  }
+  for (const [provider, items] of byProvider) {
+    ordered.push({ provider: provider as Provider, items })
+  }
+  return ordered
+})
 
 const monitors = ref<ChannelMonitor[]>([])
 const loading = ref(false)
@@ -234,9 +277,9 @@ const duplicatingIds = reactive(new Set<number>())
 let abortController: AbortController | null = null
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
+// 分组表格的列：provider 由分组标题展示，不再占一列
 const columns = computed<Column[]>(() => [
   { key: 'name', label: t('admin.channelMonitor.columns.name'), sortable: false },
-  { key: 'provider', label: t('admin.channelMonitor.columns.provider'), sortable: false },
   { key: 'primary_model', label: t('admin.channelMonitor.columns.primaryModel'), sortable: false },
   { key: 'availability_7d', label: t('admin.channelMonitor.columns.availability7d'), sortable: false },
   { key: 'latency', label: t('admin.channelMonitor.columns.latency'), sortable: false },
