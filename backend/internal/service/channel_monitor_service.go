@@ -172,6 +172,7 @@ func (s *ChannelMonitorService) Create(ctx context.Context, p ChannelMonitorCrea
 		PrimaryModel:     normalizeMonitorPrimaryModel(p.Provider, checkMode, p.PrimaryModel),
 		ExtraModels:      normalizeModels(p.ExtraModels),
 		GroupName:        strings.TrimSpace(p.GroupName),
+		GroupIDs:         normalizeMonitorGroupIDs(p.GroupIDs),
 		Enabled:          p.Enabled,
 		IntervalSeconds:  p.IntervalSeconds,
 		JitterSeconds:    p.JitterSeconds,
@@ -239,6 +240,7 @@ func (s *ChannelMonitorService) Duplicate(
 		PrimaryModel:         source.PrimaryModel,
 		ExtraModels:          append([]string{}, source.ExtraModels...),
 		GroupName:            source.GroupName,
+		GroupIDs:             append([]int64{}, source.GroupIDs...),
 		Enabled:              false,
 		IntervalSeconds:      source.IntervalSeconds,
 		JitterSeconds:        source.JitterSeconds,
@@ -942,6 +944,9 @@ func applyMonitorUpdate(existing *ChannelMonitor, p ChannelMonitorUpdateParams) 
 	}
 	if p.GroupName != nil {
 		existing.GroupName = strings.TrimSpace(*p.GroupName)
+	}
+	if p.GroupIDs != nil {
+		existing.GroupIDs = normalizeMonitorGroupIDs(*p.GroupIDs)
 	}
 	if p.Enabled != nil {
 		existing.Enabled = *p.Enabled

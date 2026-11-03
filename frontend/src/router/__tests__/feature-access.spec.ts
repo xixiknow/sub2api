@@ -165,6 +165,8 @@ describe('feature route guard', () => {
       '/admin/settings',
     ],
     ['subscription', { requiresSubscription: true }, { subscription_enabled: false }, '/dashboard'],
+    ['check-in', { requiresCheckin: true }, { checkin_enabled: false }, '/dashboard'],
+    ['contact page', { requiresContactPage: true }, {}, '/dashboard'],
   ])('redirects when loaded settings explicitly disable %s', async (_name, meta, settings, target) => {
     authStore.isAdmin = meta.requiresRiskControl === true
     appStore.cachedPublicSettings = settings

@@ -236,3 +236,20 @@ func defaultAPIMode(apiMode string) string {
 	}
 	return strings.TrimSpace(apiMode)
 }
+
+// normalizeMonitorGroupIDs drops non-positive IDs and duplicates, keeping order.
+func normalizeMonitorGroupIDs(in []int64) []int64 {
+	out := make([]int64, 0, len(in))
+	seen := make(map[int64]struct{}, len(in))
+	for _, id := range in {
+		if id <= 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
+}

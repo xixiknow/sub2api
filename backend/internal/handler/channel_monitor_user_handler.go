@@ -56,6 +56,7 @@ type channelMonitorUserListItem struct {
 	Name                 string                               `json:"name"`
 	Provider             string                               `json:"provider"`
 	GroupName            string                               `json:"group_name"`
+	GroupIDs             []int64                              `json:"group_ids"`
 	PrimaryModel         string                               `json:"primary_model"`
 	PrimaryStatus        string                               `json:"primary_status"`
 	PrimaryLatencyMs     *int                                 `json:"primary_latency_ms"`
@@ -82,6 +83,7 @@ type channelMonitorUserDetailResponse struct {
 	Name      string                        `json:"name"`
 	Provider  string                        `json:"provider"`
 	GroupName string                        `json:"group_name"`
+	GroupIDs  []int64                       `json:"group_ids"`
 	Models    []channelMonitorUserModelStat `json:"models"`
 }
 
@@ -118,6 +120,7 @@ func userMonitorViewToItem(v *service.UserMonitorView, includeQuota bool) channe
 		Name:                 v.Name,
 		Provider:             v.Provider,
 		GroupName:            v.GroupName,
+		GroupIDs:             nonNilGroupIDs(v.GroupIDs),
 		PrimaryModel:         v.PrimaryModel,
 		PrimaryStatus:        v.PrimaryStatus,
 		PrimaryLatencyMs:     v.PrimaryLatencyMs,
@@ -150,6 +153,7 @@ func userMonitorDetailToResponse(d *service.UserMonitorDetail) *channelMonitorUs
 		Name:      d.Name,
 		Provider:  d.Provider,
 		GroupName: d.GroupName,
+		GroupIDs:  nonNilGroupIDs(d.GroupIDs),
 		Models:    models,
 	}
 }
@@ -192,4 +196,11 @@ func (h *ChannelMonitorUserHandler) GetStatus(c *gin.Context) {
 		return
 	}
 	response.Success(c, userMonitorDetailToResponse(detail))
+}
+
+func nonNilGroupIDs(in []int64) []int64 {
+	if in == nil {
+		return []int64{}
+	}
+	return in
 }

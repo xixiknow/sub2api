@@ -48,6 +48,9 @@ func RegisterAdminRoutes(
 		// 账号管理
 		registerAccountRoutes(admin, h, stepUpAuth)
 
+		// 盈利运营
+		registerProfitRoutes(admin, h)
+
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
 
@@ -76,7 +79,6 @@ func RegisterAdminRoutes(
 		registerPromoCodeRoutes(admin, h)
 
 		// 成长徽章与权益管理
-		registerGrowthRoutes(admin, h)
 
 		// 系统设置
 		registerSettingsRoutes(admin, h, stepUpAuth)
@@ -169,19 +171,6 @@ func registerAdminComplianceRoutes(admin *gin.RouterGroup, h *handler.Handlers) 
 	{
 		compliance.GET("", h.Admin.Compliance.GetStatus)
 		compliance.POST("/accept", h.Admin.Compliance.Accept)
-	}
-}
-
-func registerGrowthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	growth := admin.Group("/growth")
-	{
-		growth.GET("/badges", h.Admin.Growth.ListBadges)
-		growth.POST("/badges/recompute", h.Admin.Growth.RecomputeBadges)
-		growth.GET("/benefit-rules", h.Admin.Growth.ListBenefitRules)
-		growth.POST("/benefit-rules", h.Admin.Growth.CreateBenefitRule)
-		growth.PUT("/benefit-rules/:id", h.Admin.Growth.UpdateBenefitRule)
-		growth.DELETE("/benefit-rules/:id", h.Admin.Growth.DeleteBenefitRule)
-		growth.GET("/users", h.Admin.Growth.ListUsers)
 	}
 }
 
@@ -373,10 +362,22 @@ func registerGroupRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	}
 }
 
+func registerProfitRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	profit := admin.Group("/profit")
+	{
+		profit.GET("/summary", h.Admin.Profit.Summary)
+		profit.GET("/breakdown", h.Admin.Profit.Breakdown)
+		profit.GET("/trend", h.Admin.Profit.Trend)
+	}
+}
+
 func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAuth middleware.StepUpAuthMiddleware) {
 	accounts := admin.Group("/accounts")
 	{
 		accounts.GET("", h.Admin.Account.List)
+		accounts.GET("/tree-summary", h.Admin.AccountInsight.TreeSummary)
+		accounts.POST("/upstream-balance/batch", h.Admin.AccountInsight.BatchRefreshAccountBalance)
+		accounts.POST("/:id/upstream-balance/refresh", h.Admin.AccountInsight.RefreshAccountBalance)
 		accounts.GET("/upstream-billing-rates", h.Admin.Account.GetUpstreamBillingRates)
 		accounts.GET("/upstream-billing-probe/settings", h.Admin.Account.GetUpstreamBillingProbeSettings)
 		accounts.PUT("/upstream-billing-probe/settings", h.Admin.Account.UpdateUpstreamBillingProbeSettings)

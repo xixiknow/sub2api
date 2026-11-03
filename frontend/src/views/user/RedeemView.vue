@@ -408,7 +408,7 @@ const contactInfo = ref('')
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
-  return type === 'balance' || type === 'admin_balance'
+  return type === 'balance' || type === 'admin_balance' || type === 'checkin_balance'
 }
 
 const isSubscriptionType = (type: string) => {
@@ -422,6 +422,8 @@ const isAdminAdjustment = (type: string) => {
 const getHistoryItemTitle = (item: RedeemHistoryItem) => {
   if (item.type === 'balance') {
     return t('redeem.balanceAddedRedeem')
+  } else if (item.type === 'checkin_balance') {
+    return t('checkin.historyLabel')
   } else if (item.type === 'admin_balance') {
     return item.value >= 0 ? t('redeem.balanceAddedAdmin') : t('redeem.balanceDeductedAdmin')
   } else if (item.type === 'concurrency') {
@@ -519,7 +521,6 @@ const handleRedeem = async () => {
 
     // Refresh history
     await fetchHistory()
-    window.dispatchEvent(new CustomEvent('growth:center-refresh'))
 
     // Show success toast
     appStore.showSuccess(t('redeem.codeRedeemSuccess'))

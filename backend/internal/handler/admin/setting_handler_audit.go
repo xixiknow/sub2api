@@ -323,12 +323,6 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.SiteLogo != after.SiteLogo {
 		changed = append(changed, "site_logo")
 	}
-	if before.CommunityImageURL != after.CommunityImageURL {
-		changed = append(changed, "community_image_url")
-	}
-	if before.CommunityLinkURL != after.CommunityLinkURL {
-		changed = append(changed, "community_link_url")
-	}
 	if before.SiteSubtitle != after.SiteSubtitle {
 		changed = append(changed, "site_subtitle")
 	}
@@ -606,6 +600,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.ChannelMonitorDefaultIntervalSeconds != after.ChannelMonitorDefaultIntervalSeconds {
 		changed = append(changed, "channel_monitor_default_interval_seconds")
 	}
+	if before.AutoModelSyncIntervalHours != after.AutoModelSyncIntervalHours {
+		changed = append(changed, "auto_model_sync_interval_hours")
+	}
 	if before.AvailableChannelsEnabled != after.AvailableChannelsEnabled {
 		changed = append(changed, "available_channels_enabled")
 	}
@@ -623,6 +620,21 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AffiliateEnabled != after.AffiliateEnabled {
 		changed = append(changed, "affiliate_enabled")
+	}
+	if before.CheckinEnabled != after.CheckinEnabled {
+		changed = append(changed, "checkin_enabled")
+	}
+	if before.ContactPageEnabled != after.ContactPageEnabled {
+		changed = append(changed, "contact_page_enabled")
+	}
+	if before.ContactPageImage != after.ContactPageImage {
+		changed = append(changed, "contact_page_image")
+	}
+	if before.ContactPageLink != after.ContactPageLink {
+		changed = append(changed, "contact_page_link")
+	}
+	if before.ContactPageText != after.ContactPageText {
+		changed = append(changed, "contact_page_text")
 	}
 	if before.RiskControlEnabled != after.RiskControlEnabled {
 		changed = append(changed, "risk_control_enabled")

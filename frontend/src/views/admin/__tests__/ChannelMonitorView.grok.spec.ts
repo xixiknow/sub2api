@@ -40,7 +40,14 @@ vi.mock('@/api/admin', () => ({
       list: (...args: unknown[]) => accountsList(...args),
       getById: (...args: unknown[]) => accountsGetById(...args),
     },
+    groups: {
+      getAll: vi.fn().mockResolvedValue([]),
+    },
   },
+}))
+
+vi.mock('@/components/common/GroupSelector.vue', () => ({
+  default: { template: '<div class="group-selector-stub" />' },
 }))
 
 vi.mock('@/api/keys', () => ({

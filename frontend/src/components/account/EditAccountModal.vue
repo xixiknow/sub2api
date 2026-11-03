@@ -1918,6 +1918,47 @@
         </div>
       </div>
 
+      <!-- Auto upstream model sync (all platforms) -->
+      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.autoModelSync.title') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.autoModelSync.desc') }}
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="autoModelSyncEnabled = !autoModelSyncEnabled"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              autoModelSyncEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+            ]"
+            data-testid="auto-model-sync-enabled"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                autoModelSyncEnabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+        <div v-if="autoModelSyncStatus" class="mt-2 space-y-1">
+          <p
+            v-if="autoModelSyncStatus.last_sync_at"
+            class="text-xs"
+            :class="autoModelSyncStatus.last_error ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-500'"
+          >
+            {{ t('admin.accounts.autoModelSync.lastSyncAt') }}:
+            {{ formatDateTime(new Date(String(autoModelSyncStatus.last_sync_at))) }}
+            <span v-if="autoModelSyncStatus.last_error">
+              · {{ t('admin.accounts.autoModelSync.lastError') }}: {{ autoModelSyncStatus.last_error }}
+            </span>
+          </p>
+        </div>
+      </div>
+
       <div v-if="!isSparkShadow">
         <div class="mb-1 flex items-center gap-2">
           <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
@@ -4072,6 +4113,19 @@ const loadGrokMediaEligibility = async (accountID: number): Promise<GrokMediaEli
 }
 
 const interceptWarmupRequests = ref(false)
+// 自动同步上游模型：全平台通用开关，配置写入 extra.auto_model_sync。
+const autoModelSyncEnabled = ref(false)
+const readAutoModelSyncEnabled = (extra: Record<string, unknown> | undefined): boolean => {
+  const config = extra?.auto_model_sync as { enabled?: unknown } | undefined
+  return config?.enabled === true
+}
+const autoModelSyncStatus = computed(() => {
+  const status = props.account?.extra?.auto_model_sync_status as
+    | { last_sync_at?: string; last_error?: string; last_new_models?: number }
+    | undefined
+  if (!status || !status.last_sync_at) return null
+  return status
+})
 const autoPauseOnExpired = ref(false)
 const autoPause5hThreshold = ref<number | null>(null)
 const autoPause7dThreshold = ref<number | null>(null)
@@ -4629,6 +4683,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
 	mixedScheduling.value = extra?.mixed_scheduling === true
 	allowOverages.value = extra?.allow_overages === true
 	upstreamRequestIdHeader.value = readUpstreamRequestIdHeader(extra)
+	autoModelSyncEnabled.value = readAutoModelSyncEnabled(extra)
 	openAIImagesUrlToB64JsonEnabled.value = extra?.images_url_to_b64_json === true
 	autoPause5hThreshold.value = typeof extra?.auto_pause_5h_threshold === 'number' ? extra.auto_pause_5h_threshold * 100 : null
 	autoPause7dThreshold.value = typeof extra?.auto_pause_7d_threshold === 'number' ? extra.auto_pause_7d_threshold * 100 : null
@@ -6387,6 +6442,14 @@ const handleSubmit = async () => {
       } else {
         delete newExtra.upstream_request_id_header
       }
+      updatePayload.extra = newExtra
+    }
+
+    // 自动同步上游模型开关：全平台通用，始终写回。
+    {
+      const currentExtra = (updatePayload.extra as Record<string, unknown>) || (props.account.extra as Record<string, unknown>) || {}
+      const newExtra: Record<string, unknown> = { ...currentExtra }
+      newExtra.auto_model_sync = { enabled: autoModelSyncEnabled.value }
       updatePayload.extra = newExtra
     }
 

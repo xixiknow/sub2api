@@ -154,6 +154,11 @@
       </div>
 
       <div>
+        <GroupSelector v-model="form.group_ids" :groups="adminGroups" />
+        <p class="mt-1 text-xs text-gray-400">{{ t('admin.channelMonitor.form.linkedGroupsHint') }}</p>
+      </div>
+
+      <div>
         <label class="input-label">{{ t('admin.channelMonitor.form.intervalSeconds') }} <span class="text-red-500">*</span></label>
         <input v-model.number="form.interval_seconds" type="number" min="15" max="3600" required class="input" />
         <p class="mt-1 text-xs text-gray-400">{{ t('admin.channelMonitor.form.intervalSecondsHint') }}</p>
@@ -250,8 +255,9 @@ import type {
   UpdateParams,
 } from '@/api/admin/channelMonitor'
 import type { ChannelMonitorTemplate } from '@/api/admin/channelMonitorTemplate'
-import type { ApiKey } from '@/types'
+import type { AdminGroup, ApiKey } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import GroupSelector from '@/components/common/GroupSelector.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Select from '@/components/common/Select.vue'
 import ModelTagInput from '@/components/admin/channel/ModelTagInput.vue'
@@ -329,6 +335,7 @@ interface MonitorForm {
   primary_model: string
   extra_models: string[]
   group_name: string
+  group_ids: number[]
   interval_seconds: number
   jitter_seconds: number
   enabled: boolean
@@ -350,6 +357,7 @@ const form = reactive<MonitorForm>({
   primary_model: '',
   extra_models: [],
   group_name: '',
+  group_ids: [],
   interval_seconds: systemDefaultInterval.value,
   jitter_seconds: 0,
   enabled: true,
@@ -737,6 +745,7 @@ function resetForm() {
   form.primary_model = ''
   form.extra_models = []
   form.group_name = ''
+  form.group_ids = []
   form.interval_seconds = systemDefaultInterval.value
   form.jitter_seconds = 0
   form.enabled = true
@@ -759,6 +768,7 @@ function loadFromMonitor(m: ChannelMonitor) {
   form.primary_model = m.primary_model
   form.extra_models = [...(m.extra_models || [])]
   form.group_name = m.group_name || ''
+  form.group_ids = [...(m.group_ids || [])]
   form.interval_seconds = m.interval_seconds || systemDefaultInterval.value
   form.jitter_seconds = m.jitter_seconds || 0
   form.enabled = m.enabled
@@ -769,6 +779,16 @@ function loadFromMonitor(m: ChannelMonitor) {
   suppressFormWatchers = false
 }
 
+const adminGroups = ref<AdminGroup[]>([])
+async function loadAdminGroups() {
+  if (adminGroups.value.length > 0) return
+  try {
+    adminGroups.value = await adminAPI.groups.getAll()
+  } catch {
+    // 分组列表仅用于关联倍率展示，加载失败不影响监控编辑
+  }
+}
+
 // Re-sync form whenever the dialog is opened or the target monitor changes.
 // 同时拉取模板列表（cache 过的话一次性返回）。
 watch(
@@ -776,6 +796,7 @@ watch(
   ([show, m]) => {
     if (!show) return
     void loadTemplates()
+    void loadAdminGroups()
     if (m) loadFromMonitor(m)
     else resetForm()
   },
@@ -827,6 +848,7 @@ function buildPayload(): CreateParams {
     primary_model: usesProbePart.value ? form.primary_model.trim() : 'quota',
     extra_models: usesProbePart.value ? form.extra_models : [],
     group_name: form.group_name.trim(),
+    group_ids: form.group_ids,
     enabled: form.enabled,
     interval_seconds: form.interval_seconds,
     jitter_seconds: form.jitter_seconds || 0,

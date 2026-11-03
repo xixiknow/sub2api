@@ -62,6 +62,18 @@ declare module 'vue-router' {
     requiresSubscription?: boolean
 
     /**
+     * 是否要求每日签到开关（checkin_enabled，opt-in）已开启
+     * @default false
+     */
+    requiresCheckin?: boolean
+
+    /**
+     * 是否要求「联系我们」页面开关（contact_page_enabled，opt-in）已开启
+     * @default false
+     */
+    requiresContactPage?: boolean
+
+    /**
      * i18n key for the page title
      */
     titleKey?: string

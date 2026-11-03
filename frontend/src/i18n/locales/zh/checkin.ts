@@ -1,0 +1,15 @@
+export default { checkin: {
+  verifyHint: '请完成页面人机验证后领取签到奖励。', verifying: '请完成人机验证…', verifyFailed: '验证未通过，请重新验证。', verifyUnavailable: '签到验证暂未就绪，请稍后重试或联系管理员。',
+  title: '每日签到', description: '每天见，好运多一点。', subtitle: '签到领取余额奖励，让每一次回访都有小小收获。',
+  pending: '今日待签到', done: '今日已签到', wheel: '今日幸运转盘', spin: '签到并转动 · 今日 1 次', spinning: '好运正在转动…', tomorrow: '今日已签到 · 明天再来',
+  autoCredit: '每天都有奖励 · 自动存入站内余额', oddsNote: '扇区大小不代表概率，具体以奖励规则为准',
+  won: '抽中 {amount}，已存入站内余额！', weekly: '我的每周加成', recentWeek: '最近 7 天', factorsHint: '持续使用与签到，让较高奖励更有机会。',
+  activity: '调用活跃', streak: '连续签到', spending: '消费贡献', recharge: '充值支持', days: '{count} / 7 天', earned: '已获得', notEarned: '暂未获得',
+  activityHint: '有实际计费调用即计 1 天，同日多次不叠加', streakHint: '当天签到计入本次加成，最多按 7 天计算', spendingHint: '余额实际消费，金额加成递减，$20 封顶', rechargeHint: '最近 7 天有成功且未全额退款的余额充值',
+  score: '本次抽奖加成分', noGuarantee: '满分提高概率，仍非必得 $1', footprints: '签到足迹', recentRewards: '最近奖励', today: '今天', waiting: '待签', signed: '已签', missed: '未签',
+  streakCount: '已连续签到 {count} 天', streakMax: '连续签到加成已满', streakReset: '断签后重新累计，已发放奖励保留。', empty: '还没有签到记录，开启今天的小确幸。',
+  rules: '奖励规则与本次概率', rulesBody: '北京时间每日 00:00 重置，每人每天一次。统计最近 7 个北京时间自然日（含今天截至领取时），每天独立抽取，奖励用于站内 API 消费。',
+  thresholds: '周消费 $0 / $1 / $5 / $10 / $20，分别获得 0 / 3 / 8 / 12 / 15 分，区间线性计算。',
+  frozen: '领取后保留当次概率；未领取时显示当前预估概率，以领取时为准。', reset: '北京时间每日 00:00 更新签到机会', historyLabel: '签到赠送',
+  loadError: '签到信息加载失败，请重试。', claimError: '请求未确认，请重试；已发放奖励会返回原结果。', retry: '重试', refresh: '刷新', balance: '当前余额',
+} }

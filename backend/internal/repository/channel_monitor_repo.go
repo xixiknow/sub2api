@@ -48,6 +48,7 @@ func (r *channelMonitorRepository) Create(ctx context.Context, m *service.Channe
 		SetPrimaryModel(m.PrimaryModel).
 		SetExtraModels(emptySliceIfNil(m.ExtraModels)).
 		SetGroupName(m.GroupName).
+		SetGroupIds(emptyInt64SliceIfNil(m.GroupIDs)).
 		SetEnabled(m.Enabled).
 		SetIntervalSeconds(m.IntervalSeconds).
 		SetJitterSeconds(m.JitterSeconds).
@@ -120,6 +121,7 @@ func (r *channelMonitorRepository) Update(ctx context.Context, m *service.Channe
 		SetPrimaryModel(m.PrimaryModel).
 		SetExtraModels(emptySliceIfNil(m.ExtraModels)).
 		SetGroupName(m.GroupName).
+		SetGroupIds(emptyInt64SliceIfNil(m.GroupIDs)).
 		SetEnabled(m.Enabled).
 		SetIntervalSeconds(m.IntervalSeconds).
 		SetJitterSeconds(m.JitterSeconds).
@@ -779,6 +781,7 @@ func entToServiceMonitor(row *dbent.ChannelMonitor) *service.ChannelMonitor {
 		PrimaryModel:         row.PrimaryModel,
 		ExtraModels:          extras,
 		GroupName:            row.GroupName,
+		GroupIDs:             emptyInt64SliceIfNil(row.GroupIds),
 		Enabled:              row.Enabled,
 		IntervalSeconds:      row.IntervalSeconds,
 		JitterSeconds:        row.JitterSeconds,
@@ -855,6 +858,13 @@ func defaultCheckModeRepo(checkMode string) string {
 func emptySliceIfNil(in []string) []string {
 	if in == nil {
 		return []string{}
+	}
+	return in
+}
+
+func emptyInt64SliceIfNil(in []int64) []int64 {
+	if in == nil {
+		return []int64{}
 	}
 	return in
 }

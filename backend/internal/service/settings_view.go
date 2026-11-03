@@ -151,8 +151,6 @@ type SystemSettings struct {
 
 	SiteName                    string
 	SiteLogo                    string
-	CommunityImageURL           string
-	CommunityLinkURL            string
 	SiteSubtitle                string
 	APIBaseURL                  string
 	ContactInfo                 string
@@ -177,6 +175,11 @@ type SystemSettings struct {
 	CyberPolicyUserAllowlist      string
 	CyberSessionBlockTTLSeconds   int
 	AffiliateEnabled              bool
+	CheckinEnabled                bool
+	ContactPageEnabled            bool
+	ContactPageImage              string
+	ContactPageLink               string
+	ContactPageText               string
 	AffiliateRebateRate           float64
 	AffiliateLevelRates           []float64
 	AffiliateRebateFreezeHours    int
@@ -211,6 +214,9 @@ type SystemSettings struct {
 	ChannelMonitorHideThroughput         bool   `json:"channel_monitor_hide_throughput"`
 	ChannelMonitorShowQuota              bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        bool   `json:"channel_monitor_hide_user_ranking"`
+
+	// Auto upstream model sync (admin settings): global polling interval in hours.
+	AutoModelSyncIntervalHours int `json:"auto_model_sync_interval_hours"`
 
 	// Grok model mapping policy (admin settings; empty mapping falls back to these).
 	GrokDefaultTextModel           string `json:"grok_default_text_model"`
@@ -361,8 +367,6 @@ type PublicSettings struct {
 	AliyunCaptchaRegion                 string
 	SiteName                            string
 	SiteLogo                            string
-	CommunityLinkURL                    string
-	CommunityImageURL                   string
 	SiteSubtitle                        string
 	APIBaseURL                          string
 	ContactInfo                         string
@@ -428,6 +432,9 @@ type PublicSettings struct {
 
 	// Affiliate (邀请返利) feature toggle
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	CheckinEnabled     bool `json:"checkin_enabled"`
+	ContactPageEnabled bool `json:"contact_page_enabled"`
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`

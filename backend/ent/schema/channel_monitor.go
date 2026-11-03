@@ -75,6 +75,10 @@ func (ChannelMonitor) Fields() []ent.Field {
 			Optional().
 			Default("").
 			MaxLen(100),
+		// group_ids: 关联的真实分组，用户端据此展示分组倍率（仅展示用，不参与检测）。
+		field.JSON("group_ids", []int64{}).
+			Default([]int64{}).
+			Comment("Linked group IDs used to show group rate multipliers to users"),
 		field.Bool("enabled").
 			Default(true),
 		field.Int("interval_seconds").

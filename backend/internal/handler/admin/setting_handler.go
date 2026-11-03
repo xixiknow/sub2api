@@ -383,8 +383,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		OpenAIAllowClaudeCodeCodexPlugin:                       settings.OpenAIAllowClaudeCodeCodexPlugin,
 		AffiliateLevelRates:                                    settings.AffiliateLevelRates,
 		AffiliateRegistrationSeatCost:                          settings.AffiliateRegistrationSeatCost,
-		CommunityImageURL:                                      settings.CommunityImageURL,
-		CommunityLinkURL:                                       settings.CommunityLinkURL,
 
 		ChannelMonitorEnabled:                settings.ChannelMonitorEnabled,
 		ChannelMonitorMode:                   settings.ChannelMonitorMode,
@@ -392,6 +390,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		ChannelMonitorHideThroughput:         settings.ChannelMonitorHideThroughput,
 		ChannelMonitorShowQuota:              settings.ChannelMonitorShowQuota,
 		ChannelMonitorHideUserRanking:        settings.ChannelMonitorHideUserRanking,
+
+		AutoModelSyncIntervalHours: settings.AutoModelSyncIntervalHours,
 
 		GrokDefaultTextModel:           settings.GrokDefaultTextModel,
 		GrokCrossClientModelMapEnabled: settings.GrokCrossClientModelMapEnabled,
@@ -405,7 +405,12 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PluginManagementEnabled: settings.PluginManagementEnabled,
 		ModelPlazaDescription:   settings.ModelPlazaDescription,
 
-		AffiliateEnabled: settings.AffiliateEnabled,
+		AffiliateEnabled:   settings.AffiliateEnabled,
+		CheckinEnabled:     settings.CheckinEnabled,
+		ContactPageEnabled: settings.ContactPageEnabled,
+		ContactPageImage:   settings.ContactPageImage,
+		ContactPageLink:    settings.ContactPageLink,
+		ContactPageText:    settings.ContactPageText,
 
 		AccountSchedulingThresholds: settings.AccountSchedulingThresholds,
 		AllowUserViewErrorRequests:  settings.AllowUserViewErrorRequests,

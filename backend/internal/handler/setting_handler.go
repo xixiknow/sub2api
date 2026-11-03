@@ -70,8 +70,6 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		AliyunCaptchaRegion:                 settings.AliyunCaptchaRegion,
 		SiteName:                            settings.SiteName,
 		SiteLogo:                            settings.SiteLogo,
-		CommunityLinkURL:                    settings.CommunityLinkURL,
-		CommunityImageURL:                   settings.CommunityImageURL,
 		SiteSubtitle:                        settings.SiteSubtitle,
 		APIBaseURL:                          settings.APIBaseURL,
 		ContactInfo:                         settings.ContactInfo,
@@ -124,7 +122,9 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		ModelPlazaRequireAuth:   settings.ModelPlazaRequireAuth,
 		PluginManagementEnabled: settings.PluginManagementEnabled,
 
-		AffiliateEnabled: settings.AffiliateEnabled,
+		AffiliateEnabled:   settings.AffiliateEnabled,
+		CheckinEnabled:     settings.CheckinEnabled,
+		ContactPageEnabled: settings.ContactPageEnabled,
 
 		RiskControlEnabled: settings.RiskControlEnabled,
 
@@ -163,4 +163,15 @@ func publicLoginAgreementDocumentsToDTO(items []service.LoginAgreementDocument) 
 		})
 	}
 	return result
+}
+
+// GetContactPage returns the admin-configured "contact us" page for signed-in users.
+// GET /api/v1/user/contact-page
+func (h *SettingHandler) GetContactPage(c *gin.Context) {
+	page, err := h.settingService.GetContactPage(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, page)
 }

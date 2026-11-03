@@ -81,10 +81,6 @@ export default {
       failedToLoad: 'Failed to load dashboard statistics'
     },
 
-    growth: {
-      title: 'Growth Benefits',
-      description: 'Configure automatic rate and affiliate benefits triggered by badges'
-    },
 
     backup: {
       title: 'Database Backup',

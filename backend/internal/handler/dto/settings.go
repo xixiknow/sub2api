@@ -151,8 +151,6 @@ type SystemSettings struct {
 
 	SiteName                    string           `json:"site_name"`
 	SiteLogo                    string           `json:"site_logo"`
-	CommunityImageURL           string           `json:"community_image_url"`
-	CommunityLinkURL            string           `json:"community_link_url"`
 	SiteSubtitle                string           `json:"site_subtitle"`
 	APIBaseURL                  string           `json:"api_base_url"`
 	ContactInfo                 string           `json:"contact_info"`
@@ -325,6 +323,9 @@ type SystemSettings struct {
 	ChannelMonitorShowQuota              bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        bool   `json:"channel_monitor_hide_user_ranking"`
 
+	// Auto upstream model sync (admin settings)
+	AutoModelSyncIntervalHours int `json:"auto_model_sync_interval_hours"`
+
 	// Grok model mapping policy (admin settings; empty account mapping falls back to these).
 	GrokDefaultTextModel           string `json:"grok_default_text_model"`
 	GrokCrossClientModelMapEnabled bool   `json:"grok_cross_client_model_map_enabled"`
@@ -353,6 +354,12 @@ type SystemSettings struct {
 
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	CheckinEnabled     bool   `json:"checkin_enabled"`
+	ContactPageEnabled bool   `json:"contact_page_enabled"`
+	ContactPageImage   string `json:"contact_page_image"`
+	ContactPageLink    string `json:"contact_page_link"`
+	ContactPageText    string `json:"contact_page_text"`
 
 	// OpenAI fast/flex policy
 	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
@@ -399,8 +406,6 @@ type PublicSettings struct {
 	AliyunCaptchaRegion                 string                   `json:"aliyun_captcha_region"`
 	SiteName                            string                   `json:"site_name"`
 	SiteLogo                            string                   `json:"site_logo"`
-	CommunityLinkURL                    string                   `json:"community_link_url"`
-	CommunityImageURL                   string                   `json:"community_image_url"`
 	SiteSubtitle                        string                   `json:"site_subtitle"`
 	APIBaseURL                          string                   `json:"api_base_url"`
 	ContactInfo                         string                   `json:"contact_info"`
@@ -461,6 +466,9 @@ type PublicSettings struct {
 	PluginManagementEnabled bool `json:"plugin_management_enabled"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	CheckinEnabled     bool `json:"checkin_enabled"`
+	ContactPageEnabled bool `json:"contact_page_enabled"`
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
 

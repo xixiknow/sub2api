@@ -442,6 +442,10 @@ func (s *AuthService) VerifyCaptchaForRegister(ctx context.Context, proof Captch
 
 func (s *AuthService) VerifyCaptcha(ctx context.Context, proof CaptchaProof, remoteIP string) error {
 	required := s.cfg != nil && s.cfg.Server.Mode == "release" && s.cfg.Turnstile.Required
+	return s.verifyCaptcha(ctx, proof, remoteIP, required)
+}
+
+func (s *AuthService) verifyCaptcha(ctx context.Context, proof CaptchaProof, remoteIP string, required bool) error {
 	if s.settingService == nil {
 		if required {
 			return ErrTurnstileNotConfigured

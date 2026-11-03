@@ -989,6 +989,12 @@ export default {
       errorCodeExists: '该错误码已被选中',
       interceptWarmupRequests: '拦截预热请求',
       interceptWarmupRequestsDesc: '启用后，标题生成等预热请求将返回 mock 响应，不消耗上游 token',
+      autoModelSync: {
+        title: '自动同步上游模型',
+        desc: '按系统设置的全局间隔定期拉取该账号上游最新模型清单，刷新模型能力快照，并把新增模型自动追加到所属分组的模型白名单（只增不删）',
+        lastSyncAt: '上次同步',
+        lastError: '错误',
+      },
       headerOverride: {
         title: '请求头覆写',
         hint: '转发时用配置值覆盖同名请求头（不区分大小写）',

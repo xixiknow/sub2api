@@ -672,6 +672,20 @@ func ProvideScheduledTestRunnerService(
 	return svc
 }
 
+// ProvideAutoModelSyncRunnerService creates and starts AutoModelSyncRunnerService.
+func ProvideAutoModelSyncRunnerService(
+	accountRepo AccountRepository,
+	groupRepo GroupRepository,
+	accountTestSvc *AccountTestService,
+	settingService *SettingService,
+	authCacheInvalidator APIKeyAuthCacheInvalidator,
+	cfg *config.Config,
+) *AutoModelSyncRunnerService {
+	svc := NewAutoModelSyncRunnerService(accountRepo, groupRepo, accountTestSvc, settingService, authCacheInvalidator, cfg)
+	svc.Start()
+	return svc
+}
+
 // ProvideOpsScheduledReportService creates and starts OpsScheduledReportService.
 func ProvideOpsScheduledReportService(
 	opsService *OpsService,
@@ -921,6 +935,9 @@ var ProviderSet = wire.NewSet(
 	ProvideAccountUsageService,
 	ProvideAccountTestService,
 	ProvideUpstreamBillingProbeService,
+	NewAccountTreeService,
+	ProvideUpstreamBalanceService,
+	NewProfitService,
 	ProvideOllamaCloudUsageService,
 	ProvideOpenCodeGoUsageService,
 	ProvideSettingService,
@@ -964,7 +981,7 @@ var ProviderSet = wire.NewSet(
 	NewAntigravityQuotaFetcher,
 	NewGrokQuotaFetcher,
 	NewUserAttributeService,
-	NewGrowthService,
+	NewCheckinService,
 	NewUsageCache,
 	NewTotpService,
 	NewErrorPassthroughService,
@@ -976,6 +993,7 @@ var ProviderSet = wire.NewSet(
 	ProvideIdempotencyCleanupService,
 	ProvideScheduledTestService,
 	ProvideScheduledTestRunnerService,
+	ProvideAutoModelSyncRunnerService,
 	NewGroupCapacityService,
 	NewChannelService,
 	wire.Bind(new(ChannelCacheInvalidator), new(*ChannelService)),

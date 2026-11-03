@@ -241,6 +241,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/checkin',
+    name: 'Checkin',
+    component: () => import('@/views/user/CheckinView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: false, requiresCheckin: true, title: 'Daily check-in', titleKey: 'checkin.title', descriptionKey: 'checkin.subtitle' }
+  },
+  {
+    path: '/contact',
+    name: 'Contact',
+    component: () => import('@/views/user/ContactView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: false, requiresContactPage: true, title: 'Contact us', titleKey: 'contact.title', descriptionKey: 'contact.subtitle' }
+  },
+  {
     path: '/redeem',
     name: 'Redeem',
     component: () => import('@/views/user/RedeemView.vue'),
@@ -555,6 +567,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/profit',
+    name: 'AdminProfit',
+    component: () => import('@/views/admin/ProfitView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Profit Operations',
+      titleKey: 'admin.profit.title',
+      descriptionKey: 'admin.profit.description'
+    }
+  },
+  {
     path: '/admin/plugins',
     name: 'AdminPlugins',
     component: () => import('@/views/admin/PluginsView.vue'),
@@ -612,18 +636,6 @@ const routes: RouteRecordRaw[] = [
       title: 'Promo Code Management',
       titleKey: 'admin.promo.title',
       descriptionKey: 'admin.promo.description'
-    }
-  },
-  {
-    path: '/admin/growth',
-    name: 'AdminGrowthBenefits',
-    component: () => import('@/views/admin/GrowthBenefitsView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: true,
-      title: 'Growth Benefits',
-      titleKey: 'admin.growth.title',
-      descriptionKey: 'admin.growth.description'
     }
   },
   {
@@ -988,11 +1000,21 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
+  // 签到和联系页是 opt-in 开关：设置已加载且未开启时拦截直达。
+  if (
+    (to.meta.requiresCheckin && appStore.publicSettingsLoaded && appStore.cachedPublicSettings?.checkin_enabled !== true) ||
+    (to.meta.requiresContactPage && appStore.publicSettingsLoaded && appStore.cachedPublicSettings?.contact_page_enabled !== true)
+  ) {
+    next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
+    return
+  }
+
   // 简易模式下限制访问某些页面
   if (authStore.isSimpleMode) {
     const restrictedPaths = [
       '/admin/subscriptions',
       '/admin/redeem',
+      '/checkin',
       '/subscriptions',
       '/redeem'
     ]

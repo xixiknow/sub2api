@@ -56,9 +56,6 @@
         <!-- Subscription Progress (for users with active subscriptions; not mounted at all when the feature is off) -->
         <SubscriptionProgressMini v-if="user && subscriptionFeatureEnabled" />
 
-        <!-- Growth Center -->
-        <GrowthCenterPopover v-if="user" />
-
         <!-- Balance Display -->
         <div
           v-if="user"
@@ -263,7 +260,6 @@ import { useAdminSettingsStore } from '@/stores/adminSettings'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
-import GrowthCenterPopover from './GrowthCenterPopover.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'

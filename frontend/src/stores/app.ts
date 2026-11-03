@@ -341,8 +341,6 @@ export const useAppStore = defineStore('app', () => {
         aliyun_captcha_region: 'cn',
         site_name: siteName.value,
         site_logo: siteLogo.value,
-        community_image_url: '',
-        community_link_url: '',
         site_subtitle: '',
         api_base_url: apiBaseUrl.value,
         contact_info: contactInfo.value,
@@ -381,6 +379,8 @@ export const useAppStore = defineStore('app', () => {
         risk_control_enabled: false,
         service_quota_enabled: false,
         affiliate_enabled: false,
+        checkin_enabled: false,
+        contact_page_enabled: false,
         allow_user_view_error_requests: false,
         mcp_enabled: false,
       })

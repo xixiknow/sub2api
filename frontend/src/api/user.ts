@@ -17,7 +17,6 @@ import type {
   UserAffiliateDetail,
   AffiliateTransferResponse,
   AffiliateRegistrationSeatPurchaseResponse,
-  UserGrowthStatus,
   PlatformQuotasResponse
 } from '@/types'
 
@@ -198,18 +197,6 @@ export async function purchaseAffiliateRegistrationSeats(
   return data
 }
 
-export async function getGrowthStatus(): Promise<UserGrowthStatus> {
-  const { data } = await apiClient.get<UserGrowthStatus>('/user/growth')
-  return data
-}
-
-export async function markAffiliateTutorialDone(): Promise<UserGrowthStatus> {
-  const { data } = await apiClient.post<UserGrowthStatus>(
-    '/user/growth/events/affiliate-tutorial-done'
-  )
-  return data
-}
-
 /**
  * 获取当前用户的平台限额 + 用量。
  */
@@ -234,8 +221,6 @@ export const userAPI = {
   getAffiliateDetail,
   transferAffiliateQuota,
   purchaseAffiliateRegistrationSeats,
-  getGrowthStatus,
-  markAffiliateTutorialDone,
   getMyPlatformQuotas
 }
 

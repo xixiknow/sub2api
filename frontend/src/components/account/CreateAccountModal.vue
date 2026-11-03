@@ -3238,6 +3238,32 @@
         :type="form.type"
       />
 
+      <!-- Auto upstream model sync (all platforms) -->
+      <div class="flex items-center justify-between">
+        <div>
+          <label class="input-label mb-0">{{ t('admin.accounts.autoModelSync.title') }}</label>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {{ t('admin.accounts.autoModelSync.desc') }}
+          </p>
+        </div>
+        <button
+          type="button"
+          @click="autoModelSyncEnabled = !autoModelSyncEnabled"
+          :class="[
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+            autoModelSyncEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+          ]"
+          data-testid="auto-model-sync-enabled"
+        >
+          <span
+            :class="[
+              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+              autoModelSyncEnabled ? 'translate-x-5' : 'translate-x-0'
+            ]"
+          />
+        </button>
+      </div>
+
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div>
           <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
@@ -4247,6 +4273,8 @@ const oauthStepTitle = computed(() => {
 // Platform-specific hints for API Key type
 // 上游ID：直接上游声明请求标识的响应头名，留空不记录。
 const upstreamRequestIdHeader = ref('')
+// 自动同步上游模型：全平台通用开关，配置写入 extra.auto_model_sync。
+const autoModelSyncEnabled = ref(false)
 const withUpstreamRequestIdHeader = <T extends Record<string, unknown> | undefined>(extra: T): T | Record<string, unknown> => {
   const name = upstreamRequestIdHeader.value.trim()
   if (!name) return extra
@@ -6337,6 +6365,8 @@ const createAccountAndFinish = async (
       delete credentials.model_mapping
     }
   }
+  // 自动同步上游模型开关：全平台通用，始终写回。
+  finalExtra = { ...(finalExtra || {}), auto_model_sync: { enabled: autoModelSyncEnabled.value } }
   await doCreateAccount({
     name: form.name,
     notes: form.notes,

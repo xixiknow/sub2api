@@ -119,6 +119,7 @@ func provideCleanup(
 	grokOAuth *service.GrokOAuthService,
 	openAIGateway *service.OpenAIGatewayService,
 	scheduledTestRunner *service.ScheduledTestRunnerService,
+	autoModelSyncRunner *service.AutoModelSyncRunnerService,
 	backupSvc *service.BackupService,
 	paymentOrderExpiry *service.PaymentOrderExpiryService,
 	channelMonitorRunner *service.ChannelMonitorRunner,
@@ -131,6 +132,7 @@ func provideCleanup(
 	openAIAutoReset *service.OpenAIQuotaAutoResetService,
 	promptAudit *securityaudit.PromptService,
 	pluginManager *service.PluginManager,
+	upstreamBalance *service.UpstreamBalanceService,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -351,6 +353,12 @@ func provideCleanup(
 				}
 				return nil
 			}},
+			{"AutoModelSyncRunnerService", func() error {
+				if autoModelSyncRunner != nil {
+					autoModelSyncRunner.Stop()
+				}
+				return nil
+			}},
 			{"BackupService", func() error {
 				if backupSvc != nil {
 					backupSvc.Stop()
@@ -384,6 +392,12 @@ func provideCleanup(
 			{"UpstreamBillingProbeService", func() error {
 				if upstreamBillingProbe != nil {
 					upstreamBillingProbe.Stop()
+				}
+				return nil
+			}},
+			{"UpstreamBalanceService", func() error {
+				if upstreamBalance != nil {
+					upstreamBalance.Stop()
 				}
 				return nil
 			}},

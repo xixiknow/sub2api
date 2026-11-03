@@ -598,6 +598,7 @@ export default {
         extraModelsPlaceholder: 'Press Enter to add extra model',
         groupName: 'Group Name',
         groupNamePlaceholder: 'Optional, used to group rows in user view',
+        linkedGroupsHint: 'Linked groups show their rate multiplier (including per-user rates) on the user channel status cards. Users only see groups they can use.',
         intervalSeconds: 'Interval (seconds)',
         intervalSecondsHint: 'Range: 15 - 3600 seconds',
         jitterSeconds: 'Random Jitter (± seconds)',

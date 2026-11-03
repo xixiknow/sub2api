@@ -428,6 +428,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyChannelMonitorShowQuota] = strconv.FormatBool(settings.ChannelMonitorShowQuota)
 	updates[SettingKeyChannelMonitorHideUserRanking] = strconv.FormatBool(settings.ChannelMonitorHideUserRanking)
 
+	// Auto upstream model sync interval (bounded [1,720] hours)
+	updates[SettingKeyAutoModelSyncIntervalHours] = strconv.Itoa(clampAutoModelSyncIntervalHoursInt(
+		settings.AutoModelSyncIntervalHours,
+	))
+
 	// Grok model mapping policy
 	if v := strings.TrimSpace(settings.GrokDefaultTextModel); v != "" {
 		updates[SettingKeyGrokDefaultTextModel] = v
@@ -451,6 +456,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	// Affiliate (邀请返利) feature switch
 	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
+	updates[SettingKeyCheckinEnabled] = strconv.FormatBool(settings.CheckinEnabled)
+	updates[SettingKeyContactPageEnabled] = strconv.FormatBool(settings.ContactPageEnabled)
+	updates[SettingKeyContactPageImage] = strings.TrimSpace(settings.ContactPageImage)
+	updates[SettingKeyContactPageLink] = strings.TrimSpace(settings.ContactPageLink)
+	updates[SettingKeyContactPageText] = settings.ContactPageText
 
 	// 风控中心功能开关
 	updates[SettingKeyRiskControlEnabled] = strconv.FormatBool(settings.RiskControlEnabled)

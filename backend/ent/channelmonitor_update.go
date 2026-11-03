@@ -195,6 +195,18 @@ func (_u *ChannelMonitorUpdate) ClearGroupName() *ChannelMonitorUpdate {
 	return _u
 }
 
+// SetGroupIds sets the "group_ids" field.
+func (_u *ChannelMonitorUpdate) SetGroupIds(v []int64) *ChannelMonitorUpdate {
+	_u.mutation.SetGroupIds(v)
+	return _u
+}
+
+// AppendGroupIds appends value to the "group_ids" field.
+func (_u *ChannelMonitorUpdate) AppendGroupIds(v []int64) *ChannelMonitorUpdate {
+	_u.mutation.AppendGroupIds(v)
+	return _u
+}
+
 // SetEnabled sets the "enabled" field.
 func (_u *ChannelMonitorUpdate) SetEnabled(v bool) *ChannelMonitorUpdate {
 	_u.mutation.SetEnabled(v)
@@ -601,6 +613,14 @@ func (_u *ChannelMonitorUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if _u.mutation.GroupNameCleared() {
 		_spec.ClearField(channelmonitor.FieldGroupName, field.TypeString)
 	}
+	if value, ok := _u.mutation.GroupIds(); ok {
+		_spec.SetField(channelmonitor.FieldGroupIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedGroupIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, channelmonitor.FieldGroupIds, value)
+		})
+	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(channelmonitor.FieldEnabled, field.TypeBool, value)
 	}
@@ -939,6 +959,18 @@ func (_u *ChannelMonitorUpdateOne) SetNillableGroupName(v *string) *ChannelMonit
 // ClearGroupName clears the value of the "group_name" field.
 func (_u *ChannelMonitorUpdateOne) ClearGroupName() *ChannelMonitorUpdateOne {
 	_u.mutation.ClearGroupName()
+	return _u
+}
+
+// SetGroupIds sets the "group_ids" field.
+func (_u *ChannelMonitorUpdateOne) SetGroupIds(v []int64) *ChannelMonitorUpdateOne {
+	_u.mutation.SetGroupIds(v)
+	return _u
+}
+
+// AppendGroupIds appends value to the "group_ids" field.
+func (_u *ChannelMonitorUpdateOne) AppendGroupIds(v []int64) *ChannelMonitorUpdateOne {
+	_u.mutation.AppendGroupIds(v)
 	return _u
 }
 
@@ -1377,6 +1409,14 @@ func (_u *ChannelMonitorUpdateOne) sqlSave(ctx context.Context) (_node *ChannelM
 	}
 	if _u.mutation.GroupNameCleared() {
 		_spec.ClearField(channelmonitor.FieldGroupName, field.TypeString)
+	}
+	if value, ok := _u.mutation.GroupIds(); ok {
+		_spec.SetField(channelmonitor.FieldGroupIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedGroupIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, channelmonitor.FieldGroupIds, value)
+		})
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(channelmonitor.FieldEnabled, field.TypeBool, value)

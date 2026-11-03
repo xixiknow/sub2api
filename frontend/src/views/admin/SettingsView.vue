@@ -6626,6 +6626,67 @@
                 </p>
               </div>
 
+              <!-- Contact page -->
+              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ t("admin.settings.site.contactPageTitle") }}
+                    </h3>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.contactPageDescription") }}
+                    </p>
+                  </div>
+                  <Toggle v-model="form.contact_page_enabled" />
+                </div>
+                <div v-if="form.contact_page_enabled" class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.contactPageImage") }}
+                    </label>
+                    <ImageUpload
+                      v-model="form.contact_page_image"
+                      mode="image"
+                      :upload-label="t('admin.settings.site.uploadImage')"
+                      :remove-label="t('admin.settings.site.remove')"
+                      :hint="t('admin.settings.site.contactPageImageHint')"
+                      :max-size="600 * 1024"
+                    />
+                  </div>
+                  <div class="space-y-4">
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.contactPageLink") }}
+                      </label>
+                      <input
+                        v-model="form.contact_page_link"
+                        type="url"
+                        class="input font-mono text-sm"
+                        placeholder="https://qm.qq.com/..."
+                      />
+                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.site.contactPageLinkHint") }}
+                      </p>
+                    </div>
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.contactPageText") }}
+                      </label>
+                      <textarea
+                        v-model="form.contact_page_text"
+                        rows="4"
+                        maxlength="2000"
+                        class="input"
+                        :placeholder="t('admin.settings.site.contactPageTextPlaceholder')"
+                      />
+                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.site.contactPageTextHint") }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Doc URL -->
               <div>
                 <label
@@ -6642,51 +6703,6 @@
                 <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   {{ t("admin.settings.site.docUrlHint") }}
                 </p>
-              </div>
-
-              <!-- Community Entry -->
-              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
-                <h3 class="text-sm font-medium text-gray-900 dark:text-white">
-                  {{ t("admin.settings.site.communityTitle") }}
-                </h3>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t("admin.settings.site.communityDescription") }}
-                </p>
-                <div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div>
-                    <label
-                      class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      {{ t("admin.settings.site.communityImage") }}
-                    </label>
-                    <ImageUpload
-                      v-model="form.community_image_url"
-                      mode="image"
-                      :upload-label="t('admin.settings.site.uploadImage')"
-                      :remove-label="t('admin.settings.site.remove')"
-                      :hint="t('admin.settings.site.communityImageHint')"
-                      :max-size="600 * 1024"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      {{ t("admin.settings.site.communityLink") }}
-                    </label>
-                    <input
-                      v-model="form.community_link_url"
-                      type="url"
-                      class="input font-mono text-sm"
-                      :placeholder="
-                        t('admin.settings.site.communityLinkPlaceholder')
-                      "
-                    />
-                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      {{ t("admin.settings.site.communityLinkHint") }}
-                    </p>
-                  </div>
-                </div>
               </div>
 
               <!-- Site Logo Upload -->
@@ -7357,6 +7373,36 @@
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.autoModelSync.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.autoModelSync.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div>
+              <label class="input-label">
+                {{ t('admin.settings.features.autoModelSync.interval') }}
+                <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model.number="form.auto_model_sync_interval_hours"
+                type="number"
+                min="1"
+                max="720"
+                class="input"
+                data-testid="auto-model-sync-interval-hours"
+              />
+              <p class="mt-1 text-xs text-gray-400">
+                {{ t('admin.settings.features.autoModelSync.intervalHint') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
               {{ t('admin.settings.features.modelPlaza.title') }}
             </h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -7524,6 +7570,31 @@
                 min="1"
                 class="input"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily check-in feature card -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.checkin.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.checkin.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.checkin.enabled') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.checkin.enabledHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.checkin_enabled" />
             </div>
           </div>
         </div>
@@ -9888,8 +9959,6 @@ const form = reactive<SettingsForm>({
   default_user_rpm_limit: 0,
   site_name: "Sub2API",
   site_logo: "",
-  community_image_url: "",
-  community_link_url: "",
   site_subtitle: "Subscription to API Conversion Platform",
   api_base_url: "",
   contact_info: "",
@@ -10140,6 +10209,8 @@ const form = reactive<SettingsForm>({
   channel_monitor_hide_throughput: false,
   channel_monitor_show_quota: false,
   channel_monitor_hide_user_ranking: false,
+  // Auto upstream model sync
+  auto_model_sync_interval_hours: 24,
   // Available Channels feature switch
   available_channels_enabled: false,
   // Subscription feature switch (user sidebar "My Subscriptions" entry)
@@ -10152,6 +10223,11 @@ const form = reactive<SettingsForm>({
   plugin_management_enabled: false,
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
+  checkin_enabled: false,
+  contact_page_enabled: false,
+  contact_page_image: "",
+  contact_page_link: "",
+  contact_page_text: "",
   // Allow user view error requests
   allow_user_view_error_requests: false,
 });
@@ -11552,7 +11628,7 @@ async function saveSettings() {
     // Optional URL fields: auto-clear invalid values so they don't cause backend 400 errors
     if (!isValidHttpUrl(form.frontend_url)) form.frontend_url = "";
     if (!isValidHttpUrl(form.doc_url)) form.doc_url = "";
-    if (!isValidHttpUrl(form.community_link_url)) form.community_link_url = "";
+    if (!isValidHttpUrl(form.contact_page_link)) form.contact_page_link = "";
     syncWeChatConnectMode();
     const wechatStoredMode = deriveWeChatConnectStoredMode(
       form.wechat_connect_open_enabled,
@@ -11621,11 +11697,13 @@ async function saveSettings() {
       default_user_rpm_limit: form.default_user_rpm_limit,
       site_name: form.site_name,
       site_logo: form.site_logo,
-      community_image_url: form.community_image_url,
-      community_link_url: form.community_link_url,
       site_subtitle: form.site_subtitle,
       api_base_url: form.api_base_url,
       contact_info: form.contact_info,
+      contact_page_enabled: form.contact_page_enabled,
+      contact_page_image: form.contact_page_image,
+      contact_page_link: form.contact_page_link,
+      contact_page_text: form.contact_page_text,
       doc_url: form.doc_url,
       home_content: form.home_content,
       compact_home_enabled: form.compact_home_enabled,
@@ -11901,6 +11979,9 @@ async function saveSettings() {
       channel_monitor_hide_throughput: Boolean(form.channel_monitor_hide_throughput),
       channel_monitor_show_quota: Boolean(form.channel_monitor_show_quota),
       channel_monitor_hide_user_ranking: Boolean(form.channel_monitor_hide_user_ranking),
+      // Auto upstream model sync
+      auto_model_sync_interval_hours:
+        Number(form.auto_model_sync_interval_hours) || 24,
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
       // Subscription feature switch
@@ -11912,6 +11993,7 @@ async function saveSettings() {
       plugin_management_enabled: form.plugin_management_enabled,
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
+      checkin_enabled: form.checkin_enabled,
       allow_user_view_error_requests: form.allow_user_view_error_requests,
     };
 

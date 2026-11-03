@@ -155,8 +155,6 @@ type UpdateSettingsRequest struct {
 	// OEM设置
 	SiteName                    string                `json:"site_name"`
 	SiteLogo                    string                `json:"site_logo"`
-	CommunityImageURL           string                `json:"community_image_url"`
-	CommunityLinkURL            string                `json:"community_link_url"`
 	SiteSubtitle                string                `json:"site_subtitle"`
 	APIBaseURL                  string                `json:"api_base_url"`
 	ContactInfo                 string                `json:"contact_info"`
@@ -350,6 +348,9 @@ type UpdateSettingsRequest struct {
 	ChannelMonitorShowQuota              *bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        *bool   `json:"channel_monitor_hide_user_ranking"`
 
+	// Auto upstream model sync (admin settings)
+	AutoModelSyncIntervalHours *int `json:"auto_model_sync_interval_hours"`
+
 	// Grok model mapping policy
 	GrokDefaultTextModel           *string `json:"grok_default_text_model"`
 	GrokCrossClientModelMapEnabled *bool   `json:"grok_cross_client_model_map_enabled"`
@@ -371,6 +372,13 @@ type UpdateSettingsRequest struct {
 
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled *bool `json:"affiliate_enabled"`
+
+	// 每日签到与「联系我们」页面
+	CheckinEnabled     *bool  `json:"checkin_enabled"`
+	ContactPageEnabled *bool  `json:"contact_page_enabled"`
+	ContactPageImage   string `json:"contact_page_image"`
+	ContactPageLink    string `json:"contact_page_link"`
+	ContactPageText    string `json:"contact_page_text"`
 
 	// 风控中心功能开关
 	RiskControlEnabled *bool `json:"risk_control_enabled"`
@@ -852,6 +860,11 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 	if req.LoginAgreementEnabled && len(loginAgreementDocuments) == 0 {
 		response.BadRequest(c, "Login agreement documents are required when enabled")
+		return
+	}
+
+	if err := validateContactPageSettings(req.ContactPageImage, req.ContactPageLink, req.ContactPageText); err != nil {
+		response.BadRequest(c, err.Error())
 		return
 	}
 
@@ -1678,8 +1691,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		GoogleOAuthFrontendRedirectURL:         req.GoogleOAuthFrontendRedirectURL,
 		SiteName:                               req.SiteName,
 		SiteLogo:                               req.SiteLogo,
-		CommunityImageURL:                      req.CommunityImageURL,
-		CommunityLinkURL:                       req.CommunityLinkURL,
 		SiteSubtitle:                           req.SiteSubtitle,
 		APIBaseURL:                             req.APIBaseURL,
 		ContactInfo:                            req.ContactInfo,
@@ -2003,6 +2014,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.ChannelMonitorHideUserRanking
 		}(),
+		AutoModelSyncIntervalHours: func() int {
+			if req.AutoModelSyncIntervalHours != nil {
+				return *req.AutoModelSyncIntervalHours
+			}
+			return previousSettings.AutoModelSyncIntervalHours
+		}(),
 		GrokDefaultTextModel: func() string {
 			if req.GrokDefaultTextModel != nil {
 				return *req.GrokDefaultTextModel
@@ -2063,6 +2080,11 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AffiliateEnabled
 		}(),
+		CheckinEnabled:     boolOrPrevious(req.CheckinEnabled, previousSettings.CheckinEnabled),
+		ContactPageEnabled: boolOrPrevious(req.ContactPageEnabled, previousSettings.ContactPageEnabled),
+		ContactPageImage:   strings.TrimSpace(req.ContactPageImage),
+		ContactPageLink:    strings.TrimSpace(req.ContactPageLink),
+		ContactPageText:    req.ContactPageText,
 		RiskControlEnabled: func() bool {
 			if req.RiskControlEnabled != nil {
 				return *req.RiskControlEnabled
@@ -2355,8 +2377,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		GoogleOAuthFrontendRedirectURL:                         updatedSettings.GoogleOAuthFrontendRedirectURL,
 		SiteName:                                               updatedSettings.SiteName,
 		SiteLogo:                                               updatedSettings.SiteLogo,
-		CommunityImageURL:                                      updatedSettings.CommunityImageURL,
-		CommunityLinkURL:                                       updatedSettings.CommunityLinkURL,
 		SiteSubtitle:                                           updatedSettings.SiteSubtitle,
 		APIBaseURL:                                             updatedSettings.APIBaseURL,
 		ContactInfo:                                            updatedSettings.ContactInfo,
@@ -2494,6 +2514,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ChannelMonitorShowQuota:              updatedSettings.ChannelMonitorShowQuota,
 		ChannelMonitorHideUserRanking:        updatedSettings.ChannelMonitorHideUserRanking,
 
+		AutoModelSyncIntervalHours: updatedSettings.AutoModelSyncIntervalHours,
+
 		GrokDefaultTextModel:           updatedSettings.GrokDefaultTextModel,
 		GrokCrossClientModelMapEnabled: updatedSettings.GrokCrossClientModelMapEnabled,
 		GrokDefaultBaseURLMode:         updatedSettings.GrokDefaultBaseURLMode,
@@ -2506,7 +2528,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ModelPlazaDescription:   updatedSettings.ModelPlazaDescription,
 		PluginManagementEnabled: updatedSettings.PluginManagementEnabled,
 
-		AffiliateEnabled: updatedSettings.AffiliateEnabled,
+		AffiliateEnabled:   updatedSettings.AffiliateEnabled,
+		CheckinEnabled:     updatedSettings.CheckinEnabled,
+		ContactPageEnabled: updatedSettings.ContactPageEnabled,
+		ContactPageImage:   updatedSettings.ContactPageImage,
+		ContactPageLink:    updatedSettings.ContactPageLink,
+		ContactPageText:    updatedSettings.ContactPageText,
 
 		RiskControlEnabled:          updatedSettings.RiskControlEnabled,
 		CyberSessionBlockEnabled:    updatedSettings.CyberSessionBlockEnabled,

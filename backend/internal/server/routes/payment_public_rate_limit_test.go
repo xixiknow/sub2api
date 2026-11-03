@@ -26,6 +26,7 @@ func newPaymentRoutesTestRouter(redisClient *redis.Client) *gin.Engine {
 		v1,
 		&handler.PaymentHandler{},
 		&handler.PaymentWebhookHandler{},
+		&handler.TGShopWebhookHandler{},
 		&admin.PaymentHandler{},
 		servermiddleware.JWTAuthMiddleware(noop),
 		servermiddleware.AdminAuthMiddleware(noop),

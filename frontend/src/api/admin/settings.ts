@@ -510,8 +510,6 @@ export interface SystemSettings {
   // OEM settings
   site_name: string;
   site_logo: string;
-  community_image_url: string;
-  community_link_url: string;
   site_subtitle: string;
   api_base_url: string;
   contact_info: string;
@@ -771,6 +769,9 @@ export interface SystemSettings {
   channel_monitor_show_quota?: boolean;
   channel_monitor_hide_user_ranking?: boolean;
 
+  // Auto upstream model sync (admin settings)
+  auto_model_sync_interval_hours: number;
+
   // Available Channels feature switch
   available_channels_enabled: boolean;
 
@@ -785,6 +786,11 @@ export interface SystemSettings {
 
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: boolean;
+  checkin_enabled: boolean;
+  contact_page_enabled: boolean;
+  contact_page_image: string;
+  contact_page_link: string;
+  contact_page_text: string;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
@@ -869,8 +875,6 @@ export interface UpdateSettingsRequest {
   auth_source_default_dingtalk_platform_quotas?: DefaultPlatformQuotasMap;
   site_name?: string;
   site_logo?: string;
-  community_image_url?: string;
-  community_link_url?: string;
   site_subtitle?: string;
   api_base_url?: string;
   contact_info?: string;
@@ -1090,6 +1094,9 @@ export interface UpdateSettingsRequest {
   channel_monitor_show_quota?: boolean;
   channel_monitor_hide_user_ranking?: boolean;
 
+  // Auto upstream model sync (admin settings)
+  auto_model_sync_interval_hours?: number;
+
   // Available Channels feature switch
   available_channels_enabled?: boolean;
 
@@ -1104,6 +1111,11 @@ export interface UpdateSettingsRequest {
 
   // Affiliate (邀请返利) feature switch
   affiliate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  contact_page_enabled?: boolean;
+  contact_page_image?: string;
+  contact_page_link?: string;
+  contact_page_text?: string;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;

@@ -233,6 +233,11 @@ const (
 	SettingKeyFrontendURL                         = "frontend_url"                     // 前端基础URL，用于生成邮件中的重置密码链接
 	SettingKeyInvitationCodeEnabled               = "invitation_code_enabled"          // 是否启用邀请码注册
 	SettingKeyAffiliateEnabled                    = "affiliate_enabled"                // 邀请返利功能总开关
+	SettingKeyCheckinEnabled                      = "checkin_enabled"                  // 每日签到功能开关
+	SettingKeyContactPageEnabled                  = "contact_page_enabled"             // 「联系我们」页面开关
+	SettingKeyContactPageImage                    = "contact_page_image"               // 联系页图片（base64 data URL 或 http(s) URL）
+	SettingKeyContactPageLink                     = "contact_page_link"                // 联系页社群链接
+	SettingKeyContactPageText                     = "contact_page_text"                // 联系页说明文本（纯文本）
 	SettingKeyAffiliateRebateRate                 = "affiliate_rebate_rate"            // 邀请返利比例（百分比，0-100）
 	SettingKeyAffiliateLevelRates                 = "affiliate_level_rates"            // 三级邀请返利比例 JSON（百分比数组）
 	SettingKeyAffiliateRebateFreezeHours          = "affiliate_rebate_freeze_hours"    // 返利冻结期（小时，0=不冻结）
@@ -382,8 +387,6 @@ const (
 	// OEM设置
 	SettingKeySiteName                    = "site_name"              // 网站名称
 	SettingKeySiteLogo                    = "site_logo"              // 网站Logo (base64)
-	SettingKeyCommunityImageURL           = "community_image_url"    // 社群展示图片（base64 data URL 或图片 URL）
-	SettingKeyCommunityLinkURL            = "community_link_url"     // 社群入口链接
 	SettingKeySiteSubtitle                = "site_subtitle"          // 网站副标题
 	SettingKeyAPIBaseURL                  = "api_base_url"           // API端点地址（用于客户端配置和导入）
 	SettingKeyContactInfo                 = "contact_info"           // 客服联系方式
@@ -526,6 +529,17 @@ const (
 	// /users payload from non-admin channel-monitor v2 viewers.
 	// Default false (keep the current ranking tab). Admin endpoints always keep it.
 	SettingKeyChannelMonitorHideUserRanking = "channel_monitor_hide_user_ranking"
+
+	// SettingKeyAutoModelSyncIntervalHours is the global polling interval (hours)
+	// for accounts with auto upstream model sync enabled. Range: [1, 720]. Default 24.
+	SettingKeyAutoModelSyncIntervalHours = "auto_model_sync_interval_hours"
+
+	// AutoModelSyncIntervalHoursDefault is applied when the setting is missing/invalid.
+	AutoModelSyncIntervalHoursDefault = 24
+
+	// AutoModelSyncIntervalHoursMin/Max bound the admin-configured interval.
+	AutoModelSyncIntervalHoursMin = 1
+	AutoModelSyncIntervalHoursMax = 720
 
 	// SettingKeyGrokDefaultTextModel is the fallback Grok text model for empty
 	// request models and built-in Grok aliases (e.g. "grok" → this id). Default grok-4.5.

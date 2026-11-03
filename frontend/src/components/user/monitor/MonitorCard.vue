@@ -43,6 +43,24 @@
       </span>
     </div>
 
+    <!-- 关联分组倍率：仅展示当前用户可用的分组 -->
+    <div v-if="groups && groups.length" class="mt-3 flex flex-wrap gap-1.5" data-testid="monitor-group-rates">
+      <GroupBadge
+        v-for="group in groups"
+        :key="group.id"
+        :name="group.name"
+        :platform="group.platform"
+        :subscription-type="group.subscription_type"
+        :rate-multiplier="group.rate_multiplier"
+        :user-rate-multiplier="userGroupRates?.[group.id] ?? null"
+        :peak-rate-enabled="group.peak_rate_enabled"
+        :peak-start="group.peak_start"
+        :peak-end="group.peak_end"
+        :peak-rate-multiplier="group.peak_rate_multiplier"
+        always-show-rate
+      />
+    </div>
+
     <!-- Metrics -->
     <MonitorMetricPair
       primary-icon="bolt"
@@ -80,6 +98,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { UserMonitorView } from '@/api/channelMonitor'
+import type { Group } from '@/types'
+import GroupBadge from '@/components/common/GroupBadge.vue'
 import {
   useChannelMonitorFormat,
   providerGradient,
@@ -109,6 +129,8 @@ const props = defineProps<{
   window: '7d' | '15d' | '30d'
   availabilityValue: number | null
   countdownSeconds: number
+  groups?: Group[]
+  userGroupRates?: Record<number, number>
 }>()
 
 const emit = defineEmits<{

@@ -43,6 +43,8 @@ type ChannelMonitor struct {
 	ExtraModels []string `json:"extra_models,omitempty"`
 	// GroupName holds the value of the "group_name" field.
 	GroupName string `json:"group_name,omitempty"`
+	// Linked group IDs used to show group rate multipliers to users
+	GroupIds []int64 `json:"group_ids,omitempty"`
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
 	// IntervalSeconds holds the value of the "interval_seconds" field.
@@ -114,7 +116,7 @@ func (*ChannelMonitor) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case channelmonitor.FieldExtraModels, channelmonitor.FieldExtraHeaders, channelmonitor.FieldBodyOverride:
+		case channelmonitor.FieldExtraModels, channelmonitor.FieldGroupIds, channelmonitor.FieldExtraHeaders, channelmonitor.FieldBodyOverride:
 			values[i] = new([]byte)
 		case channelmonitor.FieldEnabled:
 			values[i] = new(sql.NullBool)
@@ -219,6 +221,14 @@ func (_m *ChannelMonitor) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field group_name", values[i])
 			} else if value.Valid {
 				_m.GroupName = value.String
+			}
+		case channelmonitor.FieldGroupIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field group_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.GroupIds); err != nil {
+					return fmt.Errorf("unmarshal field group_ids: %w", err)
+				}
 			}
 		case channelmonitor.FieldEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -367,6 +377,9 @@ func (_m *ChannelMonitor) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("group_name=")
 	builder.WriteString(_m.GroupName)
+	builder.WriteString(", ")
+	builder.WriteString("group_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.GroupIds))
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))

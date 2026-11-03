@@ -16,6 +16,8 @@
       :countdown-seconds="countdown"
       :loading="loading"
       :detail-cache="detailCache"
+      :groups-by-id="groupsById"
+      :user-group-rates="userGroupRates"
       @card-click="openDetail"
     />
 
@@ -47,6 +49,8 @@ import MonitorHero, {
 import MonitorCardGrid from '@/components/user/monitor/MonitorCardGrid.vue'
 import MonitorDetailDialog from '@/components/user/MonitorDetailDialog.vue'
 import { DEFAULT_INTERVAL_SECONDS, STATUS_OPERATIONAL } from '@/constants/channelMonitor'
+import { userGroupsAPI } from '@/api/groups'
+import type { Group } from '@/types'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 
 const { t } = useI18n()
@@ -59,6 +63,19 @@ const currentWindow = ref<MonitorWindow>('7d')
 const detailCache = reactive<Record<number, UserMonitorDetail>>({})
 const showDetail = ref(false)
 const detailTarget = ref<UserMonitorView | null>(null)
+const groupsById = ref<Record<number, Group>>({})
+const userGroupRates = ref<Record<number, number>>({})
+
+// 分组倍率仅用于卡片展示：加载失败时静默降级为不显示倍率。
+async function loadGroupRates() {
+  try {
+    const [groups, rates] = await Promise.all([userGroupsAPI.getAvailable(), userGroupsAPI.getUserGroupRates()])
+    groupsById.value = Object.fromEntries(groups.map(g => [g.id, g]))
+    userGroupRates.value = rates
+  } catch {
+    groupsById.value = {}
+  }
+}
 
 let abortController: AbortController | null = null
 
@@ -162,6 +179,7 @@ watch(
 
 onMounted(() => {
   void reload(false)
+  void loadGroupRates()
   if (appStore.cachedPublicSettings?.channel_monitor_enabled !== false) {
     autoRefresh.setEnabled(autoRefresh.enabled.value)
   }

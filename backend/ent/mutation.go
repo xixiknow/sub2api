@@ -14618,6 +14618,8 @@ type ChannelMonitorMutation struct {
 	extra_models            *[]string
 	appendextra_models      []string
 	group_name              *string
+	group_ids               *[]int64
+	appendgroup_ids         []int64
 	enabled                 *bool
 	interval_seconds        *int
 	addinterval_seconds     *int
@@ -15235,6 +15237,57 @@ func (m *ChannelMonitorMutation) ResetGroupName() {
 	delete(m.clearedFields, channelmonitor.FieldGroupName)
 }
 
+// SetGroupIds sets the "group_ids" field.
+func (m *ChannelMonitorMutation) SetGroupIds(i []int64) {
+	m.group_ids = &i
+	m.appendgroup_ids = nil
+}
+
+// GroupIds returns the value of the "group_ids" field in the mutation.
+func (m *ChannelMonitorMutation) GroupIds() (r []int64, exists bool) {
+	v := m.group_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupIds returns the old "group_ids" field's value of the ChannelMonitor entity.
+// If the ChannelMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChannelMonitorMutation) OldGroupIds(ctx context.Context) (v []int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupIds: %w", err)
+	}
+	return oldValue.GroupIds, nil
+}
+
+// AppendGroupIds adds i to the "group_ids" field.
+func (m *ChannelMonitorMutation) AppendGroupIds(i []int64) {
+	m.appendgroup_ids = append(m.appendgroup_ids, i...)
+}
+
+// AppendedGroupIds returns the list of values that were appended to the "group_ids" field in this mutation.
+func (m *ChannelMonitorMutation) AppendedGroupIds() ([]int64, bool) {
+	if len(m.appendgroup_ids) == 0 {
+		return nil, false
+	}
+	return m.appendgroup_ids, true
+}
+
+// ResetGroupIds resets all changes to the "group_ids" field.
+func (m *ChannelMonitorMutation) ResetGroupIds() {
+	m.group_ids = nil
+	m.appendgroup_ids = nil
+}
+
 // SetEnabled sets the "enabled" field.
 func (m *ChannelMonitorMutation) SetEnabled(b bool) {
 	m.enabled = &b
@@ -15840,7 +15893,7 @@ func (m *ChannelMonitorMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChannelMonitorMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 22)
 	if m.created_at != nil {
 		fields = append(fields, channelmonitor.FieldCreatedAt)
 	}
@@ -15876,6 +15929,9 @@ func (m *ChannelMonitorMutation) Fields() []string {
 	}
 	if m.group_name != nil {
 		fields = append(fields, channelmonitor.FieldGroupName)
+	}
+	if m.group_ids != nil {
+		fields = append(fields, channelmonitor.FieldGroupIds)
 	}
 	if m.enabled != nil {
 		fields = append(fields, channelmonitor.FieldEnabled)
@@ -15936,6 +15992,8 @@ func (m *ChannelMonitorMutation) Field(name string) (ent.Value, bool) {
 		return m.ExtraModels()
 	case channelmonitor.FieldGroupName:
 		return m.GroupName()
+	case channelmonitor.FieldGroupIds:
+		return m.GroupIds()
 	case channelmonitor.FieldEnabled:
 		return m.Enabled()
 	case channelmonitor.FieldIntervalSeconds:
@@ -15987,6 +16045,8 @@ func (m *ChannelMonitorMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldExtraModels(ctx)
 	case channelmonitor.FieldGroupName:
 		return m.OldGroupName(ctx)
+	case channelmonitor.FieldGroupIds:
+		return m.OldGroupIds(ctx)
 	case channelmonitor.FieldEnabled:
 		return m.OldEnabled(ctx)
 	case channelmonitor.FieldIntervalSeconds:
@@ -16097,6 +16157,13 @@ func (m *ChannelMonitorMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGroupName(v)
+		return nil
+	case channelmonitor.FieldGroupIds:
+		v, ok := value.([]int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupIds(v)
 		return nil
 	case channelmonitor.FieldEnabled:
 		v, ok := value.(bool)
@@ -16329,6 +16396,9 @@ func (m *ChannelMonitorMutation) ResetField(name string) error {
 		return nil
 	case channelmonitor.FieldGroupName:
 		m.ResetGroupName()
+		return nil
+	case channelmonitor.FieldGroupIds:
+		m.ResetGroupIds()
 		return nil
 	case channelmonitor.FieldEnabled:
 		m.ResetEnabled()

@@ -211,21 +211,6 @@ export interface UserAffiliateDetail {
   invitees: AffiliateInvitee[]
 }
 
-export interface UserGrowthStatus {
-  community_joined: boolean
-  community_joined_at?: string | null
-  affiliate_tutorial_done: boolean
-  affiliate_tutorial_done_at?: string | null
-  badges?: Array<{
-    badge_id: string
-    name: string
-    title: string
-    tier: string
-    points: number
-    unlocked_at: string
-  }>
-}
-
 export interface AffiliateTransferResponse {
   transferred_quota: number
   balance: number
@@ -302,8 +287,6 @@ export interface PublicSettings {
   aliyun_captcha_region?: string
   site_name: string
   site_logo: string
-  community_image_url: string
-  community_link_url: string
   site_subtitle: string
   api_base_url: string
   contact_info: string
@@ -359,6 +342,8 @@ export interface PublicSettings {
   plugin_management_enabled: boolean
   service_quota_enabled: boolean
   affiliate_enabled: boolean
+  checkin_enabled: boolean
+  contact_page_enabled: boolean
   allow_user_view_error_requests?: boolean
   /** True when the deployment configures MCP_PUBLIC_URL; MCP is disabled otherwise. */
   mcp_enabled?: boolean

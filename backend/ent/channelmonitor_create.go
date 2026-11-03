@@ -145,6 +145,12 @@ func (_c *ChannelMonitorCreate) SetNillableGroupName(v *string) *ChannelMonitorC
 	return _c
 }
 
+// SetGroupIds sets the "group_ids" field.
+func (_c *ChannelMonitorCreate) SetGroupIds(v []int64) *ChannelMonitorCreate {
+	_c.mutation.SetGroupIds(v)
+	return _c
+}
+
 // SetEnabled sets the "enabled" field.
 func (_c *ChannelMonitorCreate) SetEnabled(v bool) *ChannelMonitorCreate {
 	_c.mutation.SetEnabled(v)
@@ -347,6 +353,10 @@ func (_c *ChannelMonitorCreate) defaults() {
 		v := channelmonitor.DefaultGroupName
 		_c.mutation.SetGroupName(v)
 	}
+	if _, ok := _c.mutation.GroupIds(); !ok {
+		v := channelmonitor.DefaultGroupIds
+		_c.mutation.SetGroupIds(v)
+	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		v := channelmonitor.DefaultEnabled
 		_c.mutation.SetEnabled(v)
@@ -436,6 +446,9 @@ func (_c *ChannelMonitorCreate) check() error {
 		if err := channelmonitor.GroupNameValidator(v); err != nil {
 			return &ValidationError{Name: "group_name", err: fmt.Errorf(`ent: validator failed for field "ChannelMonitor.group_name": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.GroupIds(); !ok {
+		return &ValidationError{Name: "group_ids", err: errors.New(`ent: missing required field "ChannelMonitor.group_ids"`)}
 	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		return &ValidationError{Name: "enabled", err: errors.New(`ent: missing required field "ChannelMonitor.enabled"`)}
@@ -544,6 +557,10 @@ func (_c *ChannelMonitorCreate) createSpec() (*ChannelMonitor, *sqlgraph.CreateS
 	if value, ok := _c.mutation.GroupName(); ok {
 		_spec.SetField(channelmonitor.FieldGroupName, field.TypeString, value)
 		_node.GroupName = value
+	}
+	if value, ok := _c.mutation.GroupIds(); ok {
+		_spec.SetField(channelmonitor.FieldGroupIds, field.TypeJSON, value)
+		_node.GroupIds = value
 	}
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(channelmonitor.FieldEnabled, field.TypeBool, value)
@@ -825,6 +842,18 @@ func (u *ChannelMonitorUpsert) UpdateGroupName() *ChannelMonitorUpsert {
 // ClearGroupName clears the value of the "group_name" field.
 func (u *ChannelMonitorUpsert) ClearGroupName() *ChannelMonitorUpsert {
 	u.SetNull(channelmonitor.FieldGroupName)
+	return u
+}
+
+// SetGroupIds sets the "group_ids" field.
+func (u *ChannelMonitorUpsert) SetGroupIds(v []int64) *ChannelMonitorUpsert {
+	u.Set(channelmonitor.FieldGroupIds, v)
+	return u
+}
+
+// UpdateGroupIds sets the "group_ids" field to the value that was provided on create.
+func (u *ChannelMonitorUpsert) UpdateGroupIds() *ChannelMonitorUpsert {
+	u.SetExcluded(channelmonitor.FieldGroupIds)
 	return u
 }
 
@@ -1189,6 +1218,20 @@ func (u *ChannelMonitorUpsertOne) UpdateGroupName() *ChannelMonitorUpsertOne {
 func (u *ChannelMonitorUpsertOne) ClearGroupName() *ChannelMonitorUpsertOne {
 	return u.Update(func(s *ChannelMonitorUpsert) {
 		s.ClearGroupName()
+	})
+}
+
+// SetGroupIds sets the "group_ids" field.
+func (u *ChannelMonitorUpsertOne) SetGroupIds(v []int64) *ChannelMonitorUpsertOne {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.SetGroupIds(v)
+	})
+}
+
+// UpdateGroupIds sets the "group_ids" field to the value that was provided on create.
+func (u *ChannelMonitorUpsertOne) UpdateGroupIds() *ChannelMonitorUpsertOne {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.UpdateGroupIds()
 	})
 }
 
@@ -1743,6 +1786,20 @@ func (u *ChannelMonitorUpsertBulk) UpdateGroupName() *ChannelMonitorUpsertBulk {
 func (u *ChannelMonitorUpsertBulk) ClearGroupName() *ChannelMonitorUpsertBulk {
 	return u.Update(func(s *ChannelMonitorUpsert) {
 		s.ClearGroupName()
+	})
+}
+
+// SetGroupIds sets the "group_ids" field.
+func (u *ChannelMonitorUpsertBulk) SetGroupIds(v []int64) *ChannelMonitorUpsertBulk {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.SetGroupIds(v)
+	})
+}
+
+// UpdateGroupIds sets the "group_ids" field to the value that was provided on create.
+func (u *ChannelMonitorUpsertBulk) UpdateGroupIds() *ChannelMonitorUpsertBulk {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.UpdateGroupIds()
 	})
 }
 

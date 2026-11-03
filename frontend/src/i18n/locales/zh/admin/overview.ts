@@ -81,10 +81,6 @@ export default {
       failedToLoad: '加载仪表盘数据失败'
     },
 
-    growth: {
-      title: '成长权益',
-      description: '配置徽章触发后的自动倍率和邀请返利'
-    },
 
     backup: {
       title: '数据库备份',

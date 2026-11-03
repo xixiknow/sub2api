@@ -187,17 +187,6 @@ func (r *affiliateRepository) GetAffiliateByCode(ctx context.Context, code strin
 	return queryAffiliateByCode(ctx, client, code)
 }
 
-// ResolveBadgeAffiliateRebateRate returns the best automatic badge rebate rate
-// for an inviter. Manual user-level affiliate rates are resolved in service
-// before this method is consulted.
-func (r *affiliateRepository) ResolveBadgeAffiliateRebateRate(ctx context.Context, userID int64) (*float64, error) {
-	if userID <= 0 {
-		return nil, nil
-	}
-	client := clientFromContext(ctx, r.client)
-	return resolveBadgeAffiliateRebateRate(ctx, client, userID)
-}
-
 func (r *affiliateRepository) GetRegistrationInviteByCode(ctx context.Context, code string) (*service.AffiliateRegistrationInvite, error) {
 	client := clientFromContext(ctx, r.client)
 	return queryRegistrationInviteByCode(ctx, client, code)

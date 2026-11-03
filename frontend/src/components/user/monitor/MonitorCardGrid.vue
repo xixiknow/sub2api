@@ -53,6 +53,8 @@
             :window="window"
             :availability-value="resolveAvailability(item)"
             :countdown-seconds="countdownSeconds"
+            :groups="resolveGroups(item)"
+            :user-group-rates="userGroupRates"
             @click="emit('cardClick', item)"
           />
         </div>
@@ -65,6 +67,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { UserMonitorView, UserMonitorDetail } from '@/api/channelMonitor'
+import type { Group } from '@/types'
 import EmptyState from '@/components/common/EmptyState.vue'
 import MonitorCard from './MonitorCard.vue'
 import ProviderIcon from './ProviderIcon.vue'
@@ -77,7 +80,16 @@ const props = defineProps<{
   countdownSeconds: number
   loading: boolean
   detailCache: Record<number, UserMonitorDetail>
+  groupsById?: Record<number, Group>
+  userGroupRates?: Record<number, number>
 }>()
+
+// 只解析出当前用户可用的分组；不可用或已删除的分组不展示。
+function resolveGroups(item: UserMonitorView): Group[] {
+  const byId = props.groupsById
+  if (!byId) return []
+  return (item.group_ids || []).map(id => byId[id]).filter((g): g is Group => Boolean(g))
+}
 
 const emit = defineEmits<{
   (e: 'cardClick', item: UserMonitorView): void

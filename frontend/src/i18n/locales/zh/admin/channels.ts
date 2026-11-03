@@ -598,6 +598,7 @@ export default {
         extraModelsPlaceholder: '回车添加附加模型',
         groupName: '分组名称',
         groupNamePlaceholder: '可选，用于在用户视图中聚合显示',
+        linkedGroupsHint: '关联的分组会在用户端渠道状态卡片上显示倍率（含用户专属倍率），用户只能看到自己可用的分组。',
         intervalSeconds: '检测间隔 (秒)',
         intervalSecondsHint: '范围：15 - 3600 秒',
         jitterSeconds: '随机抖动 (± 秒)',

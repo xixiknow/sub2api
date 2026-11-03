@@ -26,6 +26,7 @@ function makeItem(overrides: Partial<UserMonitorView> = {}): UserMonitorView {
     name: 'claude-main',
     provider: 'kimi',
     group_name: '',
+    group_ids: [],
     primary_model: 'quota',
     primary_status: 'operational',
     primary_latency_ms: null,

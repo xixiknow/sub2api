@@ -103,6 +103,8 @@ var ProviderSet = wire.NewSet(
 	NewPluginKVStore,
 	NewChannelRepository,
 	NewChannelMonitorRepository,
+	NewAccountTreeRepository,
+	NewProfitRepository,
 	NewChannelMonitorV2Repository,
 	NewChannelMonitorRequestTemplateRepository,
 	NewContentModerationRepository,

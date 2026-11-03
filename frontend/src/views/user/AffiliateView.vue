@@ -560,70 +560,11 @@
       </template>
     </div>
 
-    <Teleport to="body">
-      <div
-        v-if="tutorialDialogOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
-        @click.self="closeGrowthTutorial"
-      >
-        <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-dark-900">
-          <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-dark-700">
-            <div>
-              <h3 class="text-base font-semibold text-gray-900 dark:text-white">邀请返利教学</h3>
-              <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">了解规则即可完成新人任务</p>
-            </div>
-            <button
-              type="button"
-              class="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-800 dark:hover:text-dark-200"
-              @click="closeGrowthTutorial"
-            >
-              <Icon name="x" size="sm" :stroke-width="2" />
-            </button>
-          </div>
-          <div class="space-y-3 p-5 text-sm text-gray-600 dark:text-dark-300">
-            <div class="rounded-xl border border-primary-100 bg-primary-50 p-4 dark:border-primary-900/50 dark:bg-primary-900/20">
-              <p class="font-semibold text-primary-800 dark:text-primary-200">你的邀请链接在本页上方；规则和升级进度已在本页集中展示。</p>
-              <p class="mt-2 leading-6 text-primary-700 dark:text-primary-300">
-                一级返利默认生效；二级、三级会按有效邀请人数自动解锁，只有完成真实支付的直属用户才计入进度。
-              </p>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-3">
-              <div class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800/70">
-                <p class="text-xs text-gray-500 dark:text-dark-400">第 1 步</p>
-                <p class="mt-1 font-semibold text-gray-900 dark:text-white">复制链接</p>
-              </div>
-              <div class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800/70">
-                <p class="text-xs text-gray-500 dark:text-dark-400">第 2 步</p>
-                <p class="mt-1 font-semibold text-gray-900 dark:text-white">邀请注册</p>
-              </div>
-              <div class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800/70">
-                <p class="text-xs text-gray-500 dark:text-dark-400">第 3 步</p>
-                <p class="mt-1 font-semibold text-gray-900 dark:text-white">充值返利</p>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end gap-3 border-t border-gray-100 px-5 py-4 dark:border-dark-700">
-            <button type="button" class="btn btn-secondary" @click="closeGrowthTutorial">稍后</button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="confirmingGrowthTutorial"
-              @click="confirmGrowthTutorial"
-            >
-              <Icon v-if="confirmingGrowthTutorial" name="refresh" size="sm" class="animate-spin" />
-              <Icon v-else name="check" size="sm" />
-              <span>{{ confirmingGrowthTutorial ? '确认中' : '我已了解' }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -636,8 +577,6 @@ import { formatCurrency, formatDateTime } from '@/utils/format'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
 const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const { copyToClipboard } = useClipboard()
@@ -648,8 +587,6 @@ const purchasingSeats = ref(false)
 const detail = ref<UserAffiliateDetail | null>(null)
 const activeLevel = ref(1)
 const seatQuantity = ref(1)
-const tutorialDialogOpen = ref(false)
-const confirmingGrowthTutorial = ref(false)
 
 const fallbackLevelUnlockThresholds: Record<number, number> = {
   1: 0,
@@ -1018,40 +955,7 @@ async function purchaseRegistrationSeats(): Promise<void> {
   }
 }
 
-function maybeOpenGrowthTutorial(): void {
-  if (route.query.growth_tutorial === '1') {
-    tutorialDialogOpen.value = true
-  }
-}
-
-function closeGrowthTutorial(): void {
-  tutorialDialogOpen.value = false
-}
-
-async function confirmGrowthTutorial(): Promise<void> {
-  if (confirmingGrowthTutorial.value) return
-  confirmingGrowthTutorial.value = true
-  try {
-    await userAPI.markAffiliateTutorialDone()
-    tutorialDialogOpen.value = false
-    window.dispatchEvent(new CustomEvent('growth:center-refresh'))
-    appStore.showSuccess('新人任务已完成')
-    const query = { ...route.query }
-    delete query.growth_tutorial
-    await router.replace({ query })
-  } catch (error) {
-    appStore.showError(extractApiErrorMessage(error, '确认失败，请稍后重试'))
-  } finally {
-    confirmingGrowthTutorial.value = false
-  }
-}
-
-watch(() => route.query.growth_tutorial, () => {
-  maybeOpenGrowthTutorial()
-})
-
 onMounted(() => {
   void loadAffiliateDetail()
-  maybeOpenGrowthTutorial()
 })
 </script>

@@ -14,16 +14,12 @@ import (
 )
 
 var (
-	ErrPromoCodeNotFound               = infraerrors.NotFound("PROMO_CODE_NOT_FOUND", "promo code not found")
-	ErrPromoCodeExpired                = infraerrors.BadRequest("PROMO_CODE_EXPIRED", "promo code has expired")
-	ErrPromoCodeDisabled               = infraerrors.BadRequest("PROMO_CODE_DISABLED", "promo code is disabled")
-	ErrPromoCodeMaxUsed                = infraerrors.BadRequest("PROMO_CODE_MAX_USED", "promo code has reached maximum uses")
-	ErrPromoCodeAlreadyUsed            = infraerrors.Conflict("PROMO_CODE_ALREADY_USED", "you have already used this promo code")
-	ErrPromoCodeInvalid                = infraerrors.BadRequest("PROMO_CODE_INVALID", "invalid promo code")
-	ErrPromoCodeStarterTasksIncomplete = infraerrors.Forbidden(
-		"STARTER_TASKS_INCOMPLETE",
-		"请先完成创建 API Key、首次调用和了解邀请返利，再兑换群福利码",
-	)
+	ErrPromoCodeNotFound    = infraerrors.NotFound("PROMO_CODE_NOT_FOUND", "promo code not found")
+	ErrPromoCodeExpired     = infraerrors.BadRequest("PROMO_CODE_EXPIRED", "promo code has expired")
+	ErrPromoCodeDisabled    = infraerrors.BadRequest("PROMO_CODE_DISABLED", "promo code is disabled")
+	ErrPromoCodeMaxUsed     = infraerrors.BadRequest("PROMO_CODE_MAX_USED", "promo code has reached maximum uses")
+	ErrPromoCodeAlreadyUsed = infraerrors.Conflict("PROMO_CODE_ALREADY_USED", "you have already used this promo code")
+	ErrPromoCodeInvalid     = infraerrors.BadRequest("PROMO_CODE_INVALID", "invalid promo code")
 )
 
 const (
@@ -104,7 +100,7 @@ func (s *PromoService) validatePromoCodeStatus(promoCode *PromoCode) error {
 // ApplyPromoCode 应用优惠码（注册成功后调用）
 // 使用事务和行锁确保并发安全
 func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code string) error {
-	_, err := s.applyPromoCode(ctx, userID, code, false)
+	_, err := s.applyPromoCode(ctx, userID, code)
 	return err
 }
 
@@ -112,10 +108,10 @@ func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code st
 // The promo code remains active until the admin disables or deletes it, while
 // promo_code_usages enforces that each user can redeem it only once.
 func (s *PromoService) RedeemPromoCode(ctx context.Context, userID int64, code string) (*PromoCodeApplyResult, error) {
-	return s.applyPromoCode(ctx, userID, code, true)
+	return s.applyPromoCode(ctx, userID, code)
 }
 
-func (s *PromoService) applyPromoCode(ctx context.Context, userID int64, code string, enforceCommunityGate bool) (*PromoCodeApplyResult, error) {
+func (s *PromoService) applyPromoCode(ctx context.Context, userID int64, code string) (*PromoCodeApplyResult, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
 		return nil, nil
@@ -151,16 +147,6 @@ func (s *PromoService) applyPromoCode(ctx context.Context, userID int64, code st
 	}
 	if existing != nil {
 		return nil, ErrPromoCodeAlreadyUsed
-	}
-
-	if enforceCommunityGate && promoCode.Purpose == PromoCodePurposeCommunityJoin {
-		status, err := newGrowthServiceWithDB(tx.Client()).starterTaskGateStatus(txCtx, userID)
-		if err != nil {
-			return nil, err
-		}
-		if !status.communityWelfareReady() {
-			return nil, ErrPromoCodeStarterTasksIncomplete
-		}
 	}
 
 	// 增加用户余额

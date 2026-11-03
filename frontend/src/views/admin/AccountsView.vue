@@ -17,6 +17,16 @@
             @create="showCreate = true"
           >
             <template #after>
+              <!-- Tree view toggle -->
+              <button
+                class="btn btn-secondary hidden px-2 md:inline-flex md:px-3"
+                :class="treeViewEnabled ? 'ring-2 ring-primary-400' : ''"
+                :title="t('admin.accountTree.toggle')"
+                @click="toggleTreeView"
+              >
+                <Icon name="grid" size="sm" class="md:mr-1.5" />
+                <span class="hidden md:inline">{{ t('admin.accountTree.toggle') }}</span>
+              </button>
               <!-- Auto Refresh Dropdown -->
               <div class="relative" ref="autoRefreshDropdownRef">
                 <button
@@ -184,12 +194,24 @@
           @reset-status="handleBulkResetStatus"
           @refresh-token="handleBulkRefreshToken"
           @probe-upstream-billing="handleBulkProbeUpstreamBilling"
+          @query-upstream-balance="handleBulkQueryUpstreamBalance"
           @edit-selected="openBulkEditSelected"
           @edit-filtered="openBulkEditFiltered"
           @clear="clearSelection"
           @select-page="selectPage"
           @select-all-results="handleSelectAllResults"
           @toggle-schedulable="handleBulkToggleSchedulable"
+        />
+        <div class="flex min-h-0 flex-1 gap-3 overflow-hidden">
+        <AccountTreePanel
+          v-if="treeViewEnabled && isDesktopViewport"
+          ref="treePanelRef"
+          :selected="String(params.group ?? '')"
+          :groups="groups"
+          :platform="params.platform"
+          :type="params.type"
+          :search="params.search"
+          @select="handleTreeSelect"
         />
         <div ref="accountTableRef" class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <DataTable
@@ -325,6 +347,7 @@
               @account-updated="handleAccountUpdated"
               @usage-loaded="handleAccountUsageLoaded(row.id, $event)"
             />
+            <UpstreamBalanceCell :account="row" class="mt-1" />
           </template>
           <template #cell-proxy="{ row }">
             <div class="flex flex-col gap-1">
@@ -451,6 +474,7 @@
           </template>
         </DataTable>
         </div>
+        </div>
       </template>
       <template #pagination><Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" /></template>
     </TablePageLayout>
@@ -528,6 +552,9 @@ import UpstreamBillingRateCell from '@/components/account/UpstreamBillingRateCel
 import AccountPriorityCell from '@/components/account/AccountPriorityCell.vue'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
 import Icon from '@/components/icons/Icon.vue'
+import AccountTreePanel from '@/components/admin/account/AccountTreePanel.vue'
+import UpstreamBalanceCell from '@/components/account/UpstreamBalanceCell.vue'
+import { useRoute } from 'vue-router'
 import ErrorPassthroughRulesModal from '@/components/admin/ErrorPassthroughRulesModal.vue'
 import TLSFingerprintProfilesModal from '@/components/admin/TLSFingerprintProfilesModal.vue'
 import { fetchAllAccountIds } from '@/utils/accountSelection'
@@ -552,6 +579,50 @@ const accountGroupsForRow = (account: Pick<AccountListItem, 'group_ids'>): Admin
   if (groupIDs.length === 0) return []
   return groupIDs.map(id => groupsByID.value.get(id)).filter((group): group is AdminGroup => Boolean(group))
 }
+// 单测里可能没有挂载路由，route 允许为空
+const route = useRoute() as ReturnType<typeof useRoute> | undefined
+
+// ===== 分组树形视图 =====
+const TREE_VIEW_STORAGE_KEY = 'account-tree-view'
+const loadTreeViewEnabled = (): boolean => {
+  try {
+    return (JSON.parse(localStorage.getItem(TREE_VIEW_STORAGE_KEY) || '{}') as { enabled?: unknown }).enabled === true
+  } catch {
+    return false
+  }
+}
+const treeViewEnabled = ref(loadTreeViewEnabled())
+const treePanelRef = ref<InstanceType<typeof AccountTreePanel> | null>(null)
+const toggleTreeView = () => {
+  treeViewEnabled.value = !treeViewEnabled.value
+  localStorage.setItem(TREE_VIEW_STORAGE_KEY, JSON.stringify({ enabled: treeViewEnabled.value }))
+}
+const handleTreeSelect = (value: string) => {
+  params.group = value
+  reload()
+}
+
+const handleBulkQueryUpstreamBalance = async () => {
+  const accountIDs = [...selIds.value]
+  if (accountIDs.length === 0) return
+  if (accountIDs.length > 50) {
+    appStore.showError(t('admin.upstreamBalance.bulkLimit'))
+    return
+  }
+  try {
+    const results = await adminAPI.accountInsights.batchRefreshAccountBalance(accountIDs)
+    const failed = results.filter(result => result.error || result.result?.status === 'failed').length
+    if (failed > 0) {
+      appStore.showError(t('admin.upstreamBalance.bulkPartial', { success: results.length - failed, failed }))
+    } else {
+      appStore.showSuccess(t('admin.upstreamBalance.bulkDone', { count: results.length }))
+    }
+    reload()
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('admin.upstreamBalance.refreshFailed')))
+  }
+}
+
 const accountTableRef = ref<HTMLElement | null>(null)
 const dataTableRef = ref<InstanceType<typeof DataTable> | null>(null)
 type AccountBulkEditTarget =
@@ -1113,7 +1184,7 @@ const {
     ...loadInitialAccountFilterValues(),
     type: '',
     privacy_mode: '',
-    group: '',
+    group: typeof route?.query?.group === 'string' ? route.query.group : '',
     search: '',
     lite: '1',
     include_scheduler_score: shouldIncludeSchedulerScore() ? '1' : '0',

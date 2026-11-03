@@ -64,6 +64,45 @@ func TestVerifyCaptchaUsesTencentWhenEnabled(t *testing.T) {
 	require.Equal(t, 1, verifier.calls)
 }
 
+func TestCheckinCaptchaAlwaysRequired(t *testing.T) {
+	svc := newAuthServiceForCaptchaTest(map[string]string{}, false, nil, nil)
+	_, err := svc.VerifyCheckinCaptcha(context.Background(), CaptchaProof{TurnstileToken: "invented-token"}, "127.0.0.1")
+	require.ErrorIs(t, err, ErrTurnstileNotConfigured)
+	svc = newAuthServiceForCaptchaTest(tencentCaptchaSettings(), false, &turnstileVerifierSpy{}, &tencentCaptchaVerifierStub{response: &TencentCaptchaVerifyResponse{CaptchaCode: 1}})
+	for _, proof := range []CaptchaProof{{}, {TencentTicket: "ticket"}, {TurnstileToken: "token", TencentTicket: "ticket", TencentRandstr: "rand"}} {
+		_, err = svc.VerifyCheckinCaptcha(context.Background(), proof, "127.0.0.1")
+		require.ErrorIs(t, err, ErrCheckinCaptchaRequired)
+	}
+}
+
+func TestCheckinCaptchaTurnstileAndSettingsFailure(t *testing.T) {
+	verifier := &turnstileVerifierSpy{result: &TurnstileVerifyResponse{Success: true}}
+	svc := newAuthServiceForCaptchaTest(map[string]string{SettingKeyTurnstileEnabled: "true", SettingKeyTurnstileSecretKey: "secret"}, false, verifier, nil)
+	hash, err := svc.VerifyCheckinCaptcha(context.Background(), CaptchaProof{TurnstileToken: "valid-token"}, "127.0.0.1")
+	require.NoError(t, err)
+	require.Len(t, hash, 64)
+	require.Equal(t, 1, verifier.called)
+	svc = newAuthServiceForCaptchaRepoTest(&settingRepoStub{err: errors.New("settings down")}, false, verifier, nil)
+	_, err = svc.VerifyCheckinCaptcha(context.Background(), CaptchaProof{TurnstileToken: "valid-token"}, "127.0.0.1")
+	require.ErrorIs(t, err, ErrServiceUnavailable)
+	require.Equal(t, 1, verifier.called)
+}
+
+func TestCheckinCaptchaRejectsFailedProofAndNormalizesFingerprint(t *testing.T) {
+	verifier := &tencentCaptchaVerifierStub{response: &TencentCaptchaVerifyResponse{CaptchaCode: 1}}
+	svc := newAuthServiceForCaptchaTest(tencentCaptchaSettings(), false, nil, verifier)
+	first, err := svc.VerifyCheckinCaptcha(context.Background(), CaptchaProof{TencentTicket: " ticket ", TencentRandstr: "rand"}, "127.0.0.1")
+	require.NoError(t, err)
+	require.Len(t, first, 64)
+	second, err := svc.VerifyCheckinCaptcha(context.Background(), CaptchaProof{TencentTicket: "ticket", TencentRandstr: "different-rand"}, "127.0.0.1")
+	require.NoError(t, err)
+	require.Equal(t, first, second)
+	verifier.response = &TencentCaptchaVerifyResponse{CaptchaCode: 9}
+	hash, err := svc.VerifyCheckinCaptcha(context.Background(), CaptchaProof{TencentTicket: "rejected", TencentRandstr: "rand"}, "127.0.0.1")
+	require.Error(t, err)
+	require.Empty(t, hash)
+}
+
 func TestVerifyCaptchaRejectsDirtyDoubleEnabledSettings(t *testing.T) {
 	settings := tencentCaptchaSettings()
 	settings[SettingKeyTurnstileEnabled] = "true"

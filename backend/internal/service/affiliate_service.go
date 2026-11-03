@@ -202,10 +202,6 @@ type AffiliateRepository interface {
 	GetAffiliateUserOverview(ctx context.Context, userID int64) (*AffiliateUserOverview, error)
 }
 
-type badgeAffiliateRebateResolver interface {
-	ResolveBadgeAffiliateRebateRate(ctx context.Context, userID int64) (*float64, error)
-}
-
 // AffiliateAdminFilter 列表筛选条件
 type AffiliateAdminFilter struct {
 	Search   string
@@ -650,7 +646,7 @@ func (s *AffiliateService) applyPerInviteeCap(ctx context.Context, inviterID, in
 }
 
 // resolveRebateRatePercent returns the inviter's exclusive rate when set,
-// otherwise the best automatic badge benefit, then the global setting value.
+// otherwise the global setting value.
 func (s *AffiliateService) resolveRebateRatePercent(ctx context.Context, inviter *AffiliateSummary) float64 {
 	if inviter != nil && inviter.AffRebateRatePercent != nil {
 		v := *inviter.AffRebateRatePercent
@@ -659,32 +655,7 @@ func (s *AffiliateService) resolveRebateRatePercent(ctx context.Context, inviter
 		}
 		return clampAffiliateRebateRate(v)
 	}
-	if inviter != nil {
-		if resolver, ok := s.repo.(badgeAffiliateRebateResolver); ok {
-			if badgeRate, err := resolver.ResolveBadgeAffiliateRebateRate(ctx, inviter.UserID); err == nil && badgeRate != nil {
-				return clampAffiliateRebateRate(*badgeRate)
-			} else if err != nil {
-				logger.LegacyPrintf("service.affiliate", "resolve badge affiliate rebate failed, fallback to global: user=%d err=%v", inviter.UserID, err)
-			}
-		}
-	}
 	return s.globalRebateRatePercent(ctx)
-}
-
-func (s *AffiliateService) hasBadgeRebateRate(ctx context.Context, inviter *AffiliateSummary) bool {
-	if inviter == nil || inviter.AffRebateRatePercent != nil {
-		return false
-	}
-	resolver, ok := s.repo.(badgeAffiliateRebateResolver)
-	if !ok {
-		return false
-	}
-	badgeRate, err := resolver.ResolveBadgeAffiliateRebateRate(ctx, inviter.UserID)
-	if err != nil {
-		logger.LegacyPrintf("service.affiliate", "resolve badge affiliate rebate source failed: user=%d err=%v", inviter.UserID, err)
-		return false
-	}
-	return badgeRate != nil
 }
 
 // globalRebateRatePercent reads the system-wide rebate rate via SettingService,
@@ -731,8 +702,6 @@ func (s *AffiliateService) effectiveLevelRateRules(ctx context.Context, summary 
 		if i == 0 {
 			if summary != nil && summary.AffRebateRatePercent != nil {
 				source = "exclusive"
-			} else if s.hasBadgeRebateRate(ctx, summary) {
-				source = "badge"
 			}
 		} else if !unlocked {
 			source = "locked"

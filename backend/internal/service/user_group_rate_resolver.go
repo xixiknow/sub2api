@@ -18,10 +18,6 @@ type userGroupRateResolver struct {
 	logComponent string
 }
 
-type badgeGroupRateRepository interface {
-	GetBadgeRateByUserAndGroup(ctx context.Context, userID, groupID int64) (*float64, error)
-}
-
 func newUserGroupRateResolver(repo UserGroupRateRepository, cache *gocache.Cache, cacheTTL time.Duration, sf *singleflight.Group, logComponent string) *userGroupRateResolver {
 	if cacheTTL <= 0 {
 		cacheTTL = defaultUserGroupRateCacheTTL
@@ -83,14 +79,6 @@ func (r *userGroupRateResolver) Resolve(ctx context.Context, userID, groupID int
 		multiplier := groupDefaultMultiplier
 		if userRate != nil {
 			multiplier = *userRate
-		} else if badgeRepo, ok := r.repo.(badgeGroupRateRepository); ok {
-			badgeRate, badgeErr := badgeRepo.GetBadgeRateByUserAndGroup(ctx, userID, groupID)
-			if badgeErr != nil {
-				return nil, badgeErr
-			}
-			if badgeRate != nil {
-				multiplier = *badgeRate
-			}
 		}
 		if r.cache != nil {
 			r.cache.Set(key, multiplier, r.cacheTTL)

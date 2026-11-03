@@ -359,6 +359,21 @@ const GiftIcon = {
     )
 }
 
+const ChatIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155'
+        })
+      ]
+    )
+}
+
 const UserIcon = {
   render: () =>
     h(
@@ -723,6 +738,8 @@ const purchaseNavLabel = computed(() => {
   }
 })
 const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
+const flagCheckin = makeSidebarFlag(FeatureFlags.checkin)
+const flagContactPage = makeSidebarFlag(FeatureFlags.contactPage)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagPluginManagement = makeSidebarFlag(FeatureFlags.pluginManagement)
 const flagMCP = makeSidebarFlag(FeatureFlags.mcp)
@@ -750,8 +767,10 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/recharge-card', fullPage: true, label: t('rechargeCard.title'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: () => rechargeCard.value.enabled, externalUrl: rechargeCard.value.mode === 'new_tab' ? rechargeCard.value.url : undefined },
     { path: '/orders', label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: true, featureFlag: flagPayment },
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
+    { path: '/checkin', label: t('checkin.title'), icon: GiftIcon, hideInSimpleMode: true, featureFlag: flagCheckin },
     { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
+    { path: '/contact', label: t('contact.title'), icon: ChatIcon, featureFlag: flagContactPage },
     { path: '/settings/mcp', label: t('mcp.title'), icon: MCPIcon, featureFlag: flagMCP },
     ...customMenuItemsForUser.value.map((item): NavItem => ({
       path: `/custom/${item.id}`,
@@ -828,7 +847,6 @@ const adminNavItems = computed((): NavItem[] => {
     },
     { path: '/admin/redeem', label: t('nav.redeemCodes'), icon: TicketIcon, hideInSimpleMode: true },
     { path: '/admin/promo-codes', label: t('nav.promoCodes'), icon: GiftIcon, hideInSimpleMode: true },
-    { path: '/admin/growth', label: t('nav.growthBenefits'), icon: GiftIcon, hideInSimpleMode: true },
     {
       path: '/admin/affiliates',
       label: t('nav.affiliateManagement'),
@@ -860,6 +878,7 @@ const adminNavItems = computed((): NavItem[] => {
         : undefined,
     },
     { path: '/admin/usage', label: t('nav.usage'), icon: ChartIcon },
+    { path: '/admin/profit', label: t('nav.profit'), icon: ChartIcon, hideInSimpleMode: true },
     { path: '/admin/audit-logs', label: t('nav.auditLogs'), icon: ShieldIcon, hideInSimpleMode: true }
   ]
 

@@ -45,9 +45,10 @@ func ProvideAdminHandlers(
 	promptAuditHandler *securityaudit.PromptAdminHandler,
 	paymentHandler *admin.PaymentHandler,
 	affiliateHandler *admin.AffiliateHandler,
-	growthHandler *admin.GrowthHandler,
 	complianceHandler *admin.ComplianceHandler,
 	auditLogHandler *admin.AuditLogHandler,
+	accountInsightHandler *admin.AccountInsightHandler,
+	profitHandler *admin.ProfitHandler,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
 	ollamaCloudUsage *service.OllamaCloudUsageService,
 	opencodeGoUsage *service.OpenCodeGoUsageService,
@@ -92,9 +93,10 @@ func ProvideAdminHandlers(
 		PromptAudit:            promptAuditHandler,
 		Payment:                paymentHandler,
 		Affiliate:              affiliateHandler,
-		Growth:                 growthHandler,
 		Compliance:             complianceHandler,
 		AuditLog:               auditLogHandler,
+		AccountInsight:         accountInsightHandler,
+		Profit:                 profitHandler,
 	}
 }
 
@@ -241,7 +243,7 @@ func ProvideHandlers(
 var ProviderSet = wire.NewSet(
 	// Top-level handlers
 	NewAuthHandler,
-	NewUserHandler,
+	ProvideUserHandler,
 	NewMCPOAuthHandler,
 	NewAPIKeyHandler,
 	NewUsageHandler,
@@ -297,9 +299,10 @@ var ProviderSet = wire.NewSet(
 	admin.NewContentModerationHandler,
 	admin.NewPaymentHandler,
 	admin.NewAffiliateHandler,
-	admin.NewGrowthHandler,
 	admin.NewComplianceHandler,
 	admin.NewAuditLogHandler,
+	admin.NewAccountInsightHandler,
+	admin.NewProfitHandler,
 
 	// AdminHandlers and Handlers constructors
 	ProvideAdminHandlers,

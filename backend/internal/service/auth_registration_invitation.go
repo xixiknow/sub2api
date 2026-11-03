@@ -183,10 +183,12 @@ func (s *AuthService) applyRegistrationInvitation(ctx context.Context, invite *r
 		}
 		return s.affiliateService.BindRegistrationInviterByCode(ctx, userID, invite.Code)
 	case RegistrationCodeTypeRedeem:
-		if s == nil || s.redeemRepo == nil || invite.RedeemCode == nil {
+		if s == nil || (s.redeemRepo == nil && s.oauthEmailFlowClient(ctx) == nil) || invite.RedeemCode == nil {
 			return ErrServiceUnavailable
 		}
-		if err := s.redeemRepo.Use(ctx, invite.RedeemCode.ID, userID); err != nil {
+		// useOAuthRegistrationInvitation 会在 ctx 携带事务时复用事务连接执行，
+		// 避免桩/生产环境下另开连接与未提交事务形成自死锁。
+		if err := s.useOAuthRegistrationInvitation(ctx, invite.RedeemCode.ID, userID); err != nil {
 			return ErrInvitationCodeInvalid
 		}
 		return nil

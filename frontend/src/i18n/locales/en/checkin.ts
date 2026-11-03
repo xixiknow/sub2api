@@ -1,0 +1,15 @@
+export default { checkin: {
+  verifyHint: 'Complete the verification on this page to claim your reward.', verifying: 'Complete verification…', verifyFailed: 'Verification failed. Please try again.', verifyUnavailable: 'Check-in verification is not ready. Please try later or contact the administrator.',
+  title: 'Daily check-in', description: 'A little luck, every day.', subtitle: 'Check in for a balance reward. Make each visit count.',
+  pending: 'Ready today', done: 'Checked in today', wheel: 'Daily lucky wheel', spin: 'Check in & spin · Once today', spinning: 'Your luck is turning…', tomorrow: 'Claimed · See you tomorrow',
+  autoCredit: 'A reward every day · Added to your balance', oddsNote: 'Sector sizes do not represent probabilities. See reward rules.',
+  won: 'You won {amount}! Added to your balance.', weekly: 'Weekly boosts', recentWeek: 'Last 7 days', factorsHint: 'Regular usage and check-ins improve your chances.',
+  activity: 'Active usage', streak: 'Check-in streak', spending: 'Balance spending', recharge: 'Recharge support', days: '{count} / 7 days', earned: 'Earned', notEarned: 'Not yet earned',
+  activityHint: 'One active day per day with billed usage, regardless of call count', streakHint: 'Includes today’s claim; capped at 7 consecutive days', spendingHint: 'Actual balance spending; diminishing boost, capped at $20', rechargeHint: 'A successful balance recharge not fully refunded in the last 7 days',
+  score: 'Score for this draw', noGuarantee: 'A full score does not guarantee $1', footprints: 'Check-in trail', recentRewards: 'Recent rewards', today: 'Today', waiting: 'Ready', signed: 'Claimed', missed: 'Missed',
+  streakCount: '{count} consecutive check-ins', streakMax: 'Streak boost is full', streakReset: 'A missed day resets your streak. Previous rewards stay yours.', empty: 'No rewards yet. Start your daily ritual today.',
+  rules: 'Reward rules & probabilities', rulesBody: 'Once per user per day, resetting at 00:00 Beijing time. Metrics cover the last 7 Beijing calendar days including today up to claim time. Each draw is independent. Rewards are for API usage.',
+  thresholds: 'Weekly spending of $0 / $1 / $5 / $10 / $20 earns 0 / 3 / 8 / 12 / 15 points, interpolated between thresholds.',
+  frozen: 'Claimed draws retain their original odds. Unclaimed odds are a preview and are finalized at claim time.', reset: 'Next chance at 00:00 Beijing time', historyLabel: 'Check-in reward',
+  loadError: 'Could not load check-in information. Please retry.', claimError: 'Request not confirmed. Retry to retrieve the original result if already credited.', retry: 'Retry', refresh: 'Refresh', balance: 'Current balance',
+} }

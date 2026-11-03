@@ -134,6 +134,16 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Affiliate',
   }),
+  checkin: defineFlag({
+    key: 'checkin_enabled',
+    mode: 'opt-in',
+    label: 'Daily check-in',
+  }),
+  contactPage: defineFlag({
+    key: 'contact_page_enabled',
+    mode: 'opt-in',
+    label: 'Contact page',
+  }),
   // Read-only: enabled by the deployment's MCP_PUBLIC_URL, not an admin toggle.
   mcp: defineFlag({
     key: 'mcp_enabled',

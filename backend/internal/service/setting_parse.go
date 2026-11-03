@@ -196,6 +196,9 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyChannelMonitorShowQuota:              "false",
 		SettingKeyChannelMonitorHideUserRanking:        "false",
 
+		// Auto model sync defaults (24h interval)
+		SettingKeyAutoModelSyncIntervalHours: strconv.Itoa(AutoModelSyncIntervalHoursDefault),
+
 		// Grok compatibility defaults: cross-client mapping stays enabled unless
 		// operators explicitly disable it.
 		SettingKeyGrokDefaultTextModel:           "grok-4.6",
@@ -216,6 +219,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 
 		// Affiliate (邀请返利) feature (default disabled; opt-in)
 		SettingKeyAffiliateEnabled:              "false",
+		SettingKeyCheckinEnabled:                "false",
+		SettingKeyContactPageEnabled:            "false",
 		SettingKeyAffiliateAdminRechargeEnabled: strconv.FormatBool(AdminRechargeRebateEnabledDefault),
 
 		// 风控中心功能（默认关闭，显式启用）
@@ -364,8 +369,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		ForwardedClientIPHeaders:               forwardedClientIPHeaders,
 		SiteName:                               s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                               settings[SettingKeySiteLogo],
-		CommunityLinkURL:                       strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
-		CommunityImageURL:                      strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
 		SiteSubtitle:                           s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                             settings[SettingKeyAPIBaseURL],
 		ContactInfo:                            settings[SettingKeyContactInfo],
@@ -828,6 +831,11 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result.ChannelMonitorShowQuota = settings[SettingKeyChannelMonitorShowQuota] == "true"
 	result.ChannelMonitorHideUserRanking = isTrueSettingValue(settings[SettingKeyChannelMonitorHideUserRanking])
 
+	// Auto model sync interval (default 24h, bounded [1,720])
+	result.AutoModelSyncIntervalHours = clampAutoModelSyncIntervalHours(
+		settings[SettingKeyAutoModelSyncIntervalHours],
+	)
+
 	// Grok default mapping policy
 	result.GrokDefaultTextModel = strings.TrimSpace(settings[SettingKeyGrokDefaultTextModel])
 	if result.GrokDefaultTextModel == "" {
@@ -852,6 +860,11 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// Affiliate (邀请返利) feature (default: disabled; strict true)
 	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"
+	result.CheckinEnabled = settings[SettingKeyCheckinEnabled] == "true"
+	result.ContactPageEnabled = settings[SettingKeyContactPageEnabled] == "true"
+	result.ContactPageImage = strings.TrimSpace(settings[SettingKeyContactPageImage])
+	result.ContactPageLink = strings.TrimSpace(settings[SettingKeyContactPageLink])
+	result.ContactPageText = settings[SettingKeyContactPageText]
 
 	// 风控中心功能（默认关闭，严格 true 才启用）
 	result.RiskControlEnabled = settings[SettingKeyRiskControlEnabled] == "true"

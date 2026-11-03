@@ -182,8 +182,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyAPIKeyACLTrustForwardedIP,
 		SettingKeySiteName,
 		SettingKeySiteLogo,
-		SettingKeyCommunityImageURL,
-		SettingKeyCommunityLinkURL,
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
@@ -245,6 +243,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyModelPlazaRequireAuth,
 		SettingKeyPluginManagementEnabled,
 		SettingKeyAffiliateEnabled,
+		SettingKeyCheckinEnabled,
+		SettingKeyContactPageEnabled,
 		SettingKeyRiskControlEnabled,
 		SettingKeyAllowUserViewErrorRequests,
 	}
@@ -331,8 +331,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		AliyunCaptchaRegion:                 normalizeAliyunCaptchaRegion(settings[SettingKeyAliyunCaptchaRegion]),
 		SiteName:                            s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                            settings[SettingKeySiteLogo],
-		CommunityLinkURL:                    strings.TrimSpace(settings[SettingKeyCommunityLinkURL]),
-		CommunityImageURL:                   strings.TrimSpace(settings[SettingKeyCommunityImageURL]),
 		SiteSubtitle:                        s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                          settings[SettingKeyAPIBaseURL],
 		ContactInfo:                         settings[SettingKeyContactInfo],
@@ -383,7 +381,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ModelPlazaRequireAuth:   settings[SettingKeyModelPlazaRequireAuth] == "true",
 		PluginManagementEnabled: settings[SettingKeyPluginManagementEnabled] == "true",
 
-		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
+		AffiliateEnabled:   settings[SettingKeyAffiliateEnabled] == "true",
+		CheckinEnabled:     settings[SettingKeyCheckinEnabled] == "true",
+		ContactPageEnabled: settings[SettingKeyContactPageEnabled] == "true",
 
 		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
 
@@ -596,8 +596,6 @@ type PublicSettingsInjectionPayload struct {
 	AliyunCaptchaRegion                 string                   `json:"aliyun_captcha_region"`
 	SiteName                            string                   `json:"site_name"`
 	SiteLogo                            string                   `json:"site_logo"`
-	CommunityLinkURL                    string                   `json:"community_link_url"`
-	CommunityImageURL                   string                   `json:"community_image_url"`
 	SiteSubtitle                        string                   `json:"site_subtitle"`
 	APIBaseURL                          string                   `json:"api_base_url"`
 	ContactInfo                         string                   `json:"contact_info"`
@@ -658,6 +656,8 @@ type PublicSettingsInjectionPayload struct {
 	ModelPlazaRequireAuth         bool `json:"model_plaza_require_auth"`
 	PluginManagementEnabled       bool `json:"plugin_management_enabled"`
 	AffiliateEnabled              bool `json:"affiliate_enabled"`
+	CheckinEnabled                bool `json:"checkin_enabled"`
+	ContactPageEnabled            bool `json:"contact_page_enabled"`
 	RiskControlEnabled            bool `json:"risk_control_enabled"`
 	AllowUserViewErrorRequests    bool `json:"allow_user_view_error_requests"`
 }
@@ -696,8 +696,6 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		AliyunCaptchaRegion:                 settings.AliyunCaptchaRegion,
 		SiteName:                            settings.SiteName,
 		SiteLogo:                            settings.SiteLogo,
-		CommunityLinkURL:                    settings.CommunityLinkURL,
-		CommunityImageURL:                   settings.CommunityImageURL,
 		SiteSubtitle:                        settings.SiteSubtitle,
 		APIBaseURL:                          settings.APIBaseURL,
 		ContactInfo:                         settings.ContactInfo,
@@ -748,6 +746,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ModelPlazaRequireAuth:                settings.ModelPlazaRequireAuth,
 		PluginManagementEnabled:              settings.PluginManagementEnabled,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
+		CheckinEnabled:                       settings.CheckinEnabled,
+		ContactPageEnabled:                   settings.ContactPageEnabled,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,
 	}, nil

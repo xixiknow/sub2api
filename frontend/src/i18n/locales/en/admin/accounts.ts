@@ -887,6 +887,12 @@ export default {
       interceptWarmupRequests: 'Intercept Warmup Requests',
       interceptWarmupRequestsDesc:
         'When enabled, warmup requests like title generation will return mock responses without consuming upstream tokens',
+      autoModelSync: {
+        title: 'Auto Sync Upstream Models',
+        desc: 'Periodically fetch the latest model list from this account upstream at the global interval configured in system settings, refresh the model capability snapshot, and automatically append newly discovered models to the model allowlist of the groups this account belongs to (add-only, no removal)',
+        lastSyncAt: 'Last sync',
+        lastError: 'Error',
+      },
       headerOverride: {
         title: 'Header Override',
         hint: 'Override same-named request headers on forwarding (case-insensitive)',
