@@ -1185,7 +1185,7 @@ const {
     type: '',
     privacy_mode: '',
     group: typeof route?.query?.group === 'string' ? route.query.group : '',
-    search: '',
+    search: typeof route?.query?.search === 'string' ? route.query.search : '',
     lite: '1',
     include_scheduler_score: shouldIncludeSchedulerScore() ? '1' : '0',
     sort_by: sortState.sort_by,

@@ -938,6 +938,7 @@ var ProviderSet = wire.NewSet(
 	NewAccountTreeService,
 	ProvideUpstreamBalanceService,
 	NewProfitService,
+	NewUpstreamBalanceOpsService,
 	ProvideOllamaCloudUsageService,
 	ProvideOpenCodeGoUsageService,
 	ProvideSettingService,

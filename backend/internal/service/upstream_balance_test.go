@@ -78,7 +78,7 @@ func TestIsUpstreamBalanceAccount(t *testing.T) {
 func TestSelectUpstreamBalanceRunnerAccounts(t *testing.T) {
 	now := time.Date(2026, 11, 3, 12, 0, 0, 0, time.UTC)
 	relay := func(id int64, extra map[string]any) Account {
-		return Account{ID: id, Type: AccountTypeAPIKey, Platform: PlatformOpenAI, Extra: extra,
+		return Account{ID: id, Type: AccountTypeAPIKey, Platform: PlatformOpenAI, Status: StatusActive, Extra: extra,
 			Credentials: map[string]any{"base_url": "https://relay.example.com", "api_key": "sk"}}
 	}
 	accounts := []Account{
@@ -88,6 +88,9 @@ func TestSelectUpstreamBalanceRunnerAccounts(t *testing.T) {
 		relay(4, map[string]any{UpstreamBalanceExtraKey: &UpstreamBalanceResult{Status: UpstreamBalanceStatusUnsupported, FetchedAt: now.Add(-48 * time.Hour)}}), // retried
 		{ID: 5, Type: AccountTypeAPIKey, Platform: PlatformAnthropic, Credentials: map[string]any{"base_url": "https://api.anthropic.com"}},
 	}
+	disabled := relay(5, nil)
+	disabled.Status = StatusDisabled
+	accounts = append(accounts, disabled)
 	require.Equal(t, []int64{2, 4, 1}, selectUpstreamBalanceRunnerAccounts(accounts, now, 10))
 	require.Equal(t, []int64{2}, selectUpstreamBalanceRunnerAccounts(accounts, now, 1))
 }

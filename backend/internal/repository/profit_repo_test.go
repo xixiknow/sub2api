@@ -17,7 +17,7 @@ func TestProfitRepoBreakdownAccountDimension(t *testing.T) {
 
 	start := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
 	end := start.Add(24 * time.Hour)
-	mock.ExpectQuery(`(?s)SELECT ul.account_id AS id.*COALESCE\(ul.account_stats_cost, ul.total_cost\) \* COALESCE\(ul.account_rate_multiplier, 1\).*ul.group_id = \$3.*ul.billing_type = \$4.*GROUP BY ul.account_id.*LIMIT \$5`).
+	mock.ExpectQuery(`(?s)SELECT ul.account_id AS id.*ul.total_cost \* COALESCE\(\s*ul.upstream_rate_multiplier,.*resolved_rate_multiplier.*ul.account_rate_multiplier, 1\).*ul.group_id = \$3.*ul.billing_type = \$4.*GROUP BY ul.account_id.*LIMIT \$5`).
 		WithArgs(start, end, int64(7), int16(service.BillingTypeBalance), 50).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "platform", "rate", "requests", "total_tokens", "standard_cost", "revenue", "cost"}).
 			AddRow(int64(11), "relay-1", "anthropic", 0.8, int64(3), int64(900), 1.5, 2.0, 1.2))

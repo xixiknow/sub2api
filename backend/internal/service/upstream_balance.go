@@ -109,6 +109,8 @@ type UpstreamBalanceService struct {
 	lockCache  LeaderLockCache
 	db         *sql.DB
 	stopCh     chan struct{}
+	// ops 记录余额历史、执行提醒与停调度；由 UpstreamBalanceOpsService 注入。
+	ops *UpstreamBalanceOpsService
 }
 
 func NewUpstreamBalanceService(
@@ -186,6 +188,9 @@ func (s *UpstreamBalanceService) QueryAccount(ctx context.Context, accountID int
 		}
 		if err := s.accountRepo.UpdateExtra(ctx, account.ID, updates); err != nil {
 			return nil, err
+		}
+		if s.ops != nil {
+			s.ops.recordSnapshot(ctx, account, result)
 		}
 		return result, nil
 	})
@@ -430,33 +435,48 @@ func (s *UpstreamBalanceService) runLoop() {
 			return
 		case <-timer.C:
 			s.runOnce(context.Background())
-			timer.Reset(upstreamBalanceRunnerInterval)
+			timer.Reset(s.interval())
 		}
 	}
 }
 
-func (s *UpstreamBalanceService) runOnce(ctx context.Context) {
+func (s *UpstreamBalanceService) interval() time.Duration {
+	if s.ops == nil {
+		return upstreamBalanceRunnerInterval
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return s.ops.refreshInterval(ctx)
+}
+
+// runOnce 刷新全部中转账号余额并执行提醒评估；未拿到 leader 锁时返回 false。
+func (s *UpstreamBalanceService) runOnce(ctx context.Context) bool {
 	if s.accountRepo == nil {
-		return
+		return false
 	}
 	ctx, cancel := context.WithTimeout(ctx, upstreamBalanceRunnerLeaderLockTTL)
 	defer cancel()
 	release, ok := s.acquireLeader(ctx)
 	if !ok {
-		return
+		return false
 	}
 	defer release()
 
-	accounts, err := s.accountRepo.ListAllWithFilters(ctx, "", AccountTypeAPIKey, StatusActive, "", 0, "")
+	// 不用仓储的 active 过滤：它会排除临时停调度/限流的账号，而余额耗尽被停调度的账号正需要继续刷新才能恢复。
+	accounts, err := s.accountRepo.ListAllWithFilters(ctx, "", AccountTypeAPIKey, "", "", 0, "")
 	if err != nil {
 		slog.Warn("upstream_balance_runner_list_accounts_failed", "error", err)
-		return
+		return true
 	}
 	accountIDs := selectUpstreamBalanceRunnerAccounts(accounts, s.now(), upstreamBalanceRunnerMaxAccounts)
 	for start := 0; start < len(accountIDs); start += upstreamBalanceMaxBatchSize {
 		end := min(start+upstreamBalanceMaxBatchSize, len(accountIDs))
 		s.QueryAccounts(ctx, accountIDs[start:end])
 	}
+	if s.ops != nil {
+		s.ops.evaluate(ctx)
+	}
+	return true
 }
 
 // selectUpstreamBalanceRunnerAccounts 选出本轮要刷新的账号：仅中转 API Key 账号，
@@ -469,7 +489,7 @@ func selectUpstreamBalanceRunnerAccounts(accounts []Account, now time.Time, limi
 	candidates := make([]candidate, 0, len(accounts))
 	for i := range accounts {
 		account := &accounts[i]
-		if !IsUpstreamBalanceAccount(account) {
+		if account.Status != StatusActive || !IsUpstreamBalanceAccount(account) {
 			continue
 		}
 		var fetchedAt time.Time

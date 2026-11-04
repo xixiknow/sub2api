@@ -901,6 +901,25 @@ func upstreamBillingRateAt(data map[string]any, now time.Time) (float64, bool) {
 	return base, true
 }
 
+// upstreamDeclaredRateSnapshot 返回账号在 at 时刻的上游声明倍率（含高峰系数），
+// 用于写入 usage_logs.upstream_rate_multiplier 供盈利统计核算成本。
+// 不做新鲜度校验：只要有过成功探测的数据就沿用最近一次声明；无数据时返回 nil。
+func upstreamDeclaredRateSnapshot(account *Account, at time.Time) *float64 {
+	if account == nil || !isUpstreamBillingProbeAccount(account) {
+		return nil
+	}
+	snapshot := decodeUpstreamBillingProbeSnapshot(account.Extra)
+	if snapshot == nil || snapshot.Data == nil ||
+		(snapshot.Status != UpstreamBillingProbeStatusOK && snapshot.Status != UpstreamBillingProbeStatusFailed) {
+		return nil
+	}
+	rate, ok := upstreamBillingRateAt(snapshot.Data, at)
+	if !ok {
+		return nil
+	}
+	return &rate
+}
+
 // upstreamBillingProbeSyncRate converts the declared multiplier into the value
 // the automatic write-back may store in accounts.rate_multiplier, at the
 // precision that column supports (DECIMAL(10,4)).

@@ -24,7 +24,16 @@ const (
 	profitFrom = `
 FROM usage_logs ul
 LEFT JOIN accounts a ON a.id = ul.account_id`
-	profitCostExpr = `COALESCE(ul.account_stats_cost, ul.total_cost) * COALESCE(ul.account_rate_multiplier, 1)`
+	// 上游声明倍率，按优先级：
+	//  1. 用量日志写入时记录的快照 upstream_rate_multiplier（含当时高峰系数）；
+	//  2. 历史日志无快照时，取账号当前探测到的基准倍率 resolved_rate_multiplier；
+	//  3. 账号未探测过时回退到用量日志里的账号倍率快照，再回退 1。
+	profitUpstreamRateExpr = `COALESCE(
+		ul.upstream_rate_multiplier,
+		CASE WHEN jsonb_typeof(a.extra #> '{upstream_billing_probe,data,resolved_rate_multiplier}') = 'number'
+			THEN (a.extra #>> '{upstream_billing_probe,data,resolved_rate_multiplier}')::numeric END,
+		ul.account_rate_multiplier, 1)`
+	profitCostExpr = `ul.total_cost * ` + profitUpstreamRateExpr
 	profitAggCols  = `
 	COUNT(*) AS requests,
 	COALESCE(SUM(ul.input_tokens + ul.output_tokens + ul.cache_creation_tokens + ul.cache_read_tokens), 0) AS total_tokens,

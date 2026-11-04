@@ -184,6 +184,7 @@ export default {
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     profit: 'Profit',
+    upstreamBalance: 'Upstream Balance',
     plugins: 'Plugins',
     proxies: 'Proxies',
     redeemCodes: 'Redeem Codes',

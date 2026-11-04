@@ -45,6 +45,7 @@ type AdminHandlers struct {
 	AuditLog               *admin.AuditLogHandler
 	AccountInsight         *admin.AccountInsightHandler
 	Profit                 *admin.ProfitHandler
+	UpstreamBalance        *admin.UpstreamBalanceHandler
 	EmailCampaign          *admin.EmailCampaignHandler
 }
 

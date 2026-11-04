@@ -10,8 +10,10 @@ import (
 
 // 盈利统计口径（逐条 usage_log）：
 //
-//	收入 revenue = actual_cost（已含分组倍率 / 用户专属倍率 / 高峰倍率）
-//	成本 cost    = COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)
+//	收入 revenue = actual_cost（token 标准计费 × 分组倍率，已含用户专属倍率 / 高峰倍率）
+//	成本 cost    = total_cost * 上游声明倍率（token 标准计费 × 请求时刻的上游声明倍率快照 upstream_rate_multiplier；
+//	               历史日志无快照时取账号当前探测的基准倍率，未探测时回退 account_rate_multiplier，再回退 1；
+//	               不使用 account_stats_cost）
 //	利润 profit  = revenue - cost
 //
 // 订阅计费行的 actual_cost 是套餐额度消耗而非现金收入，默认不计入，单独汇总。

@@ -446,6 +446,7 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 	usageLog.DurationMs = &durationMs
 	usageLog.FirstTokenMs = result.FirstTokenMs
 	usageLog.CreatedAt = time.Now()
+	usageLog.UpstreamRateMultiplier = upstreamDeclaredRateSnapshot(account, usageLog.CreatedAt)
 	// 设置渠道信息
 	usageLog.ChannelID = optionalInt64Ptr(input.ChannelID)
 	usageLog.ModelMappingChain = optionalTrimmedStringPtr(input.ModelMappingChain)

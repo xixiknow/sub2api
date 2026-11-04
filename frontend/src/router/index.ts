@@ -579,6 +579,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/upstream-balance',
+    name: 'AdminUpstreamBalance',
+    component: () => import('@/views/admin/UpstreamBalanceView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Upstream Balance',
+      titleKey: 'admin.upstreamBalanceOps.title',
+      descriptionKey: 'admin.upstreamBalanceOps.description'
+    }
+  },
+  {
     path: '/admin/plugins',
     name: 'AdminPlugins',
     component: () => import('@/views/admin/PluginsView.vue'),

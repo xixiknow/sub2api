@@ -50,6 +50,7 @@ func RegisterAdminRoutes(
 
 		// 盈利运营
 		registerProfitRoutes(admin, h)
+		registerUpstreamBalanceRoutes(admin, h)
 
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
@@ -369,6 +370,20 @@ func registerProfitRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		profit.GET("/summary", h.Admin.Profit.Summary)
 		profit.GET("/breakdown", h.Admin.Profit.Breakdown)
 		profit.GET("/trend", h.Admin.Profit.Trend)
+	}
+}
+
+func registerUpstreamBalanceRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	ub := admin.Group("/upstream-balance")
+	{
+		ub.GET("/overview", h.Admin.UpstreamBalance.Overview)
+		ub.POST("/refresh-all", h.Admin.UpstreamBalance.RefreshAll)
+		ub.GET("/accounts/:id/history", h.Admin.UpstreamBalance.History)
+		ub.PUT("/accounts/:id/alert", h.Admin.UpstreamBalance.UpdateAccountAlert)
+		ub.GET("/settings", h.Admin.UpstreamBalance.GetSettings)
+		ub.PUT("/settings", h.Admin.UpstreamBalance.UpdateSettings)
+		ub.POST("/settings/test-sms", h.Admin.UpstreamBalance.TestSMS)
+		ub.GET("/alerts", h.Admin.UpstreamBalance.ListAlerts)
 	}
 }
 

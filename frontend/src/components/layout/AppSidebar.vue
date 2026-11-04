@@ -895,6 +895,7 @@ const adminNavItems = computed((): NavItem[] => {
     },
     { path: '/admin/usage', label: t('nav.usage'), icon: ChartIcon },
     { path: '/admin/profit', label: t('nav.profit'), icon: ChartIcon, hideInSimpleMode: true },
+    { path: '/admin/upstream-balance', label: t('nav.upstreamBalance'), icon: CreditCardIcon, hideInSimpleMode: true },
     { path: '/admin/audit-logs', label: t('nav.auditLogs'), icon: ShieldIcon, hideInSimpleMode: true }
   ]
 

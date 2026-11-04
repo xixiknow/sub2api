@@ -1372,6 +1372,7 @@ func (s *GatewayService) buildRecordUsageLog(
 	if result.ImageCount > 0 && (cost == nil || cost.BillingMode != string(BillingModeToken)) {
 		usageLog.RateMultiplier = imageMultiplier
 	}
+	usageLog.UpstreamRateMultiplier = upstreamDeclaredRateSnapshot(account, usageLog.CreatedAt)
 	if cost != nil {
 		usageLog.InputCost = cost.InputCost
 		usageLog.OutputCost = cost.OutputCost

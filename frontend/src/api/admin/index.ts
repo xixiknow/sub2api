@@ -38,6 +38,7 @@ import auditAPI from './audit'
 import pluginsAPI from './plugins'
 import accountInsightsAPI from './accountInsights'
 import profitAPI from './profit'
+import upstreamBalanceAPI from './upstreamBalance'
 import emailCampaignsAPI from './emailCampaigns'
 
 /**
@@ -79,6 +80,7 @@ export const adminAPI = {
   plugins: pluginsAPI,
   accountInsights: accountInsightsAPI,
   profit: profitAPI,
+  upstreamBalance: upstreamBalanceAPI,
   emailCampaigns: emailCampaignsAPI
 }
 
@@ -118,6 +120,7 @@ export {
   pluginsAPI,
   accountInsightsAPI,
   profitAPI,
+  upstreamBalanceAPI,
   emailCampaignsAPI
 }
 
