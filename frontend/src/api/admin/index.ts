@@ -38,6 +38,7 @@ import auditAPI from './audit'
 import pluginsAPI from './plugins'
 import accountInsightsAPI from './accountInsights'
 import profitAPI from './profit'
+import emailCampaignsAPI from './emailCampaigns'
 
 /**
  * Unified admin API object for convenient access
@@ -77,7 +78,8 @@ export const adminAPI = {
   audit: auditAPI,
   plugins: pluginsAPI,
   accountInsights: accountInsightsAPI,
-  profit: profitAPI
+  profit: profitAPI,
+  emailCampaigns: emailCampaignsAPI
 }
 
 export {
@@ -115,7 +117,8 @@ export {
   auditAPI,
   pluginsAPI,
   accountInsightsAPI,
-  profitAPI
+  profitAPI,
+  emailCampaignsAPI
 }
 
 export default adminAPI

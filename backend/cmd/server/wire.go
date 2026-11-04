@@ -103,6 +103,7 @@ func provideCleanup(
 	proxyExpiry *service.ProxyExpiryService,
 	subscriptionExpiry *service.SubscriptionExpiryService,
 	usageCleanup *service.UsageCleanupService,
+	emailCampaign *service.EmailCampaignService,
 	idempotencyCleanup *service.IdempotencyCleanupService,
 	geminiCachedContent *service.GeminiCachedContentService,
 	batchImageCleanup *service.BatchImageCleanupService,
@@ -239,6 +240,10 @@ func provideCleanup(
 				if usageCleanup != nil {
 					usageCleanup.Stop()
 				}
+				return nil
+			}},
+			{"EmailCampaignService", func() error {
+				emailCampaign.Stop()
 				return nil
 			}},
 			{"IdempotencyCleanupService", func() error {

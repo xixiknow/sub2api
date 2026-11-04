@@ -977,6 +977,7 @@ var ProviderSet = wire.NewSet(
 	ProvideTimingWheelService,
 	ProvideDashboardAggregationService,
 	ProvideUsageCleanupService,
+	ProvideEmailCampaignService,
 	ProvideDeferredService,
 	NewAntigravityQuotaFetcher,
 	NewGrokQuotaFetcher,

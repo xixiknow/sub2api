@@ -603,6 +603,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/marketing-email',
+    name: 'AdminMarketingEmail',
+    component: () => import('@/views/admin/MarketingEmailView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Marketing Email',
+      titleKey: 'admin.marketingEmail.title',
+      descriptionKey: 'admin.marketingEmail.description'
+    }
+  },
+  {
     path: '/admin/proxies',
     name: 'AdminProxies',
     component: () => import('@/views/admin/ProxiesView.vue'),

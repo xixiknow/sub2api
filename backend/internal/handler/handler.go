@@ -45,6 +45,7 @@ type AdminHandlers struct {
 	AuditLog               *admin.AuditLogHandler
 	AccountInsight         *admin.AccountInsightHandler
 	Profit                 *admin.ProfitHandler
+	EmailCampaign          *admin.EmailCampaignHandler
 }
 
 // Handlers contains all HTTP handlers

@@ -53,6 +53,7 @@ func RegisterAdminRoutes(
 
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
+		registerEmailCampaignRoutes(admin, h)
 
 		// OpenAI OAuth
 		registerOpenAIOAuthRoutes(admin, h)
@@ -455,6 +456,23 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAu
 		accounts.POST("/exchange-setup-token-code", h.Admin.OAuth.ExchangeSetupTokenCode)
 		accounts.POST("/cookie-auth", h.Admin.OAuth.CookieAuth)
 		accounts.POST("/setup-token-cookie-auth", h.Admin.OAuth.SetupTokenCookieAuth)
+	}
+}
+
+func registerEmailCampaignRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	campaigns := admin.Group("/email-campaigns")
+	{
+		campaigns.GET("", h.Admin.EmailCampaign.List)
+		campaigns.POST("", h.Admin.EmailCampaign.Create)
+		campaigns.POST("/audience/preview", h.Admin.EmailCampaign.PreviewAudience)
+		campaigns.POST("/preview", h.Admin.EmailCampaign.Preview)
+		campaigns.POST("/test", h.Admin.EmailCampaign.SendTest)
+		campaigns.GET("/:id", h.Admin.EmailCampaign.Get)
+		campaigns.PUT("/:id", h.Admin.EmailCampaign.Update)
+		campaigns.DELETE("/:id", h.Admin.EmailCampaign.Delete)
+		campaigns.POST("/:id/send", h.Admin.EmailCampaign.Launch)
+		campaigns.POST("/:id/cancel", h.Admin.EmailCampaign.Cancel)
+		campaigns.GET("/:id/recipients", h.Admin.EmailCampaign.ListRecipients)
 	}
 }
 

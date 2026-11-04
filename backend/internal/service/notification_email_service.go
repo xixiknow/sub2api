@@ -33,6 +33,7 @@ const (
 	NotificationEmailEventCyberPolicyNotice           = "content_moderation.cyber_policy_notice"
 	NotificationEmailEventOpsAlert                    = "ops.alert"
 	NotificationEmailEventOpsScheduledReport          = "ops.scheduled_report"
+	NotificationEmailEventMarketingCampaign           = "marketing.campaign"
 
 	notificationEmailTemplateKeyPrefix    = "notification_email_template:"
 	notificationEmailPreferenceKeyPrefix  = "notification_email_preference:"
@@ -1151,6 +1152,16 @@ var notificationEmailEventDefinitions = map[string]NotificationEmailEventInfo{
 			),
 			append(append([]string{}, notificationEmailOpsSummaryPlaceholders...), "report_detail_display", "report_html")...,
 		),
+	},
+	// Campaign content is authored per campaign, so this event is intentionally
+	// absent from notificationEmailEventOrder and has no official template.
+	NotificationEmailEventMarketingCampaign: {
+		Event:        NotificationEmailEventMarketingCampaign,
+		Label:        "Marketing campaign",
+		Description:  "Admin-authored marketing emails sent to a selected audience.",
+		Category:     "marketing",
+		Optional:     true,
+		Placeholders: append(append([]string{}, notificationEmailCommonPlaceholders...), "site_url", "days_inactive", "balance", "unsubscribe_url"),
 	},
 }
 
