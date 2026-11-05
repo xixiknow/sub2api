@@ -51,6 +51,8 @@ func RegisterAdminRoutes(
 		// 盈利运营
 		registerProfitRoutes(admin, h)
 		registerUpstreamBalanceRoutes(admin, h)
+		admin.GET("/qqbot/config", h.QQBot.GetConfig)
+		admin.PUT("/qqbot/config", h.QQBot.UpdateConfig)
 
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)

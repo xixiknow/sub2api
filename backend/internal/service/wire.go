@@ -984,6 +984,7 @@ var ProviderSet = wire.NewSet(
 	NewGrokQuotaFetcher,
 	NewUserAttributeService,
 	NewCheckinService,
+	NewQQBotService,
 	NewUsageCache,
 	NewTotpService,
 	NewErrorPassthroughService,
