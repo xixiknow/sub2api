@@ -85,7 +85,7 @@
               <span
                 v-for="slot in entry.slots"
                 :key="slot.start"
-                class="pulse-cell relative rounded-sm border-0 p-0 outline-offset-1"
+                class="pulse-cell relative rounded border-0 p-0 outline-offset-1"
                 :class="[
                   slot.bucket ? cellClass(slot.bucket.health, slot.bucket.metrics.request_count) : 'health-unknown',
                   slot.bucket ? 'has-data' : 'is-empty',
@@ -248,24 +248,24 @@ const allBucketStarts = computed(() => {
 const bucketStarts = computed(() => sliceByZoom(allBucketStarts.value, zoom.value))
 const tableStyle = computed(() => ({
   '--bucket-count': String(Math.max(1, bucketStarts.value.length)),
-  minWidth: zoomed.value ? `calc(260px + ${pulseMinWidth.value})` : '0',
+  minWidth: `calc(260px + ${pulseMinWidth.value})`,
 }))
+const BASE_CELL_PX = 10
 const pulseMinWidth = computed(() => {
   const count = Math.max(1, bucketStarts.value.length)
-  if (!zoomed.value) return '0px'
   // Zoom in = fewer columns + wider min cell (span shrinks → intensity grows).
-  const intensity = Math.min(12, Math.round((1 - zoom.value.span) / 0.08))
-  const width = 6 + intensity * 4
-  const gap = intensity >= 4 ? 3 : 2
+  const intensity = zoomed.value ? Math.min(12, Math.round((1 - zoom.value.span) / 0.08)) : 0
+  const width = BASE_CELL_PX + intensity * 4
+  const gap = intensity >= 4 ? 3 : count > 24 ? 2 : 3
   return `${count * width + Math.max(0, count - 1) * gap}px`
 })
 const pulseStyle = computed(() => {
   const count = Math.max(1, bucketStarts.value.length)
   const intensity = zoomed.value ? Math.min(12, Math.round((1 - zoom.value.span) / 0.08)) : 0
-  const gapPx = !zoomed.value ? (count > 24 ? 1 : 2) : intensity >= 4 ? 3 : 2
-  const heightPx = 16
-  // Unzoomed: equal flex fractions. Zoomed: enforce growing min width so blocks lengthen.
-  const minCell = !zoomed.value ? '0' : `${6 + intensity * 4}px`
+  const gapPx = intensity >= 4 ? 3 : count > 24 ? 2 : 3
+  const heightPx = 24
+  // Cells never shrink below a block width; overflow scrolls horizontally. Zoom grows the min width.
+  const minCell = `${BASE_CELL_PX + intensity * 4}px`
   return {
     gridTemplateColumns: `repeat(${count}, minmax(${minCell}, 1fr))`,
     gap: `${gapPx}px`,
