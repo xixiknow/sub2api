@@ -58,7 +58,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Toggle from '@/components/common/Toggle.vue'
 import { getQQBotConfig, updateQQBotConfig } from '@/api/qqbot'
-import { useAppStore } from '@/stores/app'
+import { useAppStore } from '@/stores'
 
 const { t } = useI18n()
 const appStore = useAppStore()

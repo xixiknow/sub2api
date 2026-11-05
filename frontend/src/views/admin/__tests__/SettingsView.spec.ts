@@ -129,6 +129,11 @@ vi.mock("@/stores", () => ({
   }),
 }));
 
+vi.mock("@/api/qqbot", () => ({
+  getQQBotConfig: vi.fn().mockResolvedValue({ enabled: false, app_id: "", secret_configured: false }),
+  updateQQBotConfig: vi.fn(),
+}));
+
 vi.mock("@/stores/adminSettings", () => ({
   useAdminSettingsStore: () => ({
     fetch: adminSettingsFetch,
