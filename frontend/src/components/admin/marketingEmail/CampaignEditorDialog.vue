@@ -162,7 +162,7 @@
                 :title="t(`admin.marketingEmail.placeholders.${p}`)"
                 @click="insertPlaceholder(p)"
               >
-                {{ '{{' + p + '}}' }}
+                <span v-text="placeholderToken(p)" />
               </button>
             </div>
             <textarea ref="bodyRef" v-model="form.body_html" class="input min-h-[22rem] resize-y font-mono text-sm"></textarea>
@@ -408,6 +408,11 @@ function applyStarter(key: StarterTemplateKey) {
   form.accent_color = starter.accent
   form.body_html = starter.body
   form.layout_mode = 'card'
+}
+
+// 模板插值里不能直接写 }}，否则会提前结束插值表达式。
+function placeholderToken(name: string): string {
+  return '{' + '{' + name + '}' + '}'
 }
 
 async function insertPlaceholder(name: string) {
