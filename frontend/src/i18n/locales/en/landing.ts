@@ -109,6 +109,62 @@ export default {
       description: 'Sign up now and get free trial credits to experience seamless AI access',
       button: 'Sign Up Free'
     },
+    star: {
+      heroTitle: 'Every AI call,\nlanded safely.',
+      typed1: 'Claude, GPT and Gemini behind one API',
+      typed2: 'Automatic failover, requests stay online',
+      typed3: 'Billed per token, pay only for what you use',
+      heroDesc: 'A unified OpenAI / Anthropic compatible API, backed by smart scheduling across multiple upstream lines. Stop juggling accounts and keys, and focus on your product.',
+      secondary: 'See how to connect',
+      scroll: 'Scroll to explore',
+      orbit: {
+        eyebrow: 'Smart Routing',
+        title: 'Every request\ntakes the best orbit.',
+        desc: 'Once a request enters the gateway, it is routed in real time by the health, latency and load of each upstream line. If a line fails, traffic moves to the next one before you notice.',
+        hint: 'Move your mouse over the orbits on the right and give them a nudge.',
+        claudeDesc: 'The full Opus, Sonnet and Haiku lineup with the native Messages API. Works with Claude Code out of the box.',
+        gptDesc: 'GPT and Codex models, compatible with Chat Completions and Responses APIs.',
+        geminiDesc: 'The full Gemini family, with long context and multimodal capabilities.',
+        antigravityDesc: 'An extra upstream line that serves as a backup channel for higher availability.'
+      },
+      features: {
+        eyebrow: 'Core Capabilities',
+        title: 'Stability comes first',
+        gateway: 'One key, every model',
+        gatewayDesc: 'Create an API key after signing up and call every connected model. No more signing up and topping up with each provider.',
+        pool: 'Multi-line scheduling',
+        poolDesc: 'Upstream accounts form a resource pool with automatic load balancing and failover, so responses keep flowing even at peak hours.',
+        billing: 'Pay for what you use',
+        billingDesc: 'Billed by actual token usage, with optional quota caps on every key so spending never surprises you.',
+        sticky: 'Sticky sessions',
+        stickyDesc: 'Each session sticks to the same upstream line for better cache hits, more coherent long chats and lower cost.',
+        compat: 'Protocol compatible',
+        compatDesc: 'Compatible with OpenAI, Anthropic and Gemini protocols. Point your SDKs and tools to a new address and go.'
+      },
+      billing: {
+        eyebrow: 'Transparent Billing',
+        title: 'Every call comes\nwith a clear bill.',
+        desc: 'Input, output, cache writes and cache reads are metered separately. Filter by date, key and model to see the cost and latency of every request.',
+        point1: 'Pay as you go, no monthly fee or minimum spend',
+        point2: 'Balances and quota caps keep team usage in check',
+        point3: 'Request logs update in real time for easy reconciliation'
+      },
+      connect: {
+        eyebrow: 'Quick Start',
+        title: 'Change one Base URL\nand take off.',
+        desc: 'Compatible with OpenAI and Anthropic protocols. Your SDKs, Claude Code and Codex need no code changes, just the address and a key.',
+        ccComment: '# Point Claude Code at the gateway, then use it as usual',
+        copy: 'Copy',
+        copied: 'Copied'
+      },
+      auth: {
+        backHome: 'Back to home'
+      },
+      cta: {
+        title: 'Your next call\nstarts here.',
+        desc: 'Sign up, create a key, and make your first call in minutes.'
+      }
+    },
     footer: {
       allRightsReserved: 'All rights reserved.'
     }

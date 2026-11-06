@@ -109,6 +109,62 @@ export default {
       description: '注册即可获得免费试用额度，体验一站式 AI 服务',
       button: '免费注册'
     },
+    star: {
+      heroTitle: '让每一次 AI 调用，\n都稳稳抵达。',
+      typed1: 'Claude、GPT、Gemini，一个接口全部调用',
+      typed2: '上游异常自动切换，请求不掉线',
+      typed3: '按 token 计费，用多少付多少',
+      heroDesc: '统一的 OpenAI / Anthropic 兼容接口，背后是多条上游线路的智能调度。不用再管理一堆账号和密钥，专心做你的产品。',
+      secondary: '查看接入方式',
+      scroll: '向下探索',
+      orbit: {
+        eyebrow: '智能路由',
+        title: '每个请求，\n都走最优的星轨。',
+        desc: '请求进入网关后，会根据各条上游的健康度、延迟与负载实时选路；某条线路出现异常，自动切到下一条，你几乎感觉不到。',
+        hint: '把鼠标移到右侧星轨上，拨动看看。',
+        claudeDesc: 'Opus、Sonnet、Haiku 全系列，原生 Messages 接口，Claude Code 开箱即用。',
+        gptDesc: 'GPT 与 Codex 系列，兼容 Chat Completions 和 Responses 接口。',
+        geminiDesc: 'Gemini 全系列，长上下文与多模态能力完整可用。',
+        antigravityDesc: '额外的上游线路，作为补充通道进一步提升可用性。'
+      },
+      features: {
+        eyebrow: '核心能力',
+        title: '稳定，是一切的起点',
+        gateway: '一把密钥，全部模型',
+        gatewayDesc: '注册即可创建 API 密钥，调用所有已接入的模型，不必再逐家申请账号、分别充值。',
+        pool: '多线路调度',
+        poolDesc: '多个上游账号组成资源池，自动负载均衡与故障切换，高峰期也能稳定出字。',
+        billing: '用多少，付多少',
+        billingDesc: '按实际 token 用量计费，可以为每把密钥设置额度上限，花费始终心里有数。',
+        sticky: '会话保持',
+        stickyDesc: '同一会话固定走同一条上游，缓存命中更高，长对话更连贯，也更省钱。',
+        compat: '协议兼容',
+        compatDesc: '兼容 OpenAI、Anthropic、Gemini 三种协议，现有 SDK 和工具改个地址就能用。'
+      },
+      billing: {
+        eyebrow: '透明计费',
+        title: '每一次调用，\n都有一笔清楚的账。',
+        desc: '输入、输出、缓存写入与缓存读取分开计量。按日期、密钥、模型筛选，每一笔花费和耗时都查得到。',
+        point1: '按量付费，没有月费，也没有最低消费',
+        point2: '余额与额度上限，团队用量不失控',
+        point3: '请求明细实时更新，对账一目了然'
+      },
+      connect: {
+        eyebrow: '快速接入',
+        title: '改一个 Base URL，\n就能起飞。',
+        desc: '兼容 OpenAI 与 Anthropic 协议。现有的 SDK、Claude Code、Codex 不用改一行代码，填上地址和密钥即可。',
+        ccComment: '# 把 Claude Code 指向网关，其余照常使用',
+        copy: '复制',
+        copied: '已复制'
+      },
+      auth: {
+        backHome: '返回首页'
+      },
+      cta: {
+        title: '下一次调用，\n从这里出发。',
+        desc: '注册后即可创建密钥，几分钟内完成第一次调用。'
+      }
+    },
     footer: {
       allRightsReserved: '保留所有权利。'
     }

@@ -1,32 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Sub2API</title>
-  <desc id="desc">An interlocking S symbol representing subscription routing into APIs.</desc>
+  <title id="title">STApi</title>
+  <desc id="desc">The letters S and T drawn as a star trail, with a four-point star rising above the T.</desc>
   <defs>
-    <linearGradient id="s2a-bg" x1="72" y1="44" x2="442" y2="478" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#142B56"/>
-      <stop offset=".52" stop-color="#0A1A39"/>
-      <stop offset="1" stop-color="#061127"/>
+    <linearGradient id="st-bg" x1="60" y1="30" x2="452" y2="482" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B1640"/>
+      <stop offset=".55" stop-color="#0C0B24"/>
+      <stop offset="1" stop-color="#05060F"/>
     </linearGradient>
-    <radialGradient id="s2a-ambient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(168 92) rotate(51) scale(342 382)">
-      <stop stop-color="#3E68B0" stop-opacity=".28"/>
-      <stop offset="1" stop-color="#3E68B0" stop-opacity="0"/>
+    <radialGradient id="st-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(400 110) rotate(135) scale(380)">
+      <stop stop-color="#D946EF" stop-opacity=".32"/>
+      <stop offset=".5" stop-color="#6366F1" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="s2a-brand" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#79F4BD"/>
-      <stop offset=".48" stop-color="#39D9E7"/>
-      <stop offset="1" stop-color="#3875F6"/>
+    <linearGradient id="st-ink" x1="80" y1="140" x2="440" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset=".55" stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F59E0B"/>
     </linearGradient>
-    <filter id="s2a-shadow" x="-25%" y="-25%" width="150%" height="165%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy=".55" stdDeviation=".65" flood-color="#020817" flood-opacity=".34"/>
-    </filter>
+    <radialGradient id="st-star" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(418 104) scale(70)">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset=".35" stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F0ABFC" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#s2a-bg)"/>
-  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#s2a-ambient)"/>
-  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#A5BFFF" stroke-opacity=".16" stroke-width="1.5"/>
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#st-bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#st-glow)"/>
+  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#C4B5FD" stroke-opacity=".2" stroke-width="1.5"/>
 
-  <g transform="translate(52 52) scale(17)" fill="none" stroke="url(#s2a-brand)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.7" filter="url(#s2a-shadow)">
-    <path d="m19.25 7.65-2.55-3.2a1.33 1.33 0 0 0-1.03-.5H8.58c-.34 0-.67.13-.91.37L4.15 7.65c-.93.88-.6 1.52.65 2.3l9.55 5.97"/>
-    <path d="m4.75 16.35 2.55 3.2c.25.31.63.5 1.03.5h7.09c.34 0 .67-.13.91-.37l3.52-3.33c.93-.88.6-1.52-.65-2.3L9.65 8.08"/>
+  <!-- 背景小星 -->
+  <g fill="#FFFFFF">
+    <circle cx="96" cy="96" r="4" opacity=".7"/>
+    <circle cx="156" cy="64" r="2.5" opacity=".5"/>
+    <circle cx="300" cy="436" r="3" opacity=".5"/>
+    <circle cx="448" cy="420" r="3.5" opacity=".6"/>
   </g>
+
+  <!-- S T -->
+  <g fill="none" stroke="url(#st-ink)" stroke-linecap="round" stroke-linejoin="round" stroke-width="46">
+    <path d="M222 182C206 156 180 146 150 147C112 149 90 171 92 199C95 230 125 242 158 252C196 264 228 280 226 318C224 356 190 378 150 376C118 374 96 360 82 338"/>
+    <path d="M276 170H426"/>
+    <path d="M351 170V378"/>
+  </g>
+
+  <!-- 主星 -->
+  <circle cx="418" cy="104" r="70" fill="url(#st-star)" opacity=".55"/>
+  <path d="M418 54C422 86 432 98 466 104C432 110 422 122 418 154C414 122 404 110 370 104C404 98 414 86 418 54Z" fill="#FFFFFF"/>
 </svg>
