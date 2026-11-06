@@ -508,6 +508,10 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 	if err := ValidateProfitControlConfig(platform, profitControlEnabled, profitMinMargin, profitSafetyBuffer); err != nil {
 		return nil, err
 	}
+	profitMaxAccountRate := NormalizeProfitMaxAccountRate(platform, input.ProfitMaxAccountRate)
+	if err := ValidateProfitMaxAccountRate(profitMaxAccountRate); err != nil {
+		return nil, infraerrors.BadRequest("INVALID_PROFIT_MAX_ACCOUNT_RATE", err.Error())
+	}
 
 	// 校验降级分组
 	if input.FallbackGroupID != nil {
@@ -605,6 +609,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		ProfitControlEnabled:            profitControlEnabled,
 		ProfitMinMargin:                 profitMinMargin,
 		ProfitSafetyBuffer:              profitSafetyBuffer,
+		ProfitMaxAccountRate:            profitMaxAccountRate,
 		ImagePrice1K:                    imagePrice1K,
 		ImagePrice2K:                    imagePrice2K,
 		ImagePrice4K:                    imagePrice4K,
@@ -918,11 +923,18 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if input.ProfitSafetyBuffer != nil {
 		group.ProfitSafetyBuffer = *input.ProfitSafetyBuffer
 	}
+	if input.ProfitMaxAccountRate != nil {
+		group.ProfitMaxAccountRate = input.ProfitMaxAccountRate
+	}
 	// 利润控制与高峰同一收口：按合并后的最终平台归一化（转到不支持平台时静默重置），
 	// 再对合并后的最终配置统一校验，防止部分字段更新拼出非法组合入库。
 	group.ProfitControlEnabled, group.ProfitMinMargin, group.ProfitSafetyBuffer = NormalizeProfitControlConfig(group.Platform, group.ProfitControlEnabled, group.ProfitMinMargin, group.ProfitSafetyBuffer)
 	if err := ValidateProfitControlConfig(group.Platform, group.ProfitControlEnabled, group.ProfitMinMargin, group.ProfitSafetyBuffer); err != nil {
 		return nil, err
+	}
+	group.ProfitMaxAccountRate = NormalizeProfitMaxAccountRate(group.Platform, group.ProfitMaxAccountRate)
+	if err := ValidateProfitMaxAccountRate(group.ProfitMaxAccountRate); err != nil {
+		return nil, infraerrors.BadRequest("INVALID_PROFIT_MAX_ACCOUNT_RATE", err.Error())
 	}
 	if input.ImagePrice1K != nil {
 		group.ImagePrice1K = normalizePrice(input.ImagePrice1K)

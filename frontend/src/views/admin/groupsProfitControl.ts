@@ -27,6 +27,48 @@ export type ProfitControlFormState = {
   profit_control_enabled: boolean;
   profit_min_margin_percent: number | string | null;
   profit_safety_buffer_percent: number | string | null;
+  // 最高调度倍率（绝对上限）；空值表示不限
+  profit_max_account_rate?: number | string | null;
+};
+
+const isBlank = (value: unknown): boolean =>
+  value === null || value === undefined || String(value).trim() === "";
+
+// 最高调度倍率提交值：空 → null（后端清除为不限），否则按 4 位小数取整。
+export const profitMaxAccountRateToPayload = (
+  value: number | string | null | undefined,
+): number | null => {
+  if (isBlank(value)) {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.round(parsed * 1e4) / 1e4;
+};
+
+// 实际阈值预览：min(分组倍率 × (1 − margin − buffer), 最高调度倍率)。
+// 仅用于界面提示（不含用户专属倍率与高峰倍率），输入非法时返回 null。
+export const profitControlEffectiveThreshold = (
+  rateMultiplier: number | string | null | undefined,
+  form: ProfitControlFormState,
+): number | null => {
+  if (isBlank(rateMultiplier)) {
+    return null;
+  }
+  const rate = Number(rateMultiplier);
+  if (!Number.isFinite(rate) || rate < 0) {
+    return null;
+  }
+  const margin = profitPercentToDecimal(form.profit_min_margin_percent);
+  const buffer = profitPercentToDecimal(form.profit_safety_buffer_percent);
+  let threshold = Math.max(0, rate * (1 - margin - buffer));
+  const maxRate = profitMaxAccountRateToPayload(form.profit_max_account_rate);
+  if (maxRate !== null && maxRate < threshold) {
+    threshold = maxRate;
+  }
+  return Math.round(threshold * 1e4) / 1e4;
 };
 
 export const isProfitControlPlatform = (platform: string): boolean =>
@@ -64,6 +106,12 @@ export const validateProfitControlFormState = (
   }
   if (margin + buffer >= 1) {
     return "sumTooHigh";
+  }
+  if (!isBlank(form.profit_max_account_rate)) {
+    const maxRate = Number(form.profit_max_account_rate);
+    if (!Number.isFinite(maxRate) || maxRate < 0) {
+      return "maxAccountRateRangeError";
+    }
   }
   return null;
 };

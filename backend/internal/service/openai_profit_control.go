@@ -7,7 +7,7 @@ package service
 //
 // 准入条件：
 //
-//	U(尝试时刻) <= D(pricingAt) × (1 − profit_min_margin − profit_safety_buffer)
+//	U(尝试时刻) <= min(D(pricingAt) × (1 − profit_min_margin − profit_safety_buffer), profit_max_account_rate)
 //
 //   - D（用户售价倍率）固定在请求开始的 pricingAt：同一请求的全部 failover 与
 //     最终扣费共用同一 D（RecordUsage 的高峰因子同样取 pricingAt），一个请求
@@ -106,6 +106,17 @@ func clampProfitControlThreshold(threshold float64) float64 {
 	return threshold
 }
 
+// profitControlThresholdFor 是利润门阈值的唯一计算点（OpenAI/Grok 门、网关门、
+// profit-preview 共用）：clamp(D×(1−margin−buffer)) 再与分组最高调度倍率取更严者。
+// 最高调度倍率 nil 表示不限；非法值（NaN/Inf/负数）忽略，校验层已拒绝其落库。
+func profitControlThresholdFor(group *Group, downstream float64) float64 {
+	threshold := clampProfitControlThreshold(downstream * (1 - group.ProfitMinMargin - group.ProfitSafetyBuffer))
+	if maxRate := group.ProfitMaxAccountRate; maxRate != nil && !math.IsNaN(*maxRate) && !math.IsInf(*maxRate, 0) && *maxRate >= 0 && *maxRate < threshold {
+		threshold = *maxRate
+	}
+	return threshold
+}
+
 // profitControlOverThreshold 是"上游倍率越线"的唯一定义：相对 epsilon 吸收
 // decimal(10,4) 落库与浮点乘法的边界误差，U == 阈值 判定为合格。
 // 线上否决点与 profit-preview 共用，两者不得各自实现。
@@ -121,7 +132,7 @@ type openAIProfitControlGate struct {
 	groupID int64
 	// platform 是利润配置所在分组的平台，用于按平台观测门是否真实生效。
 	platform string
-	// threshold = D(pricingAt) × (1 − margin − buffer)，账号倍率必须 <= 它。
+	// threshold = min(D(pricingAt) × (1 − margin − buffer), 最高调度倍率)，账号倍率必须 <= 它。
 	threshold float64
 	// pricingAt 是本请求的统一定价时刻（D 侧）。
 	pricingAt time.Time
@@ -259,8 +270,7 @@ func (s *OpenAIGatewayService) resolveOpenAIProfitControlGate(ctx context.Contex
 	}
 	downstream *= billingGroup.PeakMultiplierAt(pricingAt)
 
-	deduction := group.ProfitMinMargin + group.ProfitSafetyBuffer
-	threshold := clampProfitControlThreshold(downstream * (1 - deduction))
+	threshold := profitControlThresholdFor(group, downstream)
 	return &openAIProfitControlGate{
 		groupID:   *groupID,
 		platform:  group.Platform,

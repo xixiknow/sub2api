@@ -1238,6 +1238,33 @@ func (_u *GroupUpdate) AddProfitSafetyBuffer(v float64) *GroupUpdate {
 	return _u
 }
 
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (_u *GroupUpdate) SetProfitMaxAccountRate(v float64) *GroupUpdate {
+	_u.mutation.ResetProfitMaxAccountRate()
+	_u.mutation.SetProfitMaxAccountRate(v)
+	return _u
+}
+
+// SetNillableProfitMaxAccountRate sets the "profit_max_account_rate" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableProfitMaxAccountRate(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetProfitMaxAccountRate(*v)
+	}
+	return _u
+}
+
+// AddProfitMaxAccountRate adds value to the "profit_max_account_rate" field.
+func (_u *GroupUpdate) AddProfitMaxAccountRate(v float64) *GroupUpdate {
+	_u.mutation.AddProfitMaxAccountRate(v)
+	return _u
+}
+
+// ClearProfitMaxAccountRate clears the value of the "profit_max_account_rate" field.
+func (_u *GroupUpdate) ClearProfitMaxAccountRate() *GroupUpdate {
+	_u.mutation.ClearProfitMaxAccountRate()
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdate) AddAPIKeyIDs(ids ...int64) *GroupUpdate {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -1942,6 +1969,15 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedProfitSafetyBuffer(); ok {
 		_spec.AddField(group.FieldProfitSafetyBuffer, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.ProfitMaxAccountRate(); ok {
+		_spec.SetField(group.FieldProfitMaxAccountRate, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedProfitMaxAccountRate(); ok {
+		_spec.AddField(group.FieldProfitMaxAccountRate, field.TypeFloat64, value)
+	}
+	if _u.mutation.ProfitMaxAccountRateCleared() {
+		_spec.ClearField(group.FieldProfitMaxAccountRate, field.TypeFloat64)
 	}
 	if _u.mutation.APIKeysCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -3458,6 +3494,33 @@ func (_u *GroupUpdateOne) AddProfitSafetyBuffer(v float64) *GroupUpdateOne {
 	return _u
 }
 
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (_u *GroupUpdateOne) SetProfitMaxAccountRate(v float64) *GroupUpdateOne {
+	_u.mutation.ResetProfitMaxAccountRate()
+	_u.mutation.SetProfitMaxAccountRate(v)
+	return _u
+}
+
+// SetNillableProfitMaxAccountRate sets the "profit_max_account_rate" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableProfitMaxAccountRate(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetProfitMaxAccountRate(*v)
+	}
+	return _u
+}
+
+// AddProfitMaxAccountRate adds value to the "profit_max_account_rate" field.
+func (_u *GroupUpdateOne) AddProfitMaxAccountRate(v float64) *GroupUpdateOne {
+	_u.mutation.AddProfitMaxAccountRate(v)
+	return _u
+}
+
+// ClearProfitMaxAccountRate clears the value of the "profit_max_account_rate" field.
+func (_u *GroupUpdateOne) ClearProfitMaxAccountRate() *GroupUpdateOne {
+	_u.mutation.ClearProfitMaxAccountRate()
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdateOne) AddAPIKeyIDs(ids ...int64) *GroupUpdateOne {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -4192,6 +4255,15 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.AddedProfitSafetyBuffer(); ok {
 		_spec.AddField(group.FieldProfitSafetyBuffer, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.ProfitMaxAccountRate(); ok {
+		_spec.SetField(group.FieldProfitMaxAccountRate, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedProfitMaxAccountRate(); ok {
+		_spec.AddField(group.FieldProfitMaxAccountRate, field.TypeFloat64, value)
+	}
+	if _u.mutation.ProfitMaxAccountRateCleared() {
+		_spec.ClearField(group.FieldProfitMaxAccountRate, field.TypeFloat64)
 	}
 	if _u.mutation.APIKeysCleared() {
 		edge := &sqlgraph.EdgeSpec{

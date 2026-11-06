@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  profitControlEffectiveThreshold,
   profitDecimalToPercent,
+  profitMaxAccountRateToPayload,
   profitPercentToDecimal,
   validateProfitControlFormState,
   type ProfitControlFormState,
@@ -177,5 +179,50 @@ describe("validateProfitControlFormState", () => {
         formState({ profit_min_margin_percent: 99.99 }),
       ),
     ).toBeNull();
+  });
+});
+
+describe("profit max account rate", () => {
+  it("maps blank input to null and rounds to four decimals", () => {
+    expect(profitMaxAccountRateToPayload(null)).toBeNull();
+    expect(profitMaxAccountRateToPayload("")).toBeNull();
+    expect(profitMaxAccountRateToPayload("  ")).toBeNull();
+    expect(profitMaxAccountRateToPayload(0)).toBe(0);
+    expect(profitMaxAccountRateToPayload(0.1)).toBe(0.1);
+    expect(profitMaxAccountRateToPayload("0.12345")).toBe(0.1235);
+  });
+
+  it("rejects negative or non-numeric max rate", () => {
+    expect(
+      validateProfitControlFormState(formState({ profit_max_account_rate: -0.1 })),
+    ).toBe("maxAccountRateRangeError");
+    expect(
+      validateProfitControlFormState(formState({ profit_max_account_rate: "abc" })),
+    ).toBe("maxAccountRateRangeError");
+    expect(
+      validateProfitControlFormState(formState({ profit_max_account_rate: "" })),
+    ).toBeNull();
+    expect(
+      validateProfitControlFormState(formState({ profit_max_account_rate: 0.1 })),
+    ).toBeNull();
+  });
+
+  it("previews effective threshold as min of margin threshold and cap", () => {
+    const base = formState({
+      profit_min_margin_percent: 0,
+      profit_safety_buffer_percent: 0,
+    });
+    expect(profitControlEffectiveThreshold(0.15, base)).toBe(0.15);
+    expect(
+      profitControlEffectiveThreshold(0.15, { ...base, profit_max_account_rate: 0.1 }),
+    ).toBe(0.1);
+    expect(
+      profitControlEffectiveThreshold(0.15, {
+        ...base,
+        profit_min_margin_percent: 50,
+        profit_max_account_rate: 0.1,
+      }),
+    ).toBe(0.075);
+    expect(profitControlEffectiveThreshold("", base)).toBeNull();
   });
 });

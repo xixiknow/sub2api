@@ -22249,6 +22249,8 @@ type GroupMutation struct {
 	addprofit_min_margin                    *float64
 	profit_safety_buffer                    *float64
 	addprofit_safety_buffer                 *float64
+	profit_max_account_rate                 *float64
+	addprofit_max_account_rate              *float64
 	clearedFields                           map[string]struct{}
 	api_keys                                map[int64]struct{}
 	removedapi_keys                         map[int64]struct{}
@@ -25707,6 +25709,76 @@ func (m *GroupMutation) ResetProfitSafetyBuffer() {
 	m.addprofit_safety_buffer = nil
 }
 
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (m *GroupMutation) SetProfitMaxAccountRate(f float64) {
+	m.profit_max_account_rate = &f
+	m.addprofit_max_account_rate = nil
+}
+
+// ProfitMaxAccountRate returns the value of the "profit_max_account_rate" field in the mutation.
+func (m *GroupMutation) ProfitMaxAccountRate() (r float64, exists bool) {
+	v := m.profit_max_account_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProfitMaxAccountRate returns the old "profit_max_account_rate" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldProfitMaxAccountRate(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProfitMaxAccountRate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProfitMaxAccountRate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProfitMaxAccountRate: %w", err)
+	}
+	return oldValue.ProfitMaxAccountRate, nil
+}
+
+// AddProfitMaxAccountRate adds f to the "profit_max_account_rate" field.
+func (m *GroupMutation) AddProfitMaxAccountRate(f float64) {
+	if m.addprofit_max_account_rate != nil {
+		*m.addprofit_max_account_rate += f
+	} else {
+		m.addprofit_max_account_rate = &f
+	}
+}
+
+// AddedProfitMaxAccountRate returns the value that was added to the "profit_max_account_rate" field in this mutation.
+func (m *GroupMutation) AddedProfitMaxAccountRate() (r float64, exists bool) {
+	v := m.addprofit_max_account_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearProfitMaxAccountRate clears the value of the "profit_max_account_rate" field.
+func (m *GroupMutation) ClearProfitMaxAccountRate() {
+	m.profit_max_account_rate = nil
+	m.addprofit_max_account_rate = nil
+	m.clearedFields[group.FieldProfitMaxAccountRate] = struct{}{}
+}
+
+// ProfitMaxAccountRateCleared returns if the "profit_max_account_rate" field was cleared in this mutation.
+func (m *GroupMutation) ProfitMaxAccountRateCleared() bool {
+	_, ok := m.clearedFields[group.FieldProfitMaxAccountRate]
+	return ok
+}
+
+// ResetProfitMaxAccountRate resets all changes to the "profit_max_account_rate" field.
+func (m *GroupMutation) ResetProfitMaxAccountRate() {
+	m.profit_max_account_rate = nil
+	m.addprofit_max_account_rate = nil
+	delete(m.clearedFields, group.FieldProfitMaxAccountRate)
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by ids.
 func (m *GroupMutation) AddAPIKeyIDs(ids ...int64) {
 	if m.api_keys == nil {
@@ -26065,7 +26137,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 68)
+	fields := make([]string, 0, 69)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -26270,6 +26342,9 @@ func (m *GroupMutation) Fields() []string {
 	if m.profit_safety_buffer != nil {
 		fields = append(fields, group.FieldProfitSafetyBuffer)
 	}
+	if m.profit_max_account_rate != nil {
+		fields = append(fields, group.FieldProfitMaxAccountRate)
+	}
 	return fields
 }
 
@@ -26414,6 +26489,8 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.ProfitMinMargin()
 	case group.FieldProfitSafetyBuffer:
 		return m.ProfitSafetyBuffer()
+	case group.FieldProfitMaxAccountRate:
+		return m.ProfitMaxAccountRate()
 	}
 	return nil, false
 }
@@ -26559,6 +26636,8 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldProfitMinMargin(ctx)
 	case group.FieldProfitSafetyBuffer:
 		return m.OldProfitSafetyBuffer(ctx)
+	case group.FieldProfitMaxAccountRate:
+		return m.OldProfitMaxAccountRate(ctx)
 	}
 	return nil, fmt.Errorf("unknown Group field %s", name)
 }
@@ -27044,6 +27123,13 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetProfitSafetyBuffer(v)
 		return nil
+	case group.FieldProfitMaxAccountRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProfitMaxAccountRate(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Group field %s", name)
 }
@@ -27133,6 +27219,9 @@ func (m *GroupMutation) AddedFields() []string {
 	if m.addprofit_safety_buffer != nil {
 		fields = append(fields, group.FieldProfitSafetyBuffer)
 	}
+	if m.addprofit_max_account_rate != nil {
+		fields = append(fields, group.FieldProfitMaxAccountRate)
+	}
 	return fields
 }
 
@@ -27195,6 +27284,8 @@ func (m *GroupMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedProfitMinMargin()
 	case group.FieldProfitSafetyBuffer:
 		return m.AddedProfitSafetyBuffer()
+	case group.FieldProfitMaxAccountRate:
+		return m.AddedProfitMaxAccountRate()
 	}
 	return nil, false
 }
@@ -27393,6 +27484,13 @@ func (m *GroupMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddProfitSafetyBuffer(v)
 		return nil
+	case group.FieldProfitMaxAccountRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddProfitMaxAccountRate(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Group numeric field %s", name)
 }
@@ -27466,6 +27564,9 @@ func (m *GroupMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(group.FieldModelRouting) {
 		fields = append(fields, group.FieldModelRouting)
+	}
+	if m.FieldCleared(group.FieldProfitMaxAccountRate) {
+		fields = append(fields, group.FieldProfitMaxAccountRate)
 	}
 	return fields
 }
@@ -27546,6 +27647,9 @@ func (m *GroupMutation) ClearField(name string) error {
 		return nil
 	case group.FieldModelRouting:
 		m.ClearModelRouting()
+		return nil
+	case group.FieldProfitMaxAccountRate:
+		m.ClearProfitMaxAccountRate()
 		return nil
 	}
 	return fmt.Errorf("unknown Group nullable field %s", name)
@@ -27758,6 +27862,9 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldProfitSafetyBuffer:
 		m.ResetProfitSafetyBuffer()
+		return nil
+	case group.FieldProfitMaxAccountRate:
+		m.ResetProfitMaxAccountRate()
 		return nil
 	}
 	return fmt.Errorf("unknown Group field %s", name)

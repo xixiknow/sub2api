@@ -926,6 +926,20 @@ func (_c *GroupCreate) SetNillableProfitSafetyBuffer(v *float64) *GroupCreate {
 	return _c
 }
 
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (_c *GroupCreate) SetProfitMaxAccountRate(v float64) *GroupCreate {
+	_c.mutation.SetProfitMaxAccountRate(v)
+	return _c
+}
+
+// SetNillableProfitMaxAccountRate sets the "profit_max_account_rate" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableProfitMaxAccountRate(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetProfitMaxAccountRate(*v)
+	}
+	return _c
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_c *GroupCreate) AddAPIKeyIDs(ids ...int64) *GroupCreate {
 	_c.mutation.AddAPIKeyIDs(ids...)
@@ -1750,6 +1764,10 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ProfitSafetyBuffer(); ok {
 		_spec.SetField(group.FieldProfitSafetyBuffer, field.TypeFloat64, value)
 		_node.ProfitSafetyBuffer = value
+	}
+	if value, ok := _c.mutation.ProfitMaxAccountRate(); ok {
+		_spec.SetField(group.FieldProfitMaxAccountRate, field.TypeFloat64, value)
+		_node.ProfitMaxAccountRate = &value
 	}
 	if nodes := _c.mutation.APIKeysIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -2984,6 +3002,30 @@ func (u *GroupUpsert) UpdateProfitSafetyBuffer() *GroupUpsert {
 // AddProfitSafetyBuffer adds v to the "profit_safety_buffer" field.
 func (u *GroupUpsert) AddProfitSafetyBuffer(v float64) *GroupUpsert {
 	u.Add(group.FieldProfitSafetyBuffer, v)
+	return u
+}
+
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (u *GroupUpsert) SetProfitMaxAccountRate(v float64) *GroupUpsert {
+	u.Set(group.FieldProfitMaxAccountRate, v)
+	return u
+}
+
+// UpdateProfitMaxAccountRate sets the "profit_max_account_rate" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateProfitMaxAccountRate() *GroupUpsert {
+	u.SetExcluded(group.FieldProfitMaxAccountRate)
+	return u
+}
+
+// AddProfitMaxAccountRate adds v to the "profit_max_account_rate" field.
+func (u *GroupUpsert) AddProfitMaxAccountRate(v float64) *GroupUpsert {
+	u.Add(group.FieldProfitMaxAccountRate, v)
+	return u
+}
+
+// ClearProfitMaxAccountRate clears the value of the "profit_max_account_rate" field.
+func (u *GroupUpsert) ClearProfitMaxAccountRate() *GroupUpsert {
+	u.SetNull(group.FieldProfitMaxAccountRate)
 	return u
 }
 
@@ -4292,6 +4334,34 @@ func (u *GroupUpsertOne) AddProfitSafetyBuffer(v float64) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateProfitSafetyBuffer() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateProfitSafetyBuffer()
+	})
+}
+
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (u *GroupUpsertOne) SetProfitMaxAccountRate(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetProfitMaxAccountRate(v)
+	})
+}
+
+// AddProfitMaxAccountRate adds v to the "profit_max_account_rate" field.
+func (u *GroupUpsertOne) AddProfitMaxAccountRate(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddProfitMaxAccountRate(v)
+	})
+}
+
+// UpdateProfitMaxAccountRate sets the "profit_max_account_rate" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateProfitMaxAccountRate() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateProfitMaxAccountRate()
+	})
+}
+
+// ClearProfitMaxAccountRate clears the value of the "profit_max_account_rate" field.
+func (u *GroupUpsertOne) ClearProfitMaxAccountRate() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearProfitMaxAccountRate()
 	})
 }
 
@@ -5766,6 +5836,34 @@ func (u *GroupUpsertBulk) AddProfitSafetyBuffer(v float64) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateProfitSafetyBuffer() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateProfitSafetyBuffer()
+	})
+}
+
+// SetProfitMaxAccountRate sets the "profit_max_account_rate" field.
+func (u *GroupUpsertBulk) SetProfitMaxAccountRate(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetProfitMaxAccountRate(v)
+	})
+}
+
+// AddProfitMaxAccountRate adds v to the "profit_max_account_rate" field.
+func (u *GroupUpsertBulk) AddProfitMaxAccountRate(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddProfitMaxAccountRate(v)
+	})
+}
+
+// UpdateProfitMaxAccountRate sets the "profit_max_account_rate" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateProfitMaxAccountRate() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateProfitMaxAccountRate()
+	})
+}
+
+// ClearProfitMaxAccountRate clears the value of the "profit_max_account_rate" field.
+func (u *GroupUpsertBulk) ClearProfitMaxAccountRate() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearProfitMaxAccountRate()
 	})
 }
 

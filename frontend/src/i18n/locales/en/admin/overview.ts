@@ -1150,7 +1150,7 @@ export default {
       },
       profitControl: {
         enable: 'Enable profit control',
-        enabledHint: 'Scheduling only admits accounts whose account multiplier ≤ the request\'s effective downstream multiplier × (1 − min margin − safety buffer). Account multipliers may be maintained manually or synchronized from probes; existing ordering, stickiness and breakers keep working among qualified accounts. Image/video scheduling is not covered yet.',
+        enabledHint: 'Scheduling only admits accounts whose account multiplier ≤ the request\'s effective downstream multiplier × (1 − min margin − safety buffer) and not above the max account multiplier (if set). Account multipliers may be maintained manually or synchronized from probes; existing ordering, stickiness and breakers keep working among qualified accounts. Image/video scheduling is not covered yet.',
         disabledHint: 'When disabled, scheduling does no profit filtering: accounts whose account multiplier exceeds the downstream multiplier can still be selected, which may produce loss-making requests.',
         minMargin: 'Min gross margin (%)',
         minMarginHint: 'Percent input, e.g. 30 means 30%; stored as a decimal on the backend',
@@ -1158,7 +1158,12 @@ export default {
         safetyBufferHint: 'Added to min margin and deducted from the downstream multiplier; defaults to 0',
         marginRangeError: 'Min gross margin must be between 0 and 99.99',
         bufferRangeError: 'Safety buffer must be between 0 and 99.99',
-        sumTooHigh: 'Min gross margin plus safety buffer must be less than 100%, otherwise every account would be excluded'
+        sumTooHigh: 'Min gross margin plus safety buffer must be less than 100%, otherwise every account would be excluded',
+        maxAccountRate: 'Max account multiplier',
+        maxAccountRatePlaceholder: 'Leave empty for no limit, e.g. 0.1',
+        maxAccountRateHint: 'Accounts with a multiplier above this value are not scheduled. Works together with the margin threshold (the stricter wins); set margin and buffer to 0 to cap by multiplier only',
+        maxAccountRateRangeError: 'Max account multiplier must be a number >= 0',
+        effectiveThreshold: 'With group multiplier {rate}, the effective max account multiplier is ≈ {threshold} (user-specific or peak multipliers may change it per request)'
       },
       modelAllowlist: {
         title: 'Model Allowlist',

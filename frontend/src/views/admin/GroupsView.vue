@@ -1280,6 +1280,32 @@
                 :title="t('admin.groups.profitControl.safetyBufferHint')"
               />
             </div>
+            <div class="sm:col-span-2">
+              <label class="input-label">{{ t("admin.groups.profitControl.maxAccountRate") }}</label>
+              <input
+                v-model.number="createForm.profit_max_account_rate"
+                type="number"
+                step="0.0001"
+                min="0"
+                class="input"
+                :placeholder="t('admin.groups.profitControl.maxAccountRatePlaceholder')"
+                :title="t('admin.groups.profitControl.maxAccountRateHint')"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t("admin.groups.profitControl.maxAccountRateHint") }}
+              </p>
+              <p
+                v-if="profitControlEffectiveThreshold(createForm.rate_multiplier, createForm) !== null"
+                class="mt-1 text-xs text-blue-600 dark:text-blue-400"
+              >
+                {{
+                  t("admin.groups.profitControl.effectiveThreshold", {
+                    rate: createForm.rate_multiplier,
+                    threshold: profitControlEffectiveThreshold(createForm.rate_multiplier, createForm),
+                  })
+                }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -2934,6 +2960,32 @@
                 :title="t('admin.groups.profitControl.safetyBufferHint')"
               />
             </div>
+            <div class="sm:col-span-2">
+              <label class="input-label">{{ t("admin.groups.profitControl.maxAccountRate") }}</label>
+              <input
+                v-model.number="editForm.profit_max_account_rate"
+                type="number"
+                step="0.0001"
+                min="0"
+                class="input"
+                :placeholder="t('admin.groups.profitControl.maxAccountRatePlaceholder')"
+                :title="t('admin.groups.profitControl.maxAccountRateHint')"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t("admin.groups.profitControl.maxAccountRateHint") }}
+              </p>
+              <p
+                v-if="profitControlEffectiveThreshold(editForm.rate_multiplier, editForm) !== null"
+                class="mt-1 text-xs text-blue-600 dark:text-blue-400"
+              >
+                {{
+                  t("admin.groups.profitControl.effectiveThreshold", {
+                    rate: editForm.rate_multiplier,
+                    threshold: profitControlEffectiveThreshold(editForm.rate_multiplier, editForm),
+                  })
+                }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -4380,6 +4432,8 @@ import {
   profitPercentToDecimal,
   profitDecimalToPercent,
   validateProfitControlFormState,
+  profitMaxAccountRateToPayload,
+  profitControlEffectiveThreshold,
   type ProfitControlFormState,
 } from "./groupsProfitControl";
 import {
@@ -5017,6 +5071,7 @@ const createForm = reactive({
   profit_control_enabled: false,
   profit_min_margin_percent: 0,
   profit_safety_buffer_percent: 0,
+  profit_max_account_rate: null as number | string | null,
   // Claude Code 客户端限制（仅 anthropic 平台使用）
   claude_code_only: false,
   fallback_group_id: null as number | null,
@@ -5384,6 +5439,7 @@ const editForm = reactive({
   profit_control_enabled: false,
   profit_min_margin_percent: 0,
   profit_safety_buffer_percent: 0,
+  profit_max_account_rate: null as number | string | null,
   // Claude Code 客户端限制（仅 anthropic 平台使用）
   claude_code_only: false,
   fallback_group_id: null as number | null,
@@ -5855,6 +5911,7 @@ const closeCreateModal = () => {
   createForm.profit_control_enabled = false;
   createForm.profit_min_margin_percent = 0;
   createForm.profit_safety_buffer_percent = 0;
+  createForm.profit_max_account_rate = null;
   createForm.claude_code_only = false;
   createForm.fallback_group_id = null;
   createForm.fallback_group_id_on_invalid_request = null;
@@ -6018,6 +6075,9 @@ const handleCreateGroup = async () => {
       profit_safety_buffer: percentToDecimal(
         createForm.profit_safety_buffer_percent,
       ),
+      profit_max_account_rate: profitMaxAccountRateToPayload(
+        createForm.profit_max_account_rate,
+      ),
     };
     delete (requestData as Record<string, unknown>).profit_min_margin_percent;
     delete (requestData as Record<string, unknown>).profit_safety_buffer_percent;
@@ -6154,6 +6214,7 @@ const handleEdit = async (group: AdminGroup) => {
   editForm.profit_safety_buffer_percent = decimalToPercent(
     group.profit_safety_buffer ?? 0,
   );
+  editForm.profit_max_account_rate = group.profit_max_account_rate ?? null;
   editForm.claude_code_only = group.claude_code_only || false;
   editForm.fallback_group_id = group.fallback_group_id;
   editForm.fallback_group_id_on_invalid_request =
@@ -6243,6 +6304,7 @@ const closeEditModal = () => {
   editForm.profit_control_enabled = false;
   editForm.profit_min_margin_percent = 0;
   editForm.profit_safety_buffer_percent = 0;
+  editForm.profit_max_account_rate = null;
   editForm.video_rate_independent = false;
   editForm.video_rate_multiplier = 1;
   editForm.video_price_480p = null;
@@ -6374,6 +6436,9 @@ const handleUpdateGroup = async () => {
       profit_min_margin: percentToDecimal(editForm.profit_min_margin_percent),
       profit_safety_buffer: percentToDecimal(
         editForm.profit_safety_buffer_percent,
+      ),
+      profit_max_account_rate: profitMaxAccountRateToPayload(
+        editForm.profit_max_account_rate,
       ),
     };
     delete (payload as Record<string, unknown>).profit_min_margin_percent;
@@ -6750,6 +6815,7 @@ watch(
       createForm.profit_control_enabled = false;
       createForm.profit_min_margin_percent = 0;
       createForm.profit_safety_buffer_percent = 0;
+      createForm.profit_max_account_rate = null;
     }
     createForm.max_reasoning_effort = normalizeReasoningEffortForPlatform(
       newVal,
@@ -6808,6 +6874,7 @@ watch(
       editForm.profit_control_enabled = false;
       editForm.profit_min_margin_percent = 0;
       editForm.profit_safety_buffer_percent = 0;
+      editForm.profit_max_account_rate = null;
     }
     editForm.max_reasoning_effort = normalizeReasoningEffortForPlatform(
       newVal,

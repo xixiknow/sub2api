@@ -311,6 +311,12 @@ func (Group) Fields() []ent.Field {
 			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}).
 			Default(0).
 			Comment("安全缓冲，小数；与 margin 相加后从下游倍率中扣除，默认 0"),
+		// migration 257：绝对上限，NULL 表示不限。
+		field.Float("profit_max_account_rate").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}).
+			Comment("最高调度倍率：账号倍率高于该值不进入候选池；与 margin 阈值同时生效取更严者，NULL 不限"),
 	}
 }
 

@@ -708,6 +708,8 @@ export interface AdminGroup extends Group {
   profit_control_enabled: boolean
   profit_min_margin: number
   profit_safety_buffer: number
+  // 最高调度倍率（绝对上限），null 表示不限
+  profit_max_account_rate?: number | null
 
   // 模型路由配置（仅管理员可见，内部信息）
   model_routing: Record<string, number[]> | null
@@ -907,6 +909,7 @@ export interface CreateGroupRequest {
   profit_control_enabled?: boolean
   profit_min_margin?: number
   profit_safety_buffer?: number
+  profit_max_account_rate?: number | null
   claude_code_only?: boolean
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
@@ -975,6 +978,7 @@ export interface UpdateGroupRequest {
   profit_control_enabled?: boolean
   profit_min_margin?: number
   profit_safety_buffer?: number
+  profit_max_account_rate?: number | null
   claude_code_only?: boolean
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null

@@ -114,9 +114,8 @@ func PreviewProfitAdmission(inputs []ProfitPreviewGroupInput, evalAt time.Time) 
 			}
 		}
 		minD := minRate * peak
-		deduction := group.ProfitMinMargin + group.ProfitSafetyBuffer
-		thresholdDefault := clampProfitControlThreshold(defaultD * (1 - deduction))
-		thresholdMinD := clampProfitControlThreshold(minD * (1 - deduction))
+		thresholdDefault := profitControlThresholdFor(group, defaultD)
+		thresholdMinD := profitControlThresholdFor(group, minD)
 		report.DefaultD = defaultD
 		report.MinEffectiveD = minD
 		report.ThresholdDefault = thresholdDefault

@@ -231,6 +231,7 @@ func (r *apiKeyRepository) GetByKeyForAuth(ctx context.Context, key string) (*se
 				group.FieldProfitControlEnabled,
 				group.FieldProfitMinMargin,
 				group.FieldProfitSafetyBuffer,
+				group.FieldProfitMaxAccountRate,
 			)
 		}).
 		Only(ctx)
@@ -1044,6 +1045,7 @@ func groupEntityToService(g *dbent.Group) *service.Group {
 		ProfitControlEnabled:            g.ProfitControlEnabled,
 		ProfitMinMargin:                 g.ProfitMinMargin,
 		ProfitSafetyBuffer:              g.ProfitSafetyBuffer,
+		ProfitMaxAccountRate:            g.ProfitMaxAccountRate,
 		CreatedAt:                       g.CreatedAt,
 		UpdatedAt:                       g.UpdatedAt,
 	}

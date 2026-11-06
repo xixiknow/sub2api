@@ -1147,7 +1147,7 @@ export default {
       },
       profitControl: {
         enable: '启用利润控制',
-        enabledHint: '调度时仅允许"账号倍率 ≤ 请求实际下游倍率 ×（1 − 最低毛利率 − 安全缓冲）"的账号进入候选池；账号倍率可手工维护或由探测同步，既有排序、粘性与熔断在合格账号间照常工作。图片/视频调度暂不参与。',
+        enabledHint: '调度时仅允许"账号倍率 ≤ 请求实际下游倍率 ×（1 − 最低毛利率 − 安全缓冲）"且不高于最高调度倍率（如设置）的账号进入候选池；账号倍率可手工维护或由探测同步，既有排序、粘性与熔断在合格账号间照常工作。图片/视频调度暂不参与。',
         disabledHint: '关闭后调度不做利润过滤，账号倍率高于下游倍率的账号也会被选中，可能产生亏损请求。',
         minMargin: '最低毛利率（%）',
         minMarginHint: '百分比输入，如 30 表示 30%；后端按小数存储',
@@ -1155,7 +1155,12 @@ export default {
         safetyBufferHint: '与最低毛利率相加后从下游倍率中扣除，默认 0',
         marginRangeError: '最低毛利率应在 0 到 99.99 之间',
         bufferRangeError: '安全缓冲应在 0 到 99.99 之间',
-        sumTooHigh: '最低毛利率与安全缓冲之和必须小于 100%，否则将排除全部账号'
+        sumTooHigh: '最低毛利率与安全缓冲之和必须小于 100%，否则将排除全部账号',
+        maxAccountRate: '最高调度倍率',
+        maxAccountRatePlaceholder: '留空不限，例如 0.1',
+        maxAccountRateHint: '账号倍率高于该值不参与调度；与毛利率阈值同时生效，取更严者。只想按倍率卡上限时，毛利率和安全缓冲填 0 即可',
+        maxAccountRateRangeError: '最高调度倍率应为不小于 0 的数字',
+        effectiveThreshold: '按分组倍率 {rate} 计算，实际最高调度倍率 ≈ {threshold}（用户专属倍率、高峰倍率会让个别请求的阈值不同）'
       },
       modelAllowlist: {
         title: '模型白名单',

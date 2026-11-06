@@ -310,6 +310,8 @@ type CreateGroupInput struct {
 	ProfitControlEnabled bool
 	ProfitMinMargin      *float64
 	ProfitSafetyBuffer   *float64
+	// ProfitMaxAccountRate 最高调度倍率；nil/负数表示不限。
+	ProfitMaxAccountRate *float64
 	// 从指定分组复制账号（创建分组后在同一事务内绑定）
 	CopyAccountsFromGroupIDs []int64
 }
@@ -393,6 +395,8 @@ type UpdateGroupInput struct {
 	ProfitControlEnabled *bool
 	ProfitMinMargin      *float64
 	ProfitSafetyBuffer   *float64
+	// ProfitMaxAccountRate nil 表示不修改，负数表示清除（不限），非负数表示设置。
+	ProfitMaxAccountRate *float64
 	// 从指定分组复制账号（同步操作：先清空当前分组的账号绑定，再绑定源分组的账号）
 	CopyAccountsFromGroupIDs []int64
 }

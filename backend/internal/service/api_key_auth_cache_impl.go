@@ -14,7 +14,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
-const apiKeyAuthSnapshotVersion = 25 // v25: group image_count_billing switch (per-image billing on image endpoints)
+const apiKeyAuthSnapshotVersion = 26 // v26: group profit_max_account_rate (absolute profit-control ceiling)
 
 type apiKeyAuthCacheConfig struct {
 	l1Size        int
@@ -436,6 +436,7 @@ func (s *APIKeyService) snapshotFromAPIKey(ctx context.Context, apiKey *APIKey) 
 			ProfitControlEnabled:            apiKey.Group.ProfitControlEnabled,
 			ProfitMinMargin:                 apiKey.Group.ProfitMinMargin,
 			ProfitSafetyBuffer:              apiKey.Group.ProfitSafetyBuffer,
+			ProfitMaxAccountRate:            apiKey.Group.ProfitMaxAccountRate,
 		}
 	}
 	return snapshot
@@ -539,6 +540,7 @@ func (s *APIKeyService) snapshotToAPIKey(key string, snapshot *APIKeyAuthSnapsho
 			ProfitControlEnabled:            snapshot.Group.ProfitControlEnabled,
 			ProfitMinMargin:                 snapshot.Group.ProfitMinMargin,
 			ProfitSafetyBuffer:              snapshot.Group.ProfitSafetyBuffer,
+			ProfitMaxAccountRate:            snapshot.Group.ProfitMaxAccountRate,
 		}
 	}
 	s.compileAPIKeyIPRules(apiKey)

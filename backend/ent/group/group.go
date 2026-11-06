@@ -152,6 +152,8 @@ const (
 	FieldProfitMinMargin = "profit_min_margin"
 	// FieldProfitSafetyBuffer holds the string denoting the profit_safety_buffer field in the database.
 	FieldProfitSafetyBuffer = "profit_safety_buffer"
+	// FieldProfitMaxAccountRate holds the string denoting the profit_max_account_rate field in the database.
+	FieldProfitMaxAccountRate = "profit_max_account_rate"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
 	// EdgeRedeemCodes holds the string denoting the redeem_codes edge name in mutations.
@@ -295,6 +297,7 @@ var Columns = []string{
 	FieldProfitControlEnabled,
 	FieldProfitMinMargin,
 	FieldProfitSafetyBuffer,
+	FieldProfitMaxAccountRate,
 }
 
 var (
@@ -747,6 +750,11 @@ func ByProfitMinMargin(opts ...sql.OrderTermOption) OrderOption {
 // ByProfitSafetyBuffer orders the results by the profit_safety_buffer field.
 func ByProfitSafetyBuffer(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProfitSafetyBuffer, opts...).ToFunc()
+}
+
+// ByProfitMaxAccountRate orders the results by the profit_max_account_rate field.
+func ByProfitMaxAccountRate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProfitMaxAccountRate, opts...).ToFunc()
 }
 
 // ByAPIKeysCount orders the results by api_keys count.

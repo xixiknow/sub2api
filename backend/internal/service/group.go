@@ -133,6 +133,9 @@ type Group struct {
 	ProfitControlEnabled bool
 	ProfitMinMargin      float64 // 最低毛利率，小数存储（0.30=30%）
 	ProfitSafetyBuffer   float64 // 安全缓冲，小数，与 margin 相加后从 D 中扣除
+	// ProfitMaxAccountRate 最高调度倍率（绝对上限），nil 表示不限。启用利润控制时
+	// 最终阈值 = min(D*(1-margin-buffer), ProfitMaxAccountRate)。
+	ProfitMaxAccountRate *float64
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -460,6 +463,30 @@ func NormalizeProfitControlConfig(platform string, enabled bool, minMargin, safe
 		}
 	}
 	return enabled, minMargin, safetyBuffer
+}
+
+// NormalizeProfitMaxAccountRate 归一化最高调度倍率：不支持利润控制的平台、nil、
+// 负数（"清除"约定，同限额字段）一律视为不限（nil）。NaN/Inf 原样保留交由校验拒绝。
+func NormalizeProfitMaxAccountRate(platform string, rate *float64) *float64 {
+	if rate == nil || !profitControlPlatformSupported(platform) {
+		return nil
+	}
+	if !math.IsNaN(*rate) && *rate < 0 {
+		return nil
+	}
+	v := *rate
+	return &v
+}
+
+// ValidateProfitMaxAccountRate 校验最高调度倍率：nil 合法（不限），非 nil 必须为有限非负数。
+func ValidateProfitMaxAccountRate(rate *float64) error {
+	if rate == nil {
+		return nil
+	}
+	if math.IsNaN(*rate) || math.IsInf(*rate, 0) || *rate < 0 {
+		return fmt.Errorf("profit_max_account_rate 应为非负有限数，got %v", *rate)
+	}
+	return nil
 }
 
 func profitControlPlatformSupported(platform string) bool {
