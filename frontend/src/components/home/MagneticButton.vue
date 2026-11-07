@@ -113,7 +113,7 @@ function onClick(e: MouseEvent) {
 
 .magnetic-btn--primary {
   color: #fff;
-  background: linear-gradient(120deg, #f59e0b 0%, #d946ef 50%, #6366f1 100%);
+  background: linear-gradient(120deg, #d97706 0%, #c026d3 50%, #4f46e5 100%);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.12) inset,
     0 10px 40px -10px rgba(217, 70, 239, 0.7);

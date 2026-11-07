@@ -254,7 +254,7 @@ onMounted(() => {
 .auth-star :deep(.btn-primary) {
   border: 0;
   border-radius: 9999px;
-  background: linear-gradient(120deg, #f59e0b 0%, #d946ef 50%, #6366f1 100%);
+  background: linear-gradient(120deg, #d97706 0%, #c026d3 50%, #4f46e5 100%);
   box-shadow: 0 10px 34px -12px rgba(217, 70, 239, 0.75);
   transition:
     box-shadow 0.3s ease,
