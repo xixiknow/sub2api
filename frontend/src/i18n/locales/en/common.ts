@@ -168,6 +168,7 @@ export default {
     marketingEmail: 'Marketing Email',
     apiKeys: 'API Keys',
     batchImage: 'Batch Images',
+    imageWorkbench: 'Image Studio',
     usage: 'Usage',
     redeem: 'Redeem',
     affiliate: 'Affiliate Rebates',

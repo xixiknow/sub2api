@@ -122,9 +122,10 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		ModelPlazaRequireAuth:   settings.ModelPlazaRequireAuth,
 		PluginManagementEnabled: settings.PluginManagementEnabled,
 
-		AffiliateEnabled:   settings.AffiliateEnabled,
-		CheckinEnabled:     settings.CheckinEnabled,
-		ContactPageEnabled: settings.ContactPageEnabled,
+		AffiliateEnabled:      settings.AffiliateEnabled,
+		CheckinEnabled:        settings.CheckinEnabled,
+		ImageWorkbenchEnabled: settings.ImageWorkbenchEnabled,
+		ContactPageEnabled:    settings.ContactPageEnabled,
 
 		RiskControlEnabled: settings.RiskControlEnabled,
 

@@ -624,6 +624,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.CheckinEnabled != after.CheckinEnabled {
 		changed = append(changed, "checkin_enabled")
 	}
+	if before.ImageWorkbenchEnabled != after.ImageWorkbenchEnabled {
+		changed = append(changed, "image_workbench_enabled")
+	}
 	if before.ContactPageEnabled != after.ContactPageEnabled {
 		changed = append(changed, "contact_page_enabled")
 	}

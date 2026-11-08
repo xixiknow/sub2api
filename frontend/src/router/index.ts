@@ -247,6 +247,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresAdmin: false, requiresCheckin: true, title: 'Daily check-in', titleKey: 'checkin.title', descriptionKey: 'checkin.subtitle' }
   },
   {
+    path: '/image-workbench',
+    name: 'ImageWorkbench',
+    component: () => import('@/views/user/ImageWorkbenchView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: false, requiresImageWorkbench: true, title: 'Image workbench', titleKey: 'imageWorkbench.title', descriptionKey: 'imageWorkbench.description' }
+  },
+  {
     path: '/contact',
     name: 'Contact',
     component: () => import('@/views/user/ContactView.vue'),
@@ -1027,6 +1033,7 @@ router.beforeEach(async (to, _from, next) => {
   // 签到和联系页是 opt-in 开关：设置已加载且未开启时拦截直达。
   if (
     (to.meta.requiresCheckin && appStore.publicSettingsLoaded && appStore.cachedPublicSettings?.checkin_enabled !== true) ||
+    (to.meta.requiresImageWorkbench && appStore.publicSettingsLoaded && appStore.cachedPublicSettings?.image_workbench_enabled !== true) ||
     (to.meta.requiresContactPage && appStore.publicSettingsLoaded && appStore.cachedPublicSettings?.contact_page_enabled !== true)
   ) {
     next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')

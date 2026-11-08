@@ -220,6 +220,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		// Affiliate (邀请返利) feature (default disabled; opt-in)
 		SettingKeyAffiliateEnabled:              "false",
 		SettingKeyCheckinEnabled:                "false",
+		SettingKeyImageWorkbenchEnabled:         "false",
 		SettingKeyContactPageEnabled:            "false",
 		SettingKeyAffiliateAdminRechargeEnabled: strconv.FormatBool(AdminRechargeRebateEnabledDefault),
 
@@ -861,6 +862,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// Affiliate (邀请返利) feature (default: disabled; strict true)
 	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"
 	result.CheckinEnabled = settings[SettingKeyCheckinEnabled] == "true"
+	result.ImageWorkbenchEnabled = settings[SettingKeyImageWorkbenchEnabled] == "true"
 	result.ContactPageEnabled = settings[SettingKeyContactPageEnabled] == "true"
 	result.ContactPageImage = strings.TrimSpace(settings[SettingKeyContactPageImage])
 	result.ContactPageLink = strings.TrimSpace(settings[SettingKeyContactPageLink])

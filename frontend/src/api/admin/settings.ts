@@ -787,6 +787,7 @@ export interface SystemSettings {
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: boolean;
   checkin_enabled: boolean;
+  image_workbench_enabled: boolean;
   contact_page_enabled: boolean;
   contact_page_image: string;
   contact_page_link: string;
@@ -1112,6 +1113,7 @@ export interface UpdateSettingsRequest {
   // Affiliate (邀请返利) feature switch
   affiliate_enabled?: boolean;
   checkin_enabled?: boolean;
+  image_workbench_enabled?: boolean;
   contact_page_enabled?: boolean;
   contact_page_image?: string;
   contact_page_link?: string;

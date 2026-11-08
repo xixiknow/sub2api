@@ -166,6 +166,7 @@ describe('feature route guard', () => {
     ],
     ['subscription', { requiresSubscription: true }, { subscription_enabled: false }, '/dashboard'],
     ['check-in', { requiresCheckin: true }, { checkin_enabled: false }, '/dashboard'],
+    ['image workbench', { requiresImageWorkbench: true }, { image_workbench_enabled: false }, '/dashboard'],
     ['contact page', { requiresContactPage: true }, {}, '/dashboard'],
   ])('redirects when loaded settings explicitly disable %s', async (_name, meta, settings, target) => {
     authStore.isAdmin = meta.requiresRiskControl === true

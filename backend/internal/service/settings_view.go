@@ -176,6 +176,7 @@ type SystemSettings struct {
 	CyberSessionBlockTTLSeconds   int
 	AffiliateEnabled              bool
 	CheckinEnabled                bool
+	ImageWorkbenchEnabled         bool
 	ContactPageEnabled            bool
 	ContactPageImage              string
 	ContactPageLink               string
@@ -433,8 +434,9 @@ type PublicSettings struct {
 	// Affiliate (邀请返利) feature toggle
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 
-	CheckinEnabled     bool `json:"checkin_enabled"`
-	ContactPageEnabled bool `json:"contact_page_enabled"`
+	CheckinEnabled        bool `json:"checkin_enabled"`
+	ImageWorkbenchEnabled bool `json:"image_workbench_enabled"`
+	ContactPageEnabled    bool `json:"contact_page_enabled"`
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`

@@ -343,6 +343,7 @@ export interface PublicSettings {
   service_quota_enabled: boolean
   affiliate_enabled: boolean
   checkin_enabled: boolean
+  image_workbench_enabled: boolean
   contact_page_enabled: boolean
   allow_user_view_error_requests?: boolean
   /** True when the deployment configures MCP_PUBLIC_URL; MCP is disabled otherwise. */

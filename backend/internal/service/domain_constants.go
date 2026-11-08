@@ -235,6 +235,7 @@ const (
 	SettingKeyInvitationCodeEnabled               = "invitation_code_enabled"          // 是否启用邀请码注册
 	SettingKeyAffiliateEnabled                    = "affiliate_enabled"                // 邀请返利功能总开关
 	SettingKeyCheckinEnabled                      = "checkin_enabled"                  // 每日签到功能开关
+	SettingKeyImageWorkbenchEnabled               = "image_workbench_enabled"          // 生图工作台入口开关（默认关闭）
 	SettingKeyContactPageEnabled                  = "contact_page_enabled"             // 「联系我们」页面开关
 	SettingKeyContactPageImage                    = "contact_page_image"               // 联系页图片（base64 data URL 或 http(s) URL）
 	SettingKeyContactPageLink                     = "contact_page_link"                // 联系页社群链接

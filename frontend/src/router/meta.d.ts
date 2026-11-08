@@ -68,6 +68,12 @@ declare module 'vue-router' {
     requiresCheckin?: boolean
 
     /**
+     * 是否要求生图工作台开关（image_workbench_enabled，opt-in）已开启
+     * @default false
+     */
+    requiresImageWorkbench?: boolean
+
+    /**
      * 是否要求「联系我们」页面开关（contact_page_enabled，opt-in）已开启
      * @default false
      */

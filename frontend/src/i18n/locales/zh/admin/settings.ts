@@ -100,6 +100,12 @@ export default {
           enabled: '启用每日签到',
           enabledHint: '关闭后用户侧边栏入口隐藏，签到接口拒绝访问；已发放的奖励不受影响。',
         },
+        imageWorkbench: {
+          title: '生图工作台',
+          description: '用户在网页上用自己的 API Key 在线文生图、图生图，历史保存在用户浏览器本地。需要用户有允许生图的 OpenAI / Grok 分组 Key。默认关闭。',
+          enabled: '启用生图工作台',
+          enabledHint: '关闭后用户侧边栏入口隐藏。建议同时在「备份 → 图片存储」启用 S3，用户才能在生成中关闭页面、稍后回来取图。',
+        },
         affiliate: {
           title: '邀请返利',
           description: '老用户邀请新用户注册，新用户充值后老用户按比例获得返利额度。默认关闭。',

@@ -374,11 +374,12 @@ type UpdateSettingsRequest struct {
 	AffiliateEnabled *bool `json:"affiliate_enabled"`
 
 	// 每日签到与「联系我们」页面
-	CheckinEnabled     *bool  `json:"checkin_enabled"`
-	ContactPageEnabled *bool  `json:"contact_page_enabled"`
-	ContactPageImage   string `json:"contact_page_image"`
-	ContactPageLink    string `json:"contact_page_link"`
-	ContactPageText    string `json:"contact_page_text"`
+	CheckinEnabled        *bool  `json:"checkin_enabled"`
+	ImageWorkbenchEnabled *bool  `json:"image_workbench_enabled"`
+	ContactPageEnabled    *bool  `json:"contact_page_enabled"`
+	ContactPageImage      string `json:"contact_page_image"`
+	ContactPageLink       string `json:"contact_page_link"`
+	ContactPageText       string `json:"contact_page_text"`
 
 	// 风控中心功能开关
 	RiskControlEnabled *bool `json:"risk_control_enabled"`
@@ -2080,11 +2081,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AffiliateEnabled
 		}(),
-		CheckinEnabled:     boolOrPrevious(req.CheckinEnabled, previousSettings.CheckinEnabled),
-		ContactPageEnabled: boolOrPrevious(req.ContactPageEnabled, previousSettings.ContactPageEnabled),
-		ContactPageImage:   strings.TrimSpace(req.ContactPageImage),
-		ContactPageLink:    strings.TrimSpace(req.ContactPageLink),
-		ContactPageText:    req.ContactPageText,
+		CheckinEnabled:        boolOrPrevious(req.CheckinEnabled, previousSettings.CheckinEnabled),
+		ImageWorkbenchEnabled: boolOrPrevious(req.ImageWorkbenchEnabled, previousSettings.ImageWorkbenchEnabled),
+		ContactPageEnabled:    boolOrPrevious(req.ContactPageEnabled, previousSettings.ContactPageEnabled),
+		ContactPageImage:      strings.TrimSpace(req.ContactPageImage),
+		ContactPageLink:       strings.TrimSpace(req.ContactPageLink),
+		ContactPageText:       req.ContactPageText,
 		RiskControlEnabled: func() bool {
 			if req.RiskControlEnabled != nil {
 				return *req.RiskControlEnabled
@@ -2528,12 +2530,13 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ModelPlazaDescription:   updatedSettings.ModelPlazaDescription,
 		PluginManagementEnabled: updatedSettings.PluginManagementEnabled,
 
-		AffiliateEnabled:   updatedSettings.AffiliateEnabled,
-		CheckinEnabled:     updatedSettings.CheckinEnabled,
-		ContactPageEnabled: updatedSettings.ContactPageEnabled,
-		ContactPageImage:   updatedSettings.ContactPageImage,
-		ContactPageLink:    updatedSettings.ContactPageLink,
-		ContactPageText:    updatedSettings.ContactPageText,
+		AffiliateEnabled:      updatedSettings.AffiliateEnabled,
+		CheckinEnabled:        updatedSettings.CheckinEnabled,
+		ImageWorkbenchEnabled: updatedSettings.ImageWorkbenchEnabled,
+		ContactPageEnabled:    updatedSettings.ContactPageEnabled,
+		ContactPageImage:      updatedSettings.ContactPageImage,
+		ContactPageLink:       updatedSettings.ContactPageLink,
+		ContactPageText:       updatedSettings.ContactPageText,
 
 		RiskControlEnabled:          updatedSettings.RiskControlEnabled,
 		CyberSessionBlockEnabled:    updatedSettings.CyberSessionBlockEnabled,

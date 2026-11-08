@@ -457,6 +457,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// Affiliate (邀请返利) feature switch
 	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
 	updates[SettingKeyCheckinEnabled] = strconv.FormatBool(settings.CheckinEnabled)
+	updates[SettingKeyImageWorkbenchEnabled] = strconv.FormatBool(settings.ImageWorkbenchEnabled)
 	updates[SettingKeyContactPageEnabled] = strconv.FormatBool(settings.ContactPageEnabled)
 	updates[SettingKeyContactPageImage] = strings.TrimSpace(settings.ContactPageImage)
 	updates[SettingKeyContactPageLink] = strings.TrimSpace(settings.ContactPageLink)

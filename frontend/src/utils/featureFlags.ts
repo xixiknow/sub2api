@@ -139,6 +139,11 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Daily check-in',
   }),
+  imageWorkbench: defineFlag({
+    key: 'image_workbench_enabled',
+    mode: 'opt-in',
+    label: 'Image workbench',
+  }),
   contactPage: defineFlag({
     key: 'contact_page_enabled',
     mode: 'opt-in',

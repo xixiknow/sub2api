@@ -85,6 +85,10 @@ func newFreeRegistrationSeatSettingService() *SettingService {
 	}, nil)
 }
 
+func (r *affiliateServiceTestRepo) WithdrawQuota(context.Context, int64, float64, string) (*AffiliateWithdrawResult, error) {
+	panic("unexpected WithdrawQuota call")
+}
+
 func (r *affiliateServiceTestRepo) EnsureUserAffiliate(context.Context, int64) (*AffiliateSummary, error) {
 	return &AffiliateSummary{}, nil
 }

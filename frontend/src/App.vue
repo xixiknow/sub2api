@@ -11,6 +11,7 @@ import { getSetupStatus } from '@/api/setup'
 import { updateFavicon } from '@/utils/branding'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
+import { useImageWorkbenchStore } from '@/stores/imageWorkbench'
 
 const router = useRouter()
 const route = useRoute()
@@ -88,6 +89,25 @@ watch(subscriptionFeatureEnabled, (enabled) => {
     subscriptionStore.clear()
   }
 })
+
+// 生图工作台：登录且开关开启时恢复未完成的异步生图任务（用户可能在生成中离开过页面）
+const imageWorkbenchStore = useImageWorkbenchStore()
+watch(
+  () => [
+    authStore.isAuthenticated ? authStore.user?.id ?? null : null,
+    isFeatureFlagEnabled(FeatureFlags.imageWorkbench),
+  ] as const,
+  ([userId, enabled]) => {
+    if (userId !== null && enabled) {
+      imageWorkbenchStore.init(userId).catch((error) => {
+        console.error('Failed to restore image workbench tasks:', error)
+      })
+    } else if (userId === null) {
+      imageWorkbenchStore.reset()
+    }
+  },
+  { immediate: true }
+)
 
 watch(
   () => authStore.isAuthenticated,

@@ -7602,6 +7602,31 @@
           </div>
         </div>
 
+        <!-- 生图工作台入口开关 -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.imageWorkbench.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.imageWorkbench.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.imageWorkbench.enabled') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.imageWorkbench.enabledHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.image_workbench_enabled" />
+            </div>
+          </div>
+        </div>
+
         <QQBotSettingsCard />
 
         <!-- Affiliate (邀请返利) feature card -->
@@ -10231,6 +10256,7 @@ const form = reactive<SettingsForm>({
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
   checkin_enabled: false,
+  image_workbench_enabled: false,
   contact_page_enabled: false,
   contact_page_image: "",
   contact_page_link: "",
@@ -12001,6 +12027,7 @@ async function saveSettings() {
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
       checkin_enabled: form.checkin_enabled,
+      image_workbench_enabled: form.image_workbench_enabled,
       allow_user_view_error_requests: form.allow_user_view_error_requests,
     };
 

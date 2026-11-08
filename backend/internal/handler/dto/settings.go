@@ -355,11 +355,12 @@ type SystemSettings struct {
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 
-	CheckinEnabled     bool   `json:"checkin_enabled"`
-	ContactPageEnabled bool   `json:"contact_page_enabled"`
-	ContactPageImage   string `json:"contact_page_image"`
-	ContactPageLink    string `json:"contact_page_link"`
-	ContactPageText    string `json:"contact_page_text"`
+	CheckinEnabled        bool   `json:"checkin_enabled"`
+	ImageWorkbenchEnabled bool   `json:"image_workbench_enabled"`
+	ContactPageEnabled    bool   `json:"contact_page_enabled"`
+	ContactPageImage      string `json:"contact_page_image"`
+	ContactPageLink       string `json:"contact_page_link"`
+	ContactPageText       string `json:"contact_page_text"`
 
 	// OpenAI fast/flex policy
 	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
@@ -467,8 +468,9 @@ type PublicSettings struct {
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 
-	CheckinEnabled     bool `json:"checkin_enabled"`
-	ContactPageEnabled bool `json:"contact_page_enabled"`
+	CheckinEnabled        bool `json:"checkin_enabled"`
+	ImageWorkbenchEnabled bool `json:"image_workbench_enabled"`
+	ContactPageEnabled    bool `json:"contact_page_enabled"`
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
 

@@ -168,6 +168,7 @@ export default {
     marketingEmail: '营销邮件',
     apiKeys: 'API 密钥',
     batchImage: '批量生图',
+    imageWorkbench: '生图工作台',
     usage: '使用记录',
     redeem: '兑换',
     affiliate: '邀请返利',

@@ -244,6 +244,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyPluginManagementEnabled,
 		SettingKeyAffiliateEnabled,
 		SettingKeyCheckinEnabled,
+		SettingKeyImageWorkbenchEnabled,
 		SettingKeyContactPageEnabled,
 		SettingKeyRiskControlEnabled,
 		SettingKeyAllowUserViewErrorRequests,
@@ -381,9 +382,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ModelPlazaRequireAuth:   settings[SettingKeyModelPlazaRequireAuth] == "true",
 		PluginManagementEnabled: settings[SettingKeyPluginManagementEnabled] == "true",
 
-		AffiliateEnabled:   settings[SettingKeyAffiliateEnabled] == "true",
-		CheckinEnabled:     settings[SettingKeyCheckinEnabled] == "true",
-		ContactPageEnabled: settings[SettingKeyContactPageEnabled] == "true",
+		AffiliateEnabled:      settings[SettingKeyAffiliateEnabled] == "true",
+		CheckinEnabled:        settings[SettingKeyCheckinEnabled] == "true",
+		ImageWorkbenchEnabled: settings[SettingKeyImageWorkbenchEnabled] == "true",
+		ContactPageEnabled:    settings[SettingKeyContactPageEnabled] == "true",
 
 		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
 
@@ -657,6 +659,7 @@ type PublicSettingsInjectionPayload struct {
 	PluginManagementEnabled       bool `json:"plugin_management_enabled"`
 	AffiliateEnabled              bool `json:"affiliate_enabled"`
 	CheckinEnabled                bool `json:"checkin_enabled"`
+	ImageWorkbenchEnabled         bool `json:"image_workbench_enabled"`
 	ContactPageEnabled            bool `json:"contact_page_enabled"`
 	RiskControlEnabled            bool `json:"risk_control_enabled"`
 	AllowUserViewErrorRequests    bool `json:"allow_user_view_error_requests"`
@@ -747,6 +750,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		PluginManagementEnabled:              settings.PluginManagementEnabled,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
 		CheckinEnabled:                       settings.CheckinEnabled,
+		ImageWorkbenchEnabled:                settings.ImageWorkbenchEnabled,
 		ContactPageEnabled:                   settings.ContactPageEnabled,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,

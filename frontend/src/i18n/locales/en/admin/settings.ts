@@ -100,6 +100,12 @@ export default {
           enabled: 'Enable daily check-in',
           enabledHint: 'When off, the sidebar entry is hidden and the check-in API is rejected. Rewards already granted are unaffected.',
         },
+        imageWorkbench: {
+          title: 'Image workbench',
+          description: 'Users generate and edit images in the browser with their own API keys; history stays in their browser. Requires a key in an OpenAI / Grok group that allows image generation. Disabled by default.',
+          enabled: 'Enable image workbench',
+          enabledHint: 'When off, the sidebar entry is hidden. Also enable S3 under Backup → Image storage so users can leave the page while images are generating.',
+        },
         affiliate: {
           title: 'Affiliate (Invite Rebate)',
           description: 'Existing users invite new ones; the inviter earns a percentage rebate on the invitee’s recharges. Disabled by default.',
