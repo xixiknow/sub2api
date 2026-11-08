@@ -110,7 +110,7 @@ func TestClientSendFlow(t *testing.T) {
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths %v", paths)
 	}
-	if lastBody["msg_type"].(float64) != MsgTypeMedia || lastBody["msg_id"] != "m1" {
+	if mt, ok := lastBody["msg_type"].(float64); !ok || mt != MsgTypeMedia || lastBody["msg_id"] != "m1" {
 		t.Fatalf("media reply body %v", lastBody)
 	}
 }

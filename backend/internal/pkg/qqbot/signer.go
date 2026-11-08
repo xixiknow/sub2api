@@ -28,7 +28,11 @@ func NewSigner(secret string) (*Signer, error) {
 		seed = strings.Repeat(seed, 2)
 	}
 	priv := ed25519.NewKeyFromSeed([]byte(seed[:ed25519.SeedSize]))
-	return &Signer{priv: priv, pub: priv.Public().(ed25519.PublicKey)}, nil
+	pub, ok := priv.Public().(ed25519.PublicKey)
+	if !ok {
+		return nil, errors.New("qqbot: unexpected public key type")
+	}
+	return &Signer{priv: priv, pub: pub}, nil
 }
 
 // SignValidation answers the op=13 callback URL validation challenge.

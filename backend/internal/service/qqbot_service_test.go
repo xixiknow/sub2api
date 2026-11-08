@@ -64,7 +64,10 @@ func TestQQBotWebhookValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp := out.(qqbot.ValidationResponse)
+	resp, ok := out.(qqbot.ValidationResponse)
+	if !ok {
+		t.Fatalf("unexpected response type %T", out)
+	}
 	if resp.PlainToken != "Arq0D5A61EgUu4OxUvOp" || !strings.HasPrefix(resp.Signature, "87befc99c42c651b") {
 		t.Fatalf("unexpected validation response %+v", resp)
 	}
