@@ -46,7 +46,7 @@ func newQQBotTestService(enabled bool) (*QQBotService, chan botReply) {
 		SettingKeyQQBotAppID:     "11111111",
 		SettingKeyQQBotAppSecret: qqbotTestSecret,
 	}}
-	s := NewQQBotService(nil, repo, nil, nil, nil, nil, nil)
+	s := NewQQBotService(nil, repo, nil, nil, nil, nil, nil, nil, nil)
 	sent := make(chan botReply, 4)
 	var mu sync.Mutex
 	s.send = func(_ context.Context, _ QQBotConfig, _ *qqbot.Message, r botReply) {

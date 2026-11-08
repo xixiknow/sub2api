@@ -3,6 +3,7 @@ package qqbot
 import (
 	"encoding/json"
 	"strings"
+	"sync/atomic"
 )
 
 // Opcodes used in webhook mode.
@@ -66,7 +67,13 @@ type Message struct {
 	GroupOpenID string // set for SceneGroup
 	UserOpenID  string // sender openid (member_openid in groups, user_openid in C2C)
 	Content     string // trimmed text, @mention removed
+
+	seq atomic.Int32
 }
+
+// NextSeq returns the msg_seq for the next passive reply to this message
+// (QQ rejects duplicate seq values for the same msg_id).
+func (m *Message) NextSeq() int { return int(m.seq.Add(1)) }
 
 // ReplyTarget is the openid the reply is addressed to.
 func (m *Message) ReplyTarget() string {

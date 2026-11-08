@@ -12,9 +12,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/qqbot"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/qqbot/render"
 	"github.com/lib/pq"
 )
 
@@ -22,6 +24,19 @@ const (
 	SettingKeyQQBotEnabled   = "qqbot_enabled"
 	SettingKeyQQBotAppID     = "qqbot_app_id"
 	SettingKeyQQBotAppSecret = "qqbot_app_secret"
+
+	SettingKeyQQBotPosterAPIKey     = "qqbot_poster_api_key"
+	SettingKeyQQBotPosterModel      = "qqbot_poster_model"
+	SettingKeyQQBotPosterDailyLimit = "qqbot_poster_daily_limit"
+
+	qqbotPosterModelDefault      = "gpt-image-2"
+	qqbotPosterDailyLimitDefault = 3
+	qqbotPosterDailyLimitMax     = 50
+
+	// Fast commands share qqbotFastSlots; a message waits up to qqbotFastWait for a slot.
+	qqbotFastSlots   = 32
+	qqbotFastWait    = 20 * time.Second
+	qqbotFastTimeout = 45 * time.Second
 )
 
 var (
@@ -31,25 +46,37 @@ var (
 	ErrQQBotBindingMissing = infraerrors.NotFound("QQBOT_BINDING_NOT_FOUND", "QQ binding not found")
 )
 
-// QQBotConfig is the admin configuration. AppSecret is never returned to clients.
+// QQBotConfig is the admin configuration. Secrets are never returned to clients.
 type QQBotConfig struct {
 	Enabled   bool
 	AppID     string
 	AppSecret string
+
+	PosterAPIKey     string // site API key used to generate poster art through this gateway
+	PosterModel      string
+	PosterDailyLimit int // new AI illustrations per user per day; 0 = never generate
 }
 
-// QQBotConfigView is the admin-facing view (secret masked).
+// QQBotConfigView is the admin-facing view (secrets masked).
 type QQBotConfigView struct {
 	Enabled          bool   `json:"enabled"`
 	AppID            string `json:"app_id"`
 	SecretConfigured bool   `json:"secret_configured"`
+
+	PosterKeyConfigured bool   `json:"poster_key_configured"`
+	PosterModel         string `json:"poster_model"`
+	PosterDailyLimit    int    `json:"poster_daily_limit"`
 }
 
-// QQBotConfigUpdate updates the config; empty AppSecret keeps the stored one.
+// QQBotConfigUpdate updates the config; empty secrets keep the stored values.
 type QQBotConfigUpdate struct {
 	Enabled   bool   `json:"enabled"`
 	AppID     string `json:"app_id"`
 	AppSecret string `json:"app_secret"`
+
+	PosterAPIKey     string `json:"poster_api_key"`
+	PosterModel      string `json:"poster_model"`
+	PosterDailyLimit *int   `json:"poster_daily_limit"`
 }
 
 // QQBotBinding is a user's QQ binding as shown on the profile page.
@@ -69,6 +96,8 @@ type QQBotService struct {
 	groupRepo   GroupRepository
 	checkin     *CheckinService
 	monitor     *ChannelMonitorService
+	affiliate   *AffiliateService
+	appCfg      *config.Config
 
 	clientMu  sync.Mutex
 	clientKey string
@@ -77,10 +106,15 @@ type QQBotService struct {
 	dedup   *ttlSet
 	limiter *ttlCounter
 	images  *imageCache
-	sem     chan struct{}
+	sem     chan struct{} // fast command slots
+	poster  *posterPipeline
 	now     func() time.Time
-	// send is replaced in tests.
-	send func(ctx context.Context, cfg QQBotConfig, m *qqbot.Message, r botReply)
+
+	// The hooks below are replaced in tests.
+	send          func(ctx context.Context, cfg QQBotConfig, m *qqbot.Message, r botReply)
+	generateArt   func(ctx context.Context, cfg QQBotConfig, prompt string) ([]byte, error)
+	invitePlanner func(ctx context.Context, cfg QQBotConfig, m *qqbot.Message) (*invitePlan, string)
+	renderPoster  func(in render.PosterInput) ([]byte, error)
 }
 
 func NewQQBotService(
@@ -91,42 +125,71 @@ func NewQQBotService(
 	groupRepo GroupRepository,
 	checkin *CheckinService,
 	monitor *ChannelMonitorService,
+	affiliate *AffiliateService,
+	appCfg *config.Config,
 ) *QQBotService {
 	s := &QQBotService{
 		db: db, settingRepo: settingRepo, settings: settings, userRepo: userRepo,
 		groupRepo: groupRepo, checkin: checkin, monitor: monitor,
+		affiliate: affiliate, appCfg: appCfg,
 		dedup:   newTTLSet(10 * time.Minute),
 		limiter: newTTLCounter(time.Minute),
 		images:  &imageCache{},
-		sem:     make(chan struct{}, 8),
+		sem:     make(chan struct{}, qqbotFastSlots),
+		poster:  newPosterPipeline(),
 		now:     time.Now,
 	}
 	s.send = s.sendReply
+	s.generateArt = s.generateArtViaGateway
+	s.invitePlanner = s.buildInvitePlan
+	s.renderPoster = func(in render.PosterInput) ([]byte, error) { return render.RenderPosterJPEG(in, posterJPEGQuality) }
 	return s
 }
 
 // ---- config ----
 
 func (s *QQBotService) loadConfig(ctx context.Context) (QQBotConfig, error) {
-	v, err := s.settingRepo.GetMultiple(ctx, []string{SettingKeyQQBotEnabled, SettingKeyQQBotAppID, SettingKeyQQBotAppSecret})
+	v, err := s.settingRepo.GetMultiple(ctx, []string{
+		SettingKeyQQBotEnabled, SettingKeyQQBotAppID, SettingKeyQQBotAppSecret,
+		SettingKeyQQBotPosterAPIKey, SettingKeyQQBotPosterModel, SettingKeyQQBotPosterDailyLimit,
+	})
 	if err != nil {
 		return QQBotConfig{}, err
 	}
-	return QQBotConfig{
-		Enabled:   v[SettingKeyQQBotEnabled] == "true",
-		AppID:     strings.TrimSpace(v[SettingKeyQQBotAppID]),
-		AppSecret: strings.TrimSpace(v[SettingKeyQQBotAppSecret]),
-	}, nil
+	cfg := QQBotConfig{
+		Enabled:          v[SettingKeyQQBotEnabled] == "true",
+		AppID:            strings.TrimSpace(v[SettingKeyQQBotAppID]),
+		AppSecret:        strings.TrimSpace(v[SettingKeyQQBotAppSecret]),
+		PosterAPIKey:     strings.TrimSpace(v[SettingKeyQQBotPosterAPIKey]),
+		PosterModel:      strings.TrimSpace(v[SettingKeyQQBotPosterModel]),
+		PosterDailyLimit: qqbotPosterDailyLimitDefault,
+	}
+	if cfg.PosterModel == "" {
+		cfg.PosterModel = qqbotPosterModelDefault
+	}
+	if raw := strings.TrimSpace(v[SettingKeyQQBotPosterDailyLimit]); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n >= 0 && n <= qqbotPosterDailyLimitMax {
+			cfg.PosterDailyLimit = n
+		}
+	}
+	return cfg, nil
 }
 
 func (c QQBotConfig) ready() bool { return c.Enabled && c.AppID != "" && c.AppSecret != "" }
+
+func (c QQBotConfig) view() *QQBotConfigView {
+	return &QQBotConfigView{
+		Enabled: c.Enabled, AppID: c.AppID, SecretConfigured: c.AppSecret != "",
+		PosterKeyConfigured: c.PosterAPIKey != "", PosterModel: c.PosterModel, PosterDailyLimit: c.PosterDailyLimit,
+	}
+}
 
 func (s *QQBotService) GetConfig(ctx context.Context) (*QQBotConfigView, error) {
 	cfg, err := s.loadConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &QQBotConfigView{Enabled: cfg.Enabled, AppID: cfg.AppID, SecretConfigured: cfg.AppSecret != ""}, nil
+	return cfg.view(), nil
 }
 
 func (s *QQBotService) UpdateConfig(ctx context.Context, in QQBotConfigUpdate) (*QQBotConfigView, error) {
@@ -143,11 +206,29 @@ func (s *QQBotService) UpdateConfig(ctx context.Context, in QQBotConfigUpdate) (
 		return nil, infraerrors.BadRequest("QQBOT_INCOMPLETE", "AppID and AppSecret are required to enable the QQ bot")
 	}
 	updates := map[string]string{
-		SettingKeyQQBotEnabled: map[bool]string{true: "true", false: "false"}[in.Enabled],
+		SettingKeyQQBotEnabled: strconv.FormatBool(in.Enabled),
 		SettingKeyQQBotAppID:   appID,
 	}
 	if secret != "" {
 		updates[SettingKeyQQBotAppSecret] = secret
+	}
+	if key := strings.TrimSpace(in.PosterAPIKey); key != "" {
+		if len(key) > 512 {
+			return nil, infraerrors.BadRequest("QQBOT_BAD_POSTER_KEY", "poster API key is too long")
+		}
+		updates[SettingKeyQQBotPosterAPIKey] = key
+	}
+	if model := strings.TrimSpace(in.PosterModel); model != "" {
+		if len(model) > 128 {
+			return nil, infraerrors.BadRequest("QQBOT_BAD_POSTER_MODEL", "poster model is too long")
+		}
+		updates[SettingKeyQQBotPosterModel] = model
+	}
+	if in.PosterDailyLimit != nil {
+		if *in.PosterDailyLimit < 0 || *in.PosterDailyLimit > qqbotPosterDailyLimitMax {
+			return nil, infraerrors.BadRequest("QQBOT_BAD_POSTER_LIMIT", "poster daily limit must be between 0 and 50")
+		}
+		updates[SettingKeyQQBotPosterDailyLimit] = strconv.Itoa(*in.PosterDailyLimit)
 	}
 	if err := s.settingRepo.SetMultiple(ctx, updates); err != nil {
 		return nil, err
@@ -156,7 +237,7 @@ func (s *QQBotService) UpdateConfig(ctx context.Context, in QQBotConfigUpdate) (
 	if err != nil {
 		return nil, err
 	}
-	return &QQBotConfigView{Enabled: cfg.Enabled, AppID: cfg.AppID, SecretConfigured: cfg.AppSecret != ""}, nil
+	return cfg.view(), nil
 }
 
 // clientFor reuses one client (and its cached access token) per credential pair.
@@ -212,49 +293,60 @@ func (s *QQBotService) HandleWebhook(ctx context.Context, signature, timestamp s
 	if err != nil || !ok || msg.UserOpenID == "" || msg.ReplyTarget() == "" {
 		return ack, nil
 	}
-	select {
-	case s.sem <- struct{}{}:
-	default:
-		logger.LegacyPrintf("service.qqbot", "[QQBot] busy, dropping message %s", msg.MsgID)
-		return ack, nil
-	}
-	go func() {
-		defer func() { <-s.sem }()
-		defer func() {
-			if r := recover(); r != nil {
-				logger.LegacyPrintf("service.qqbot", "[QQBot] panic handling message: %v", r)
-			}
-		}()
-		bg, cancel := context.WithTimeout(context.Background(), 45*time.Second)
-		defer cancel()
-		s.send(bg, cfg, msg, s.HandleCommand(bg, cfg, msg))
-	}()
+	go s.dispatch(cfg, msg)
 	return ack, nil
 }
 
-// botReply is either text, or an image with a text fallback.
+// dispatch runs one command off the webhook goroutine. /邀请 goes to the poster
+// pipeline (its own limits); every other command waits for a fast slot instead
+// of being dropped when the bot is busy.
+func (s *QQBotService) dispatch(cfg QQBotConfig, msg *qqbot.Message) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.LegacyPrintf("service.qqbot", "[QQBot] panic handling message: %v", r)
+		}
+	}()
+	if cmd, _ := parseQQBotCommand(msg.Content); isInviteCommand(cmd) {
+		s.handleInvite(cfg, msg)
+		return
+	}
+	wait := time.NewTimer(qqbotFastWait)
+	defer wait.Stop()
+	select {
+	case s.sem <- struct{}{}:
+	case <-wait.C:
+		logger.LegacyPrintf("service.qqbot", "[QQBot] no free slot after %s, dropping message %s", qqbotFastWait, msg.MsgID)
+		return
+	}
+	defer func() { <-s.sem }()
+	ctx, cancel := context.WithTimeout(context.Background(), qqbotFastTimeout)
+	defer cancel()
+	s.send(ctx, cfg, msg, s.HandleCommand(ctx, cfg, msg))
+}
+
+// botReply is either text, or an image whose Text is sent only when the image
+// is missing or fails to send.
 type botReply struct {
 	Text  string
 	Image []byte
 }
 
+// sendReply sends one passive reply; each send takes the message's next msg_seq.
 func (s *QQBotService) sendReply(ctx context.Context, cfg QQBotConfig, m *qqbot.Message, r botReply) {
 	client := s.clientFor(cfg)
-	seq := 1
 	if len(r.Image) > 0 {
 		fileInfo, err := client.UploadImage(ctx, m, r.Image)
 		if err == nil {
-			if err = client.SendReply(ctx, m, seq, qqbot.Reply{FileInfo: fileInfo}); err == nil {
+			if err = client.SendReply(ctx, m, m.NextSeq(), qqbot.Reply{FileInfo: fileInfo}); err == nil {
 				return
 			}
 		}
 		logger.LegacyPrintf("service.qqbot", "[QQBot] image reply failed, falling back to text: %v", err)
-		seq++
 	}
 	if r.Text == "" {
 		return
 	}
-	if err := client.SendReply(ctx, m, seq, qqbot.Reply{Text: r.Text}); err != nil {
+	if err := client.SendReply(ctx, m, m.NextSeq(), qqbot.Reply{Text: r.Text}); err != nil {
 		logger.LegacyPrintf("service.qqbot", "[QQBot] send reply failed: %v", err)
 	}
 }
@@ -303,7 +395,7 @@ func isUniqueViolation(err error) bool {
 	return errors.As(err, &pqErr) && pqErr.Code == "23505"
 }
 
-// checkinCaptchaHash is the synthetic per-day fingerprint for bot check-ins:
+// qqbotCheckinHash is the synthetic per-day fingerprint for bot check-ins:
 // the QQ binding replaces the web captcha, and the daily (user, date) limit still applies.
 func qqbotCheckinHash(userID int64, openid string, day time.Time) string {
 	sum := sha256.Sum256([]byte("qqbot:" + day.Format("2006-01-02") + ":" + openid + ":" + strconv.FormatInt(userID, 10)))

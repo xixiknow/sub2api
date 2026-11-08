@@ -44,6 +44,36 @@
 
       <p class="text-xs text-amber-600 dark:text-amber-400">{{ t('qqbot.admin.note') }}</p>
 
+      <div class="space-y-4 border-t border-gray-100 pt-5 dark:border-dark-700">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('qqbot.admin.poster.title') }}</h3>
+          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ t('qqbot.admin.poster.description') }}</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="sm:col-span-3">
+            <label for="qqbot-poster-key" class="input-label">{{ t('qqbot.admin.poster.apiKey') }}</label>
+            <input
+              id="qqbot-poster-key"
+              v-model.trim="form.poster_api_key"
+              type="password"
+              class="input"
+              autocomplete="new-password"
+              :placeholder="posterKeyConfigured ? t('qqbot.admin.secretConfigured') : t('qqbot.admin.poster.apiKeyPlaceholder')"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('qqbot.admin.poster.apiKeyHint') }}</p>
+          </div>
+          <div class="sm:col-span-2">
+            <label for="qqbot-poster-model" class="input-label">{{ t('qqbot.admin.poster.model') }}</label>
+            <input id="qqbot-poster-model" v-model.trim="form.poster_model" class="input" maxlength="128" placeholder="gpt-image-2" />
+          </div>
+          <div>
+            <label for="qqbot-poster-limit" class="input-label">{{ t('qqbot.admin.poster.dailyLimit') }}</label>
+            <input id="qqbot-poster-limit" v-model.number="form.poster_daily_limit" type="number" min="0" max="50" class="input" />
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('qqbot.admin.poster.hint') }}</p>
+      </div>
+
       <div class="flex justify-end">
         <button type="button" class="btn btn-primary" :disabled="saving || loading" @click="save">
           {{ saving ? t('common.processing') : t('qqbot.admin.save') }}
@@ -57,14 +87,22 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Toggle from '@/components/common/Toggle.vue'
-import { getQQBotConfig, updateQQBotConfig } from '@/api/qqbot'
+import { getQQBotConfig, updateQQBotConfig, type QQBotConfig } from '@/api/qqbot'
 import { useAppStore } from '@/stores'
 
 const { t } = useI18n()
 const appStore = useAppStore()
 
-const form = reactive({ enabled: false, app_id: '', app_secret: '' })
+const form = reactive({
+  enabled: false,
+  app_id: '',
+  app_secret: '',
+  poster_api_key: '',
+  poster_model: 'gpt-image-2',
+  poster_daily_limit: 3,
+})
 const secretConfigured = ref(false)
+const posterKeyConfigured = ref(false)
 const loading = ref(true)
 const saving = ref(false)
 const copied = ref(false)
@@ -76,13 +114,21 @@ function errorMessage(error: unknown, fallback: string): string {
   return typeof message === 'string' && message.length > 0 ? message : fallback
 }
 
+function applyConfig(cfg: QQBotConfig): void {
+  form.enabled = cfg.enabled
+  form.app_id = cfg.app_id
+  form.app_secret = ''
+  form.poster_api_key = ''
+  form.poster_model = cfg.poster_model || 'gpt-image-2'
+  form.poster_daily_limit = cfg.poster_daily_limit
+  secretConfigured.value = cfg.secret_configured
+  posterKeyConfigured.value = cfg.poster_key_configured
+}
+
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const cfg = await getQQBotConfig()
-    form.enabled = cfg.enabled
-    form.app_id = cfg.app_id
-    secretConfigured.value = cfg.secret_configured
+    applyConfig(await getQQBotConfig())
   } catch (error) {
     appStore.showError(errorMessage(error, t('qqbot.admin.loadFailed')))
   } finally {
@@ -93,11 +139,17 @@ async function load(): Promise<void> {
 async function save(): Promise<void> {
   saving.value = true
   try {
-    const cfg = await updateQQBotConfig({ enabled: form.enabled, app_id: form.app_id, app_secret: form.app_secret || undefined })
-    form.enabled = cfg.enabled
-    form.app_id = cfg.app_id
-    form.app_secret = ''
-    secretConfigured.value = cfg.secret_configured
+    const limit = Number.isFinite(form.poster_daily_limit) ? Math.min(50, Math.max(0, Math.trunc(form.poster_daily_limit))) : 3
+    applyConfig(
+      await updateQQBotConfig({
+        enabled: form.enabled,
+        app_id: form.app_id,
+        app_secret: form.app_secret || undefined,
+        poster_api_key: form.poster_api_key || undefined,
+        poster_model: form.poster_model,
+        poster_daily_limit: limit,
+      }),
+    )
     appStore.showSuccess(t('qqbot.admin.saved'))
   } catch (error) {
     appStore.showError(errorMessage(error, t('qqbot.admin.saveFailed')))

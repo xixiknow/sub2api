@@ -12,6 +12,12 @@ export default { qqbot: {
     appId: 'AppID', appSecret: 'AppSecret', secretConfigured: '已配置，留空则不修改', secretPlaceholder: '输入 AppSecret',
     callbackUrl: '回调地址', callbackHint: "在 QQ 开放平台「开发 → 回调配置」中填写此地址，并订阅群聊 {'@'} 消息与单聊消息事件。",
     copy: '复制', copied: '已复制', save: '保存', saved: 'QQ 机器人配置已保存', loadFailed: '加载 QQ 机器人配置失败', saveFailed: '保存失败',
+    poster: {
+      title: '邀请海报（/邀请）', description: '用本站图片模型为每张海报生成独特插画，站点名、Logo、二维码由程序叠加。',
+      apiKey: '本站 API Key', apiKeyPlaceholder: '填写一个本站 API Key（sk-...）', apiKeyHint: '生图通过本站网关调用，费用计入该 Key 所属账号；留空则只用插画池或程序背景。',
+      model: '生图模型', dailyLimit: '每人每日生成上限',
+      hint: '超出上限或排队较多时复用最近生成的插画；生成失败时使用程序绘制的背景。建议在网站设置中上传 PNG 格式的站点 Logo。',
+    },
     note: '签到需要同时开启「每日签到」；/状态 需要开启渠道监控。群消息中的链接需在 QQ 后台报备域名，机器人回复默认不带链接。',
   },
 } }

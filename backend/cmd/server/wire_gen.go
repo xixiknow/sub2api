@@ -331,7 +331,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	availableChannelHandler := handler.NewAvailableChannelHandler(channelService, apiKeyService, settingService)
 	tgShopService := service.NewTGShopService(userRepository, redeemService, affiliateService, paymentService)
 	tgShopWebhookHandler := handler.NewTGShopWebhookHandler(tgShopService, configConfig)
-	qqBotService := service.NewQQBotService(db, settingRepository, settingService, userRepository, groupRepository, checkinService, channelMonitorService)
+	qqBotService := service.NewQQBotService(db, settingRepository, settingService, userRepository, groupRepository, checkinService, channelMonitorService, affiliateService, configConfig)
 	qqBotHandler := handler.NewQQBotHandler(qqBotService)
 	modelPlazaService := service.NewModelPlazaService(channelRepository, groupRepository, pricingService, billingService, modelPricingResolver)
 	modelPlazaHandler := handler.NewModelPlazaHandler(modelPlazaService, apiKeyService, settingService)

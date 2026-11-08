@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"math"
 	"sync"
@@ -86,6 +87,17 @@ func newCanvas(w, h float64, bg color.RGBA) *canvas {
 	return &canvas{img: img, faces: map[faceKey]font.Face{}}
 }
 
+func (c *canvas) jpeg(quality int) ([]byte, error) {
+	for _, f := range c.faces {
+		_ = f.Close()
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, c.img, &jpeg.Options{Quality: quality}); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func (c *canvas) png() ([]byte, error) {
 	for _, f := range c.faces {
 		_ = f.Close()
@@ -132,6 +144,11 @@ func (c *canvas) blend(x, y int, col color.RGBA, a float64) {
 
 // roundRect fills an anti-aliased rounded rectangle (logical coords).
 func (c *canvas) roundRect(x, y, w, h, r float64, col color.RGBA) {
+	c.roundRectA(x, y, w, h, r, col, 1)
+}
+
+// roundRectA is roundRect with an extra opacity factor in [0,1].
+func (c *canvas) roundRectA(x, y, w, h, r float64, col color.RGBA, alpha float64) {
 	X, Y, W, H, R := x*scale, y*scale, w*scale, h*scale, r*scale
 	if R > W/2 {
 		R = W / 2
@@ -146,7 +163,7 @@ func (c *canvas) roundRect(x, y, w, h, r float64, col color.RGBA) {
 			qx := math.Abs(cx-(X+W/2)) - (W/2 - R)
 			qy := math.Abs(cy-(Y+H/2)) - (H/2 - R)
 			d := math.Hypot(math.Max(qx, 0), math.Max(qy, 0)) + math.Min(math.Max(qx, qy), 0) - R
-			c.blend(px, py, col, 0.5-d)
+			c.blend(px, py, col, math.Min(math.Max(0.5-d, 0), 1)*alpha)
 		}
 	}
 }

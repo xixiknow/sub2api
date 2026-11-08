@@ -11,12 +11,18 @@ export interface QQBotConfig {
   enabled: boolean
   app_id: string
   secret_configured: boolean
+  poster_key_configured: boolean
+  poster_model: string
+  poster_daily_limit: number
 }
 
 export interface QQBotConfigUpdate {
   enabled: boolean
   app_id: string
   app_secret?: string
+  poster_api_key?: string
+  poster_model?: string
+  poster_daily_limit?: number
 }
 
 export async function getMyQQBinding(): Promise<QQBotBinding> {

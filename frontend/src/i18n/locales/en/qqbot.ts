@@ -12,6 +12,12 @@ export default { qqbot: {
     appId: 'AppID', appSecret: 'AppSecret', secretConfigured: 'Configured; leave empty to keep', secretPlaceholder: 'Enter AppSecret',
     callbackUrl: 'Callback URL', callbackHint: "Set this URL in the QQ open platform callback settings and subscribe to group {'@'} messages and C2C messages.",
     copy: 'Copy', copied: 'Copied', save: 'Save', saved: 'QQ bot settings saved', loadFailed: 'Failed to load QQ bot settings', saveFailed: 'Failed to save',
+    poster: {
+      title: 'Invite poster (/邀请)', description: 'Each poster gets a unique illustration from the image model of this site; site name, logo and QR code are drawn by the server.',
+      apiKey: 'Site API key', apiKeyPlaceholder: 'An API key of this site (sk-...)', apiKeyHint: 'Images are generated through this gateway and billed to the key owner; leave empty to use only the reuse pool or generated backgrounds.',
+      model: 'Image model', dailyLimit: 'Daily generations per user',
+      hint: 'Over the limit or under heavy load, recent illustrations are reused; on failure a generated background is used. Upload a PNG site logo for best results.',
+    },
     note: 'Check-in also requires Daily Check-in to be enabled; /状态 requires channel monitoring. Links in group messages need domain registration on QQ, so replies contain no links.',
   },
 } }
