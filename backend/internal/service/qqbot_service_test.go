@@ -120,7 +120,7 @@ func TestQQBotWebhookDispatch(t *testing.T) {
 func TestParseQQBotCommand(t *testing.T) {
 	cases := []struct{ in, cmd, arg string }{
 		{"/签到", "签到", ""},
-		{"  ／绑定   a@b.com ", "绑定", "a@b.com"},
+		{"  ／绑定   abcd 2345 ", "绑定", "abcd 2345"},
 		{"状态", "状态", ""},
 		{"/HELP", "help", ""},
 		{"", "", ""},

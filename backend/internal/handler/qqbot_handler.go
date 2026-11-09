@@ -58,6 +58,22 @@ func (h *QQBotHandler) GetMyBinding(c *gin.Context) {
 	response.Success(c, b)
 }
 
+// CreateBindCode POST /api/v1/user/qqbot-binding/code
+// Issues a one-time code the user sends to the bot as "/绑定 <code>".
+func (h *QQBotHandler) CreateBindCode(c *gin.Context) {
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	code, err := h.svc.CreateBindCode(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, code)
+}
+
 // UnbindMine DELETE /api/v1/user/qqbot-binding
 func (h *QQBotHandler) UnbindMine(c *gin.Context) {
 	subject, ok := middleware.GetAuthSubjectFromContext(c)

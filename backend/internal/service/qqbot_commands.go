@@ -18,17 +18,20 @@ import (
 
 const qqbotHelpText = `可用指令：
 /签到 —— 每日签到抽奖（需先绑定）
-/绑定 邮箱 —— 绑定站内账号
+/绑定 绑定码 —— 绑定站内账号（绑定码在网站个人资料页生成）
 /解绑 —— 解除 QQ 绑定
 /状态 —— 渠道监控状态
 /分组 —— 公开分组与倍率
 /邀请 —— 生成专属邀请海报
 /帮助 —— 查看本帮助
-群聊中请先 @我 再发送指令`
+群聊中请 @我 后发送指令（已开通全量消息时可直接发 /指令）；建议私聊完成绑定`
+
+const qqbotBindUsage = "请先登录网站，在「个人资料 → QQ 机器人」生成绑定码，然后私聊我发送：/绑定 绑定码\n例如：/绑定 ABCD2345"
+const qqbotNeedBind = "你还没有绑定账号。请登录网站，在「个人资料 → QQ 机器人」生成绑定码，然后发送：/绑定 绑定码"
 
 const qqbotBindLimitPerMinute = 5
 
-// parseQQBotCommand splits "/绑定 a@b.com" into ("绑定", "a@b.com"). The slash is optional.
+// parseQQBotCommand splits "/绑定 ABCD2345" into ("绑定", "ABCD2345"). The slash is optional.
 func parseQQBotCommand(content string) (cmd, arg string) {
 	content = strings.TrimSpace(content)
 	content = strings.TrimLeft(content, "/／")
@@ -56,6 +59,9 @@ func (s *QQBotService) HandleCommand(ctx context.Context, cfg QQBotConfig, m *qq
 	case "分组", "groups":
 		return s.cmdGroups(ctx)
 	default:
+		if !m.Addressed {
+			return botReply{} // "/xxx" not meant for us in full-message mode: stay quiet
+		}
 		return botReply{Text: "未知指令，发送 /帮助 查看可用指令"}
 	}
 }
@@ -65,7 +71,7 @@ func formatCents(cents int) string { return fmt.Sprintf("¥%d.%02d", cents/100, 
 func (s *QQBotService) cmdCheckin(ctx context.Context, cfg QQBotConfig, m *qqbot.Message) string {
 	uid, err := s.bindingUser(ctx, cfg.AppID, m.UserOpenID)
 	if errors.Is(err, ErrQQBotBindingMissing) {
-		return "你还没有绑定账号，请先发送：/绑定 你的注册邮箱"
+		return qqbotNeedBind
 	}
 	if err != nil {
 		return s.internalError("checkin lookup", err)
@@ -93,38 +99,36 @@ func (s *QQBotService) cmdCheckin(ctx context.Context, cfg QQBotConfig, m *qqbot
 }
 
 func (s *QQBotService) cmdBind(ctx context.Context, cfg QQBotConfig, m *qqbot.Message, arg string) string {
-	email := strings.TrimSpace(arg)
-	if email == "" || !strings.Contains(email, "@") || len(email) > 254 {
-		return "用法：/绑定 你的注册邮箱\n例如：/绑定 name@example.com"
+	code := normalizeQQBotBindCode(arg)
+	if !validQQBotBindCode(code) {
+		return qqbotBindUsage
 	}
+	// Per-QQ limit keeps code guessing impractical (8 chars from a 31-symbol alphabet).
 	if s.limiter.incr(m.UserOpenID) > qqbotBindLimitPerMinute {
 		return "操作太频繁，请稍后再试"
 	}
-	if uid, err := s.bindingUser(ctx, cfg.AppID, m.UserOpenID); err == nil {
-		u, uerr := s.userRepo.GetByID(ctx, uid)
-		if uerr == nil && strings.EqualFold(strings.TrimSpace(u.Email), email) {
-			return "已绑定该账号：" + maskEmail(u.Email)
-		}
-		return "当前 QQ 已绑定其他账号，如需更换请先发送 /解绑"
+	if _, err := s.bindingUser(ctx, cfg.AppID, m.UserOpenID); err == nil {
+		return "当前 QQ 已绑定账号，如需更换请先发送 /解绑"
 	} else if !errors.Is(err, ErrQQBotBindingMissing) {
 		return s.internalError("bind lookup", err)
 	}
-	// Unknown email and "already bound to another QQ" share one reply to avoid enumeration.
-	const failed = "绑定失败：账号不存在、不可用或已被其他 QQ 绑定。\n如需换绑，请登录网站在「个人资料」中解除 QQ 绑定后重试"
-	u, err := s.userRepo.GetByEmail(ctx, email)
-	if err != nil || u == nil || !u.IsActive() {
-		return failed
+	uid, err := s.consumeBindCode(ctx, cfg, code, m.UserOpenID, m.Scene)
+	switch {
+	case errors.Is(err, errQQBotBindCodeInvalid):
+		return "绑定码无效或已过期，请在网站「个人资料 → QQ 机器人」重新生成"
+	case errors.Is(err, errQQBotBindConflict):
+		return "该账号已绑定其他 QQ，请先在网站「个人资料」中解除后重试"
+	case err != nil:
+		return s.internalError("bind consume", err)
 	}
-	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO qqbot_bindings (app_id, openid, user_id, scene, created_at) VALUES ($1,$2,$3,$4,$5)`,
-		cfg.AppID, m.UserOpenID, u.ID, string(m.Scene), s.now())
-	if isUniqueViolation(err) {
-		return failed
+	// Never echo account details into a group chat.
+	if m.Scene == qqbot.SceneGroup {
+		return "绑定成功！现在可以发送 /签到 了"
 	}
-	if err != nil {
-		return s.internalError("bind insert", err)
+	if u, uerr := s.userRepo.GetByID(ctx, uid); uerr == nil && u != nil {
+		return "绑定成功：" + maskEmail(u.Email) + "\n现在可以发送 /签到 了"
 	}
-	return "绑定成功：" + maskEmail(u.Email) + "\n现在可以发送 /签到 了"
+	return "绑定成功！现在可以发送 /签到 了"
 }
 
 func (s *QQBotService) cmdUnbind(ctx context.Context, cfg QQBotConfig, m *qqbot.Message) string {

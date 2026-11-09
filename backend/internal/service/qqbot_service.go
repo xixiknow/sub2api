@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -37,6 +38,9 @@ const (
 	qqbotFastSlots   = 32
 	qqbotFastWait    = 20 * time.Second
 	qqbotFastTimeout = 45 * time.Second
+
+	qqbotBindCodeTTL = 10 * time.Minute
+	qqbotBindCodeLen = 8
 )
 
 var (
@@ -44,6 +48,11 @@ var (
 	ErrQQBotBadSignature   = infraerrors.Unauthorized("QQBOT_BAD_SIGNATURE", "invalid QQ bot signature")
 	ErrQQBotBadPayload     = infraerrors.BadRequest("QQBOT_BAD_PAYLOAD", "invalid QQ bot payload")
 	ErrQQBotBindingMissing = infraerrors.NotFound("QQBOT_BINDING_NOT_FOUND", "QQ binding not found")
+	ErrQQBotAlreadyBound   = infraerrors.Conflict("QQBOT_ALREADY_BOUND", "account is already bound to a QQ; unbind first")
+	ErrQQBotTooFrequent    = infraerrors.TooManyRequests("QQBOT_TOO_FREQUENT", "too many requests, please retry later")
+
+	errQQBotBindCodeInvalid = errors.New("qqbot bind code invalid or expired")
+	errQQBotBindConflict    = errors.New("qqbot binding conflict")
 )
 
 // QQBotConfig is the admin configuration. Secrets are never returned to clients.
@@ -290,8 +299,11 @@ func (s *QQBotService) HandleWebhook(ctx context.Context, signature, timestamp s
 		return ack, nil // QQ re-delivery
 	}
 	msg, ok, err := qqbot.ParseMessage(&p)
-	if err != nil || !ok || msg.UserOpenID == "" || msg.ReplyTarget() == "" {
+	if err != nil || !ok || msg.FromBot || msg.UserOpenID == "" || msg.ReplyTarget() == "" {
 		return ack, nil
+	}
+	if !msg.Addressed && !isSlashCommand(msg.Content) {
+		return ack, nil // ordinary group chatter (full-message mode)
 	}
 	go s.dispatch(cfg, msg)
 	return ack, nil
@@ -321,7 +333,14 @@ func (s *QQBotService) dispatch(cfg QQBotConfig, msg *qqbot.Message) {
 	defer func() { <-s.sem }()
 	ctx, cancel := context.WithTimeout(context.Background(), qqbotFastTimeout)
 	defer cancel()
-	s.send(ctx, cfg, msg, s.HandleCommand(ctx, cfg, msg))
+	if r := s.HandleCommand(ctx, cfg, msg); r.Text != "" || len(r.Image) > 0 {
+		s.send(ctx, cfg, msg, r)
+	}
+}
+
+// isSlashCommand reports whether a group message without @ is meant for the bot.
+func isSlashCommand(content string) bool {
+	return strings.HasPrefix(content, "/") || strings.HasPrefix(content, "／")
 }
 
 // botReply is either text, or an image whose Text is sent only when the image
@@ -378,6 +397,147 @@ func (s *QQBotService) GetUserBinding(ctx context.Context, userID int64) (*QQBot
 		return nil, err
 	}
 	return &QQBotBinding{Enabled: cfg.ready(), Bound: true, OpenID: maskMiddle(openid), CreatedAt: &created}, nil
+}
+
+// QQBotBindCode is a freshly generated one-time binding code.
+type QQBotBindCode struct {
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// CreateBindCode issues a one-time code the logged-in user sends to the bot as
+// "/绑定 <code>". Only the hash is stored; a new code replaces older ones.
+func (s *QQBotService) CreateBindCode(ctx context.Context, userID int64) (*QQBotBindCode, error) {
+	cfg, err := s.loadConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !cfg.ready() {
+		return nil, ErrQQBotDisabled
+	}
+	if s.limiter.incr("code:"+strconv.FormatInt(userID, 10)) > qqbotBindLimitPerMinute {
+		return nil, ErrQQBotTooFrequent
+	}
+	var existing int
+	err = s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM qqbot_bindings WHERE app_id=$1 AND user_id=$2`, cfg.AppID, userID).Scan(&existing)
+	if err != nil {
+		return nil, err
+	}
+	if existing > 0 {
+		return nil, ErrQQBotAlreadyBound
+	}
+	code, err := newQQBotBindCode()
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	expires := now.Add(qqbotBindCodeTTL)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	// Drop this user's previous codes and any expired codes in one go.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM qqbot_bind_codes WHERE user_id=$1 OR expires_at<=$2`, userID, now); err != nil {
+		return nil, err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO qqbot_bind_codes (app_id, user_id, code_hash, expires_at, created_at) VALUES ($1,$2,$3,$4,$5)`,
+		cfg.AppID, userID, qqbotBindCodeHash(cfg.AppID, code), expires, now); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return &QQBotBindCode{Code: code, ExpiresAt: expires}, nil
+}
+
+// consumeBindCode atomically redeems a code for openid. It returns
+// errQQBotBindCodeInvalid for unknown/expired/used codes and
+// errQQBotBindConflict when the account is already bound to another QQ.
+func (s *QQBotService) consumeBindCode(ctx context.Context, cfg QQBotConfig, code, openid string, scene qqbot.Scene) (int64, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	var uid int64
+	err = tx.QueryRowContext(ctx,
+		`DELETE FROM qqbot_bind_codes WHERE app_id=$1 AND code_hash=$2 AND expires_at>$3 RETURNING user_id`,
+		cfg.AppID, qqbotBindCodeHash(cfg.AppID, code), s.now()).Scan(&uid)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, errQQBotBindCodeInvalid
+	}
+	if err != nil {
+		return 0, err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO qqbot_bindings (app_id, openid, user_id, scene, created_at) VALUES ($1,$2,$3,$4,$5)`,
+		cfg.AppID, openid, uid, string(scene), s.now()); err != nil {
+		if isUniqueViolation(err) {
+			// Only reachable through a race (both sides are checked before);
+			// the rollback leaves the code valid until it expires.
+			return 0, errQQBotBindConflict
+		}
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return uid, nil
+}
+
+// qqbotBindCodeAlphabet omits look-alike characters (0/O, 1/I/L).
+const qqbotBindCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+func newQQBotBindCode() (string, error) {
+	buf := make([]byte, qqbotBindCodeLen)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	out := make([]byte, qqbotBindCodeLen)
+	n := len(qqbotBindCodeAlphabet)
+	limit := 256 - 256%n // reject values that would bias the modulo
+	for i := 0; i < qqbotBindCodeLen; {
+		if int(buf[i]) >= limit {
+			if _, err := rand.Read(buf[i : i+1]); err != nil {
+				return "", err
+			}
+			continue
+		}
+		out[i] = qqbotBindCodeAlphabet[int(buf[i])%n]
+		i++
+	}
+	return string(out), nil
+}
+
+// normalizeQQBotBindCode accepts "abcd-2345", "ABCD 2345" etc.
+func normalizeQQBotBindCode(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToUpper(s) {
+		if r == '-' || r == ' ' || r == '　' {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+func validQQBotBindCode(code string) bool {
+	if len(code) != qqbotBindCodeLen {
+		return false
+	}
+	for i := 0; i < len(code); i++ {
+		if !strings.ContainsRune(qqbotBindCodeAlphabet, rune(code[i])) {
+			return false
+		}
+	}
+	return true
+}
+
+func qqbotBindCodeHash(appID, code string) string {
+	sum := sha256.Sum256([]byte("qqbot-bind:" + appID + ":" + code))
+	return hex.EncodeToString(sum[:])
 }
 
 // UnbindUser removes a site user's QQ binding (profile page).

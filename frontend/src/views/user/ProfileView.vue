@@ -45,7 +45,7 @@
 
       <ProfileTotpCard />
       <ProfilePasskeyCard :enabled="passkeyEnabled" />
-      <ProfileQQBotCard :email="user?.email" />
+      <ProfileQQBotCard />
     </div>
   </AppLayout>
 </template>

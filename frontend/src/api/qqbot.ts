@@ -7,6 +7,11 @@ export interface QQBotBinding {
   created_at?: string
 }
 
+export interface QQBotBindCode {
+  code: string
+  expires_at: string
+}
+
 export interface QQBotConfig {
   enabled: boolean
   app_id: string
@@ -27,6 +32,10 @@ export interface QQBotConfigUpdate {
 
 export async function getMyQQBinding(): Promise<QQBotBinding> {
   return (await apiClient.get<QQBotBinding>('/user/qqbot-binding')).data
+}
+
+export async function createQQBindCode(): Promise<QQBotBindCode> {
+  return (await apiClient.post<QQBotBindCode>('/user/qqbot-binding/code')).data
 }
 
 export async function unbindMyQQ(): Promise<void> {

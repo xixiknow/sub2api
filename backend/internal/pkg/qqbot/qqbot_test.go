@@ -51,13 +51,35 @@ func TestParseMessage(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("parse: ok=%v err=%v", ok, err)
 	}
-	if m.Scene != SceneGroup || m.MsgID != "m1" || m.UserOpenID != "U1" || m.ReplyTarget() != "G1" || m.Content != "/签到" {
+	if m.Scene != SceneGroup || m.MsgID != "m1" || m.UserOpenID != "U1" || m.ReplyTarget() != "G1" || m.Content != "/签到" || !m.Addressed {
 		t.Fatalf("unexpected message %+v", m)
 	}
 	p = Payload{T: EventC2CMessage, D: json.RawMessage(`{"id":"m2","content":"帮助","author":{"user_openid":"U2"}}`)}
 	m, ok, _ = ParseMessage(&p)
 	if !ok || m.Scene != SceneC2C || m.ReplyTarget() != "U2" || m.Content != "帮助" {
 		t.Fatalf("unexpected c2c message %+v", m)
+	}
+	if !m.Addressed {
+		t.Fatal("c2c message must be addressed")
+	}
+	p = Payload{T: EventGroupMessage, D: json.RawMessage(`{"id":"m3","content":"/状态","group_openid":"G1","author":{"member_openid":"U3"}}`)}
+	m, ok, _ = ParseMessage(&p)
+	if !ok || m.Scene != SceneGroup || m.ReplyTarget() != "G1" || m.Content != "/状态" || m.Addressed {
+		t.Fatalf("unexpected full group message %+v", m)
+	}
+	// Full-message mode: @bot also arrives as GROUP_MESSAGE_CREATE, marked by mentions[].is_you.
+	p = Payload{T: EventGroupMessage, D: json.RawMessage(`{"id":"m4","content":"<@!B1> 签到","group_openid":"G1","author":{"member_openid":"U4"},"mentions":[{"is_you":true}]}`)}
+	m, ok, _ = ParseMessage(&p)
+	if !ok || !m.Addressed || m.Content != "签到" {
+		t.Fatalf("@bot in full mode not addressed: %+v", m)
+	}
+	p = Payload{T: EventGroupMessage, D: json.RawMessage(`{"id":"m5","content":"<@!X> hi","group_openid":"G1","author":{"member_openid":"U5"},"mentions":[{"is_you":false}]}`)}
+	if m, _, _ = ParseMessage(&p); m.Addressed {
+		t.Fatal("@someone else must not address the bot")
+	}
+	p = Payload{T: EventGroupMessage, D: json.RawMessage(`{"id":"m6","content":"/帮助","group_openid":"G1","author":{"id":"B1","bot":true}}`)}
+	if m, _, _ = ParseMessage(&p); !m.FromBot {
+		t.Fatal("bot echo must be flagged")
 	}
 	if _, ok, _ := ParseMessage(&Payload{T: "FRIEND_ADD"}); ok {
 		t.Fatal("unexpected event accepted")

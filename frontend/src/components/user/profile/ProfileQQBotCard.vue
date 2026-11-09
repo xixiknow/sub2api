@@ -19,12 +19,28 @@
           {{ t('qqbot.profile.unbind') }}
         </button>
       </div>
-      <div v-else class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+      <div v-else class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
         <div class="text-gray-500 dark:text-gray-400">{{ t('qqbot.profile.notBound') }}</div>
-        <div>{{ t('qqbot.profile.howTo') }}</div>
-        <code class="inline-block rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-dark-700">
-          {{ t('qqbot.profile.command', { email: email || 'name@example.com' }) }}
-        </code>
+        <template v-if="activeCode">
+          <div>{{ t('qqbot.profile.howTo') }}</div>
+          <div class="flex flex-wrap items-center gap-2">
+            <code class="inline-block rounded bg-gray-100 px-2 py-1 font-mono text-sm tracking-wider dark:bg-dark-700">
+              {{ command }}
+            </code>
+            <button type="button" class="btn btn-secondary btn-sm" @click="copyToClipboard(command)">
+              {{ copied ? t('qqbot.profile.copied') : t('qqbot.profile.copy') }}
+            </button>
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            {{ t('qqbot.profile.codeExpires', { seconds: remaining }) }}
+          </div>
+        </template>
+        <div v-else class="flex flex-wrap items-center gap-3">
+          <button type="button" class="btn btn-primary" :disabled="busy" @click="generate">
+            {{ codeInfo ? t('qqbot.profile.regenerate') : t('qqbot.profile.generate') }}
+          </button>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('qqbot.profile.generateHint') }}</span>
+        </div>
       </div>
     </div>
     <ConfirmDialog
@@ -39,20 +55,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import { getMyQQBinding, unbindMyQQ, type QQBotBinding } from '@/api/qqbot'
+import { createQQBindCode, getMyQQBinding, unbindMyQQ, type QQBotBinding, type QQBotBindCode } from '@/api/qqbot'
 import { useAppStore } from '@/stores/app'
+import { useClipboard } from '@/composables/useClipboard'
 import { formatDateTime } from '@/utils/format'
-
-defineProps<{ email?: string }>()
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const { copied, copyToClipboard } = useClipboard()
 const binding = ref<QQBotBinding | null>(null)
 const busy = ref(false)
 const showConfirm = ref(false)
+const codeInfo = ref<QQBotBindCode | null>(null)
+const now = ref(Date.now())
+let timer: ReturnType<typeof setInterval> | undefined
+let polls = 0
+
+const remaining = computed(() => {
+  if (!codeInfo.value) return 0
+  return Math.max(0, Math.ceil((new Date(codeInfo.value.expires_at).getTime() - now.value) / 1000))
+})
+const activeCode = computed(() => remaining.value > 0)
+const command = computed(() => `/绑定 ${codeInfo.value?.code ?? ''}`)
 
 async function load(): Promise<void> {
   try {
@@ -63,12 +90,54 @@ async function load(): Promise<void> {
   }
 }
 
+function stopTimer(): void {
+  if (timer) clearInterval(timer)
+  timer = undefined
+}
+
+function startTimer(): void {
+  stopTimer()
+  polls = 0
+  timer = setInterval(() => {
+    now.value = Date.now()
+    if (!activeCode.value) {
+      stopTimer()
+      return
+    }
+    // Refresh the binding every 5s so the card flips to "bound" once the bot redeems the code.
+    if (++polls % 5 === 0) {
+      void load().then(() => {
+        if (binding.value?.bound) {
+          codeInfo.value = null
+          stopTimer()
+        }
+      })
+    }
+  }, 1000)
+}
+
+async function generate(): Promise<void> {
+  busy.value = true
+  try {
+    codeInfo.value = await createQQBindCode()
+    now.value = Date.now()
+    startTimer()
+  } catch (err: unknown) {
+    const msg = (err as { message?: string })?.message
+    appStore.showError(msg || t('qqbot.profile.generateFailed'))
+    await load()
+  } finally {
+    busy.value = false
+  }
+}
+
 async function unbind(): Promise<void> {
   showConfirm.value = false
   busy.value = true
   try {
     await unbindMyQQ()
     appStore.showSuccess(t('qqbot.profile.unbound'))
+    codeInfo.value = null
     await load()
   } catch {
     appStore.showError(t('qqbot.profile.unbindFailed'))
@@ -78,4 +147,5 @@ async function unbind(): Promise<void> {
 }
 
 onMounted(load)
+onBeforeUnmount(stopTimer)
 </script>

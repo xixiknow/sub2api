@@ -45,6 +45,7 @@ func RegisterUserRoutes(
 			user.POST("/checkin", panelRateLimiter.Heavy(), h.User.ClaimCheckin)
 			user.GET("/qqbot-binding", h.QQBot.GetMyBinding)
 			user.DELETE("/qqbot-binding", h.QQBot.UnbindMine)
+			user.POST("/qqbot-binding/code", h.QQBot.CreateBindCode)
 			user.GET("/contact-page", h.Setting.GetContactPage)
 			user.POST("/account-bindings/email/send-code", h.User.SendEmailBindingCode)
 			user.POST("/account-bindings/email", h.User.BindEmailIdentity)

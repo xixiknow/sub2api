@@ -301,7 +301,7 @@ func (s *QQBotService) generatePosterArt(ctx context.Context, cfg QQBotConfig, s
 func (s *QQBotService) buildInvitePlan(ctx context.Context, cfg QQBotConfig, msg *qqbot.Message) (*invitePlan, string) {
 	uid, err := s.bindingUser(ctx, cfg.AppID, msg.UserOpenID)
 	if errors.Is(err, ErrQQBotBindingMissing) {
-		return nil, "你还没有绑定账号，请先发送：/绑定 你的注册邮箱"
+		return nil, qqbotNeedBind
 	}
 	if err != nil {
 		return nil, s.internalError("invite lookup", err)
