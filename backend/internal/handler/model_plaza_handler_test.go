@@ -286,6 +286,7 @@ func TestModelPlazaHandler_VaryKeepsCORSOrigin(t *testing.T) {
 		service.NewModelPlazaService(plazaVaryChannelRepo{}, plazaVaryGroupRepo{}, nil, nil, nil),
 		nil,
 		service.NewSettingService(plazaVarySettingRepo{}, &config.Config{}),
+		nil,
 	)
 	r := gin.New()
 	r.Use(middleware.CORS(config.CORSConfig{AllowedOrigins: []string{"https://a.example", "https://b.example"}}))
@@ -303,5 +304,28 @@ func TestModelPlazaHandler_VaryKeepsCORSOrigin(t *testing.T) {
 		require.Equal(t, origin, w.Header().Get("Access-Control-Allow-Origin"))
 		// 共享缓存需同时按来源与语言区分，否则 A 来源的响应可能被复用给 B。
 		require.Equal(t, []string{"Origin", "Accept-Language"}, w.Header().Values("Vary"))
+	}
+}
+
+func TestMergePlazaAccountModels_DedupAcrossPlatforms(t *testing.T) {
+	got := mergePlazaAccountModels(
+		[]string{service.PlatformAnthropic, service.PlatformAntigravity},
+		[][]string{
+			{"claude-sonnet-4-5", " ", "claude-opus-4-5"},
+			{"Claude-Sonnet-4-5", "gemini-3-pro", "claude-opus-4-5"},
+		},
+	)
+	want := []service.SupportedModel{
+		{Name: "claude-sonnet-4-5", Platform: service.PlatformAnthropic},
+		{Name: "claude-opus-4-5", Platform: service.PlatformAnthropic},
+		{Name: "gemini-3-pro", Platform: service.PlatformAntigravity},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+	for i := range want {
+		if got[i].Name != want[i].Name || got[i].Platform != want[i].Platform {
+			t.Fatalf("got %+v, want %+v", got, want)
+		}
 	}
 }

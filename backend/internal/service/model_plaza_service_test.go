@@ -582,3 +582,35 @@ func TestListGroups_TimePricingPassthrough(t *testing.T) {
 	// 展示单价为标准时段价
 	require.InDelta(t, 0.28e-6, *m.Pricing.InputPrice, 1e-15)
 }
+
+func TestListPlazaGroups_AccountModelFallback(t *testing.T) {
+	// 渠道只覆盖分组 10；分组 20 没有渠道模型，应按账号模型兜底；兜底为空的分组 30 仍不返回。
+	channels := []Channel{plazaPricedChannel(1, "chA", []int64{10}, "anthropic", "claude-sonnet")}
+	groups := []Group{
+		{ID: 10, Name: "g-channel", Platform: "anthropic", RateMultiplier: 1},
+		{ID: 20, Name: "g-accounts", Platform: "anthropic", RateMultiplier: 2},
+		{ID: 30, Name: "g-none", Platform: "anthropic", RateMultiplier: 3},
+	}
+	var asked []int64
+	lister := func(_ context.Context, g *Group) []SupportedModel {
+		asked = append(asked, g.ID)
+		if g.ID != 20 {
+			return nil
+		}
+		return []SupportedModel{
+			{Name: "claude-opus", Platform: "anthropic"},
+			{Name: "Claude-Opus", Platform: "anthropic"}, // 同名去重
+			{Name: "claude-haiku", Platform: "anthropic"},
+		}
+	}
+	out, err := newPlazaService(channels, groups, nil).ListGroupsWithAccountModels(context.Background(), lister)
+	require.NoError(t, err)
+	require.Len(t, out, 2)
+	require.Equal(t, int64(10), out[0].ID)
+	require.Len(t, out[0].Models, 1, "已配置渠道模型的分组不应混入账号模型")
+	require.Equal(t, int64(20), out[1].ID)
+	require.Len(t, out[1].Models, 2)
+	require.Equal(t, "claude-haiku", out[1].Models[0].Name)
+	require.Equal(t, "claude-opus", out[1].Models[1].Name)
+	require.ElementsMatch(t, []int64{20, 30}, asked, "只对无渠道模型的分组兜底")
+}

@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
+	"strings"
 
+	"github.com/Wei-Shaw/sub2api/internal/domain"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -21,6 +24,8 @@ type ModelPlazaHandler struct {
 	plazaService   *service.ModelPlazaService
 	apiKeyService  *service.APIKeyService
 	settingService *service.SettingService
+	// gatewayService 为未配置渠道模型的分组提供账号模型兜底（nil 时不兜底）。
+	gatewayService *service.GatewayService
 }
 
 // NewModelPlazaHandler 创建模型广场 handler。
@@ -28,11 +33,13 @@ func NewModelPlazaHandler(
 	plazaService *service.ModelPlazaService,
 	apiKeyService *service.APIKeyService,
 	settingService *service.SettingService,
+	gatewayService *service.GatewayService,
 ) *ModelPlazaHandler {
 	return &ModelPlazaHandler{
 		plazaService:   plazaService,
 		apiKeyService:  apiKeyService,
 		settingService: settingService,
+		gatewayService: gatewayService,
 	}
 }
 
@@ -125,7 +132,11 @@ func (h *ModelPlazaHandler) Get(c *gin.Context) {
 		return
 	}
 
-	groups, err := h.plazaService.ListGroups(c.Request.Context())
+	var accountModels service.PlazaAccountModelLister
+	if h.gatewayService != nil {
+		accountModels = h.accountModels
+	}
+	groups, err := h.plazaService.ListGroupsWithAccountModels(c.Request.Context(), accountModels)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -266,4 +277,72 @@ func toModelPlazaOfficialPricing(p *service.PlazaOfficialPricing) *modelPlazaOff
 		CacheReadPrice:     p.CacheReadPrice,
 		Intervals:          toUserPricingIntervals(p.Intervals),
 	}
+}
+
+// accountModels 列出分组下可调度账号能服务的模型，口径与 /v1/models 一致：
+// 有账号模型映射时取映射，否则取平台默认模型；分组开启模型白名单时按白名单裁剪。
+// 组合分组逐个具体平台展开（跳过只走 /v1/systemone 的 TypeSafe）。
+func (h *ModelPlazaHandler) accountModels(ctx context.Context, g *service.Group) []service.SupportedModel {
+	if g == nil {
+		return nil
+	}
+	schedulable := h.gatewayService.GetSchedulablePlatforms(ctx, &g.ID)
+	if len(schedulable) == 0 {
+		return nil // 分组没有可调度账号：不凭空展示默认模型
+	}
+	platforms := []string{g.Platform}
+	if g.Platform == service.PlatformComposite {
+		platforms = platforms[:0]
+		for _, p := range domain.CompositePrecedencePlatformIDs() {
+			if _, ok := schedulable[p]; ok && p != service.PlatformTypeSafe {
+				platforms = append(platforms, p)
+			}
+		}
+	}
+	perPlatform := make([][]string, len(platforms))
+	for i, platform := range platforms {
+		perPlatform[i] = h.platformAccountModelIDs(ctx, g, platform)
+	}
+	return mergePlazaAccountModels(platforms, perPlatform)
+}
+
+// mergePlazaAccountModels 合并各平台的账号模型并按模型名（不区分大小写）去重。
+// platforms 已按组合分组的路由优先级排序：同名模型保留先出现的平台，与请求时
+// 「逐平台查找、先命中者生效」一致，避免同一模型在广场上出现多次。
+// 同一平台内多个账号的重复已由 GetAvailableModels 的集合去重处理。
+func mergePlazaAccountModels(platforms []string, perPlatform [][]string) []service.SupportedModel {
+	seen := make(map[string]struct{})
+	var out []service.SupportedModel
+	for i, platform := range platforms {
+		for _, name := range perPlatform[i] {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			key := strings.ToLower(name)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, service.SupportedModel{Name: name, Platform: platform})
+		}
+	}
+	return out
+}
+
+func (h *ModelPlazaHandler) platformAccountModelIDs(ctx context.Context, g *service.Group, platform string) []string {
+	available := h.gatewayService.GetAvailableModels(ctx, &g.ID, platform)
+	// 多协议 API Key 供应商没有静态默认列表（defaultModelIDsForPlatform 的 default
+	// 分支是 Claude 列表），只展示账号映射键。
+	var fallback []string
+	if !service.IsMultiProtocolAPIKeyProvider(platform) {
+		fallback = defaultModelIDsForPlatform(platform)
+	}
+	if g.ModelAllowlistEnabled() {
+		return g.ModelAllowlist.FilterForListing(modelListingSource(platform, available, fallback))
+	}
+	if len(available) > 0 || (platform == service.PlatformOpenAI && available != nil) {
+		return available
+	}
+	return fallback
 }

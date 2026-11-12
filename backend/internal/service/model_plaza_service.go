@@ -105,6 +105,17 @@ func NewModelPlazaService(
 //
 // 可见性过滤（专属分组）不在此层做，由 handler 按登录态裁剪。
 func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error) {
+	return s.ListGroupsWithAccountModels(ctx, nil)
+}
+
+// PlazaAccountModelLister 列出分组下可调度账号实际能服务的模型（与 /v1/models 同口径：
+// 账号模型映射优先，无映射时取平台默认模型）。返回 nil 表示该分组没有可展示的模型。
+type PlazaAccountModelLister func(ctx context.Context, g *Group) []SupportedModel
+
+// ListGroupsWithAccountModels 与 ListGroups 相同，但对没有从渠道得到任何模型的分组，
+// 用 accountModels 按账号支持的模型兜底，使未配置渠道定价的站点也能展示模型。
+// 渠道已配置模型的分组不受影响（渠道是管理员显式整理过的名单）。
+func (s *ModelPlazaService) ListGroupsWithAccountModels(ctx context.Context, accountModels PlazaAccountModelLister) ([]PlazaGroup, error) {
 	channels, err := s.channelRepo.ListAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list channels: %w", err)
@@ -202,6 +213,9 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 	out := make([]PlazaGroup, 0, len(order))
 	for _, gid := range order {
 		pg := byGroup[gid]
+		if len(pg.Models) == 0 && accountModels != nil {
+			pg.Models = plazaModelsFromAccounts(s.pricingService, accountModels(ctx, groupEnt[gid]))
+		}
 		if len(pg.Models) == 0 {
 			continue
 		}
@@ -226,6 +240,31 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 		return out[i].Name < out[j].Name
 	})
 	return out, nil
+}
+
+// plazaModelsFromAccounts 把账号兜底得到的模型转成广场条目（同平台同名去重），
+// 定价走与渠道模型相同的全局回落（LiteLLM），后续再由 fillDisplayPricing 换成实收口径。
+func plazaModelsFromAccounts(pricingService *PricingService, models []SupportedModel) []PlazaModel {
+	if len(models) == 0 {
+		return nil
+	}
+	fillGlobalPricingFallback(pricingService, models)
+	type key struct{ platform, name string }
+	seen := make(map[key]struct{}, len(models))
+	out := make([]PlazaModel, 0, len(models))
+	for _, m := range models {
+		name := strings.TrimSpace(m.Name)
+		if name == "" {
+			continue
+		}
+		k := key{m.Platform, strings.ToLower(name)}
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, PlazaModel{Name: name, Platform: m.Platform, Pricing: m.Pricing})
+	}
+	return out
 }
 
 // fillDisplayPricing 把模型的展示定价换成实收口径：
