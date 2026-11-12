@@ -77,6 +77,15 @@ func TestParseMessage(t *testing.T) {
 	if m, _, _ = ParseMessage(&p); m.Addressed {
 		t.Fatal("@someone else must not address the bot")
 	}
+	// @全体成员 must not be taken as a command, whichever way QQ delivers it.
+	for _, p := range []Payload{
+		{T: EventGroupMessage, D: json.RawMessage(`{"id":"m7","content":"<@all> 今晚维护","group_openid":"G1","author":{"member_openid":"U7"},"mentions":[{"is_you":true}]}`)},
+		{T: EventGroupAtMessage, D: json.RawMessage(`{"id":"m8","content":"<@all> 今晚维护","group_openid":"G1","author":{"member_openid":"U8"}}`)},
+	} {
+		if m, _, _ = ParseMessage(&p); m.Addressed || m.Content != "今晚维护" {
+			t.Fatalf("@all must not address the bot: %+v", m)
+		}
+	}
 	p = Payload{T: EventGroupMessage, D: json.RawMessage(`{"id":"m6","content":"/帮助","group_openid":"G1","author":{"id":"B1","bot":true}}`)}
 	if m, _, _ = ParseMessage(&p); !m.FromBot {
 		t.Fatal("bot echo must be flagged")

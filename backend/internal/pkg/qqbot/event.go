@@ -127,6 +127,12 @@ func ParseMessage(p *Payload) (*Message, bool, error) {
 			}
 		}
 	}
+	// @全体成员 arrives as "<@all>" in content and may also be delivered as an
+	// @bot event / is_you mention. An announcement is not a command for us:
+	// treat it like plain chatter so only explicit "/指令" gets a reply.
+	if scene == SceneGroup && strings.Contains(d.Content, "<@all>") {
+		addressed = false
+	}
 	m := &Message{
 		Scene: scene, MsgID: d.ID, GroupOpenID: d.GroupOpenID, Content: cleanContent(d.Content),
 		Addressed: addressed, FromBot: d.Author.Bot,
