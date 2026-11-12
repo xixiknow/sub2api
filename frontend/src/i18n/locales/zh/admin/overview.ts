@@ -3,6 +3,9 @@ export default {
     dashboard: {
       title: '管理控制台',
       description: '系统概览与统计数据',
+      heroBadge: '{siteName} Admin',
+      heroTitle: '{siteName} 管理后台',
+      heroDescription: '实时总览密钥、账号池、用户增长与成本表现，掌握平台运营全局。',
       apiKeys: 'API 密钥',
       totalApiKeys: 'API 密钥总数',
       activeApiKeys: '活跃密钥',

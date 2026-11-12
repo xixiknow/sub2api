@@ -1,6 +1,10 @@
 export default {
   dashboard: {
     title: 'Dashboard',
+    heroBadge: '{siteName} Console',
+    heroTitle: '{siteName} Console',
+    heroDescription: 'Manage API keys, balance, usage trends and available models in one place, with every request traceable.',
+    manageKeys: 'Manage Keys',
     welcomeMessage: "Welcome back! Here's an overview of your account.",
     balance: 'Balance',
     apiKeys: 'API Keys',

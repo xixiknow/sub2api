@@ -1,6 +1,10 @@
 export default {
   dashboard: {
     title: '仪表盘',
+    heroBadge: '{siteName} Console',
+    heroTitle: '{siteName} 控制台',
+    heroDescription: '集中管理 API 密钥、账户余额、用量趋势与可用模型，每一次调用都清晰可查。',
+    manageKeys: '管理密钥',
     welcomeMessage: '欢迎回来！这是您账户的概览。',
     balance: '余额',
     apiKeys: 'API 密钥',

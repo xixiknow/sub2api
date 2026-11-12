@@ -8,11 +8,11 @@
           <div class="xingguang-orb bottom-0 left-1/3 h-36 w-36 bg-indigo-400/25 dark:bg-indigo-500/20"></div>
           <div class="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <span class="xingguang-pill">✦ Xingguang Console</span>
-              <h2 class="mt-3 text-2xl font-bold text-terra-ink dark:text-white md:text-3xl">星光用户工作台</h2>
-              <p class="mt-2 max-w-2xl text-sm text-terra-muted dark:text-dark-300">统一管理 API Key、用量趋势、账户余额与模型通道，让每一次调用都像星轨一样清晰可追踪。</p>
+              <span class="xingguang-pill">✦ {{ t('dashboard.heroBadge', { siteName }) }}</span>
+              <h2 class="mt-3 text-2xl font-bold text-terra-ink dark:text-white md:text-3xl">{{ t('dashboard.heroTitle', { siteName }) }}</h2>
+              <p class="mt-2 max-w-2xl text-sm text-terra-muted dark:text-dark-300">{{ t('dashboard.heroDescription') }}</p>
             </div>
-            <router-link to="/keys" class="btn btn-primary shadow-lg shadow-amber-500/20">管理密钥</router-link>
+            <router-link to="/keys" class="btn btn-primary shadow-lg shadow-amber-500/20">{{ t('dashboard.manageKeys') }}</router-link>
           </div>
         </section>
         <UserDashboardStats :stats="stats" :balance="user?.balance || 0" :is-simple="authStore.isSimpleMode" :platform-quotas="platformQuotas" />
@@ -36,7 +36,10 @@ import UserDashboardRecentUsage from '@/components/user/dashboard/UserDashboardR
 import type { UsageLog, TrendDataPoint, ModelStat, PlatformQuotaItem } from '@/types'
 import { getMyPlatformQuotas } from '@/api/user'
 import { formatDateLocalInput } from '@/utils/format'
+import { useI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores/app'
 
+const { t } = useI18n(); const appStore = useAppStore(); const siteName = computed(() => appStore.siteName || 'Sub2API')
 const authStore = useAuthStore(); const user = computed(() => authStore.user)
 const stats = ref<UserStatsType | null>(null); const loading = ref(false); const loadingUsage = ref(false); const loadingCharts = ref(false)
 const trendData = ref<TrendDataPoint[]>([]); const modelStats = ref<ModelStat[]>([]); const recentUsage = ref<UsageLog[]>([])

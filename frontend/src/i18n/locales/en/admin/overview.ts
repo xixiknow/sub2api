@@ -3,6 +3,9 @@ export default {
     dashboard: {
       title: 'Admin Dashboard',
       description: 'System overview and real-time statistics',
+      heroBadge: '{siteName} Admin',
+      heroTitle: '{siteName} Admin',
+      heroDescription: 'Real-time overview of API keys, account pools, user growth and cost performance.',
       apiKeys: 'API Keys',
       totalApiKeys: 'Total API Keys',
       activeApiKeys: 'Active Keys',

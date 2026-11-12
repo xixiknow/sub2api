@@ -12,9 +12,9 @@
           <div class="xingguang-orb -bottom-16 left-10 h-44 w-44 bg-amber-300/35 dark:bg-amber-400/20"></div>
           <div class="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <span class="xingguang-pill">✦ Xingguang Admin</span>
-              <h2 class="mt-3 text-2xl font-bold text-terra-ink dark:text-white md:text-3xl">星光管理中枢</h2>
-              <p class="mt-2 max-w-2xl text-sm text-terra-muted dark:text-dark-300">实时总览密钥、账户池、用户增长与成本表现，把运营态势收束到一张星图里。</p>
+              <span class="xingguang-pill">✦ {{ t('admin.dashboard.heroBadge', { siteName }) }}</span>
+              <h2 class="mt-3 text-2xl font-bold text-terra-ink dark:text-white md:text-3xl">{{ t('admin.dashboard.heroTitle', { siteName }) }}</h2>
+              <p class="mt-2 max-w-2xl text-sm text-terra-muted dark:text-dark-300">{{ t('admin.dashboard.heroDescription') }}</p>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center text-xs">
               <div class="rounded-2xl border border-white/60 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.06]">
@@ -421,6 +421,7 @@ ChartJS.register(
 )
 
 const appStore = useAppStore()
+const siteName = computed(() => appStore.siteName || 'Sub2API')
 const router = useRouter()
 const { canUseBatchImage, refreshBatchImageAccess } = useBatchImageAccess()
 const stats = ref<DashboardStats | null>(null)
