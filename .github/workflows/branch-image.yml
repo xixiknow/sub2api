@@ -3,7 +3,7 @@ name: Branch Image
 on:
   push:
     branches:
-      - feature/terra-dulupay-affiliate
+      - xixi-main
   workflow_dispatch:
 
 permissions:

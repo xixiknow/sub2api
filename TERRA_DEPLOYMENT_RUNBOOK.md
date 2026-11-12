@@ -1,6 +1,6 @@
 # Terra Deployment Runbook
 
-This note records the 2026-05-13 deployment of the `feature/terra-dulupay-affiliate` branch and the recommended process for the next deployment.
+This note records the 2026-05-13 deployment of the `feature/terra-dulupay-affiliate` branch (renamed to `xixi-main` on 2026-11-12) and the recommended process for the next deployment.
 
 ## Deployment Summary
 
@@ -73,7 +73,7 @@ If `.git/` is read-only again, use a temporary clone and exclude `deploy/`:
 
 ```bash
 cd /root/sub2api
-BRANCH=feature/terra-dulupay-affiliate
+BRANCH=xixi-main
 REMOTE_DIR=/tmp/sub2api-remote-update-$(date -u +%Y%m%d%H%M%S)
 
 git clone --branch "$BRANCH" https://github.com/xixiknow/sub2api.git "$REMOTE_DIR"
