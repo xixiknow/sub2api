@@ -10,7 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAdminFulfillmentBypassesLimitAndKeepsRedeemAffiliate(t *testing.T) {
+// 兑换码入账不再产生邀请返利（返利按被邀请人消费结算）。
+func TestAdminFulfillmentBypassesLimitWithoutRedeemAffiliate(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentConfigServiceTestClient(t)
 	userID := int64(42)
@@ -51,9 +52,5 @@ func TestAdminFulfillmentBypassesLimitAndKeepsRedeemAffiliate(t *testing.T) {
 	require.Equal(t, 1, cache.acquireCalls)
 	require.Equal(t, 1, cache.releaseCalls)
 	require.Len(t, redeemRepo.useCalls, 1)
-	require.Len(t, affiliateRepo.accrueCalls, 1)
-	require.Equal(t, inviterID, affiliateRepo.accrueCalls[0].inviterID)
-	require.Equal(t, userID, affiliateRepo.accrueCalls[0].inviteeUserID)
-	require.InDelta(t, 2, affiliateRepo.accrueCalls[0].amount, 1e-8)
-	require.Nil(t, affiliateRepo.accrueCalls[0].sourceOrderID)
+	require.Empty(t, affiliateRepo.accrueCalls)
 }

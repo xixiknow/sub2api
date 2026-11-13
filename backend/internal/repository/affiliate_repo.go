@@ -174,6 +174,11 @@ func NewAffiliateRepository(client *dbent.Client, _ *sql.DB) service.AffiliateRe
 	return &affiliateRepository{client: client}
 }
 
+// NewAffiliateConsumptionSettlementRepository 提供消费返利结算所需的仓储能力。
+func NewAffiliateConsumptionSettlementRepository(client *dbent.Client) service.AffiliateConsumptionSettlementRepository {
+	return &affiliateRepository{client: client}
+}
+
 func (r *affiliateRepository) EnsureUserAffiliate(ctx context.Context, userID int64) (*service.AffiliateSummary, error) {
 	if userID <= 0 {
 		return nil, service.ErrUserNotFound
@@ -474,12 +479,16 @@ func (r *affiliateRepository) BindInviter(ctx context.Context, userID, inviterID
 	return bound, nil
 }
 
-func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64, level int, ratePercent float64) (bool, error) {
+func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, source service.AffiliateAccrualSource, level int, ratePercent float64) (bool, error) {
 	if amount <= 0 {
 		return false, nil
 	}
 	if level <= 0 {
 		level = 1
+	}
+	sourceType := source.Type
+	if sourceType == "" {
+		sourceType = service.AffiliateRebateSourceOrder
 	}
 
 	var applied bool
@@ -488,18 +497,18 @@ func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, invite
 		var err error
 		if freezeHours > 0 {
 			rows, err = txClient.QueryContext(txCtx, `
-INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, frozen_until, level, rate_percent, created_at, updated_at)
-VALUES ($1, 'accrue', $2, $3, $4, NOW() + make_interval(hours => $5), $6, $7, NOW(), NOW())
+INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, source_type, source_settlement_id, frozen_until, level, rate_percent, created_at, updated_at)
+VALUES ($1, 'accrue', $2, $3, $4, $5, $6, NOW() + make_interval(hours => $7), $8, $9, NOW(), NOW())
 ON CONFLICT DO NOTHING
 RETURNING id`,
-				inviterID, amount, inviteeUserID, nullableInt64Arg(sourceOrderID), freezeHours, level, ratePercent)
+				inviterID, amount, inviteeUserID, nullableInt64Arg(source.OrderID), sourceType, nullableInt64Arg(source.SettlementID), freezeHours, level, ratePercent)
 		} else {
 			rows, err = txClient.QueryContext(txCtx, `
-INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, level, rate_percent, created_at, updated_at)
-VALUES ($1, 'accrue', $2, $3, $4, $5, $6, NOW(), NOW())
+INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, source_order_id, source_type, source_settlement_id, level, rate_percent, created_at, updated_at)
+VALUES ($1, 'accrue', $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 ON CONFLICT DO NOTHING
 RETURNING id`,
-				inviterID, amount, inviteeUserID, nullableInt64Arg(sourceOrderID), level, ratePercent)
+				inviterID, amount, inviteeUserID, nullableInt64Arg(source.OrderID), sourceType, nullableInt64Arg(source.SettlementID), level, ratePercent)
 		}
 		if err != nil {
 			return fmt.Errorf("insert affiliate accrue ledger: %w", err)
@@ -1404,6 +1413,7 @@ SELECT po.id,
        ual.amount::double precision,
        COALESCE(po.payment_type, ''),
        COALESCE(po.status, ''),
+       COALESCE(ual.source_type, 'order'),
        ual.created_at
 `+baseJoin+where+`
 `+orderBy+`
@@ -1437,6 +1447,7 @@ LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 			&item.RebateAmount,
 			&item.PaymentType,
 			&item.OrderStatus,
+			&item.SourceType,
 			&item.CreatedAt,
 		); err != nil {
 			return nil, 0, err

@@ -80,10 +80,8 @@ func (s *TGShopService) Recharge(ctx context.Context, in TGShopRechargeInput) er
 		}
 	}
 
-	// 兑换到用户账户（余额入账）。跳过兑换码自带的返利逻辑：该逻辑以兑换码
-	// 面值（= 落账总额，含赠额）为基数，而 telegram-shop 返利需以实付额度
-	// 为基数，故在兑换成功后由下方按 BaseAmount 单独计提。
-	if _, err := s.redeemService.Redeem(ContextSkipRedeemAffiliate(ctx), user.ID, code); err != nil {
+	// 兑换到用户账户（余额入账）。充值不产生邀请返利（返利按被邀请人消费结算）。
+	if _, err := s.redeemService.Redeem(ctx, user.ID, code); err != nil {
 		// 兑换码已被使用：说明已充值过（并发竞态下的幂等收敛），视为成功。
 		if errors.Is(err, ErrRedeemCodeUsed) {
 			slog.Info("[TGShop] redeem code already used, treat as fulfilled", "orderNo", in.OrderNo)
@@ -91,11 +89,6 @@ func (s *TGShopService) Recharge(ctx context.Context, in TGShopRechargeInput) er
 		}
 		return fmt.Errorf("redeem balance: %w", err)
 	}
-
-	// 入账成功后计提邀请返利。本调用仅在兑换码首次成功兑换后到达——重复回调
-	// 会在上方「已使用」分支提前返回，故不会重复返利。基数取实付额度 BaseAmount，
-	// 与标准支付路径口径一致（赠送金额不产生返利）。best-effort，失败不影响入账。
-	s.tryAccrueAffiliateRebate(ctx, user.ID, in.OrderNo, in.BaseAmount)
 
 	// 写入一笔展示用的已完成订单，使本次充值可在后台「订单管理」中查看。
 	// 余额已由上方兑换路径入账，此订单不再变更余额、不进履约/退款流程。
@@ -143,23 +136,5 @@ func (s *TGShopService) tryRecordDisplayOrder(ctx context.Context, user *User, i
 	if err != nil && !errors.Is(err, ErrExternalOrderExists) {
 		slog.Warn("[TGShop] record display order failed (balance already credited, ignoring)",
 			"orderNo", in.OrderNo, "error", err)
-	}
-}
-
-// tryAccrueAffiliateRebate 为 telegram-shop 充值计提邀请返利。
-func (s *TGShopService) tryAccrueAffiliateRebate(ctx context.Context, userID int64, orderNo string, baseAmount float64) {
-	if s.affiliateService == nil || baseAmount <= 0 {
-		return
-	}
-	if !s.affiliateService.IsEnabled(ctx) {
-		return
-	}
-	rebate, err := s.affiliateService.AccrueInviteRebate(ctx, userID, baseAmount)
-	if err != nil {
-		slog.Warn("[TGShop] affiliate rebate failed", "orderNo", orderNo, "userID", userID, "baseAmount", baseAmount, "error", err)
-		return
-	}
-	if rebate > 0 {
-		slog.Info("[TGShop] affiliate rebate accrued", "orderNo", orderNo, "userID", userID, "rebate", rebate)
 	}
 }

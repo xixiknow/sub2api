@@ -179,7 +179,7 @@ type AffiliateRepository interface {
 	ConsumeRegistrationInviteSeat(ctx context.Context, code string, inviteeUserID int64) (*AffiliateRegistrationInvite, error)
 	RestoreRegistrationInviteSeat(ctx context.Context, code string, inviteeUserID int64) error
 	PurchaseRegistrationSeats(ctx context.Context, userID int64, quantity int, costPerSeat float64) (*AffiliateRegistrationSeatPurchaseResult, error)
-	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64, level int, ratePercent float64) (bool, error)
+	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, source AffiliateAccrualSource, level int, ratePercent float64) (bool, error)
 	ClawbackQuotaForOrder(ctx context.Context, sourceOrderID int64, refundRatio float64) (AffiliateClawbackResult, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
 	GetLevelRebateSummary(ctx context.Context, userID int64) ([]AffiliateLevelRebateSummary, error)
@@ -243,9 +243,28 @@ type AffiliateInviteRecord struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-// AffiliateRebateRecord 是一笔返利入账流水。非订单来源（兑换码、管理员充值）
-// 的流水没有订单信息，OrderID/OrderAmount/PayAmount 为 nil；被邀请人账号被删除时
-// InviteeID 为 nil。
+// 返利流水来源类型（user_affiliate_ledger.source_type）。
+const (
+	AffiliateRebateSourceOrder       = "order"
+	AffiliateRebateSourceConsumption = "consumption"
+)
+
+// AffiliateAccrualSource 描述一笔返利入账的来源，用于写入流水与幂等。
+type AffiliateAccrualSource struct {
+	Type         string
+	OrderID      *int64
+	SettlementID *int64
+}
+
+// AffiliateInviteeConsumption 是一个被邀请人在某个结算批次内的余额消费总额。
+type AffiliateInviteeConsumption struct {
+	UserID int64
+	Amount float64
+}
+
+// AffiliateRebateRecord 是一笔返利入账流水。非订单来源（消费结算，以及历史上的
+// 兑换码、管理员充值）的流水没有订单信息，OrderID/OrderAmount/PayAmount 为 nil；
+// 被邀请人账号被删除时 InviteeID 为 nil。SourceType 区分 order / consumption。
 type AffiliateRebateRecord struct {
 	OrderID         *int64    `json:"order_id"`
 	OutTradeNo      string    `json:"out_trade_no"`
@@ -263,6 +282,7 @@ type AffiliateRebateRecord struct {
 	RebateAmount    float64   `json:"rebate_amount"`
 	PaymentType     string    `json:"payment_type"`
 	OrderStatus     string    `json:"order_status"`
+	SourceType      string    `json:"source_type"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 
@@ -519,18 +539,27 @@ func (s *AffiliateService) bindInviterByCode(ctx context.Context, userID int64, 
 	return nil
 }
 
-func (s *AffiliateService) AccrueInviteRebate(ctx context.Context, inviteeUserID int64, baseRechargeAmount float64) (float64, error) {
-	return s.AccrueInviteRebateForOrder(ctx, inviteeUserID, baseRechargeAmount, nil)
+// AccrueInviteRebateForSettlement 按一次消费结算为被邀请人的邀请链路发放返利。
+// baseConsumptionAmount 是该被邀请人在本批次内的余额消费总额（有效期已在汇总时过滤）；
+// settlementID 是本批次结算到的 usage_logs.id 上界，用于幂等。
+func (s *AffiliateService) AccrueInviteRebateForSettlement(ctx context.Context, inviteeUserID int64, baseConsumptionAmount float64, settlementID int64) (float64, error) {
+	if settlementID <= 0 {
+		return 0, nil
+	}
+	return s.accrueInviteRebate(ctx, inviteeUserID, baseConsumptionAmount, AffiliateAccrualSource{
+		Type:         AffiliateRebateSourceConsumption,
+		SettlementID: &settlementID,
+	})
 }
 
-func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, inviteeUserID int64, baseRechargeAmount float64, sourceOrderID *int64) (float64, error) {
+func (s *AffiliateService) accrueInviteRebate(ctx context.Context, inviteeUserID int64, baseAmount float64, source AffiliateAccrualSource) (float64, error) {
 	if s == nil || s.repo == nil {
 		return 0, nil
 	}
-	if inviteeUserID <= 0 || baseRechargeAmount <= 0 || math.IsNaN(baseRechargeAmount) || math.IsInf(baseRechargeAmount, 0) {
+	if inviteeUserID <= 0 || baseAmount <= 0 || math.IsNaN(baseAmount) || math.IsInf(baseAmount, 0) {
 		return 0, nil
 	}
-	// 总开关关闭时，新充值不再产生返利
+	// 总开关关闭时不再产生返利
 	if !s.IsEnabled(ctx) {
 		return 0, nil
 	}
@@ -543,8 +572,8 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
 		return 0, nil
 	}
 
-	// 有效期检查：超过返利有效期后不再产生返利
-	if s.settingService != nil {
+	// 有效期检查：消费结算在汇总 SQL 中按消费发生时间过滤，这里只对其它来源判断。
+	if s.settingService != nil && source.Type != AffiliateRebateSourceConsumption {
 		if durationDays := s.settingService.GetAffiliateRebateDurationDays(ctx); durationDays > 0 {
 			if time.Now().After(inviteeSummary.CreatedAt.AddDate(0, 0, durationDays)) {
 				return 0, nil
@@ -572,14 +601,14 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
 			}
 		}
 		rebateRatePercent := s.effectiveRateForLevel(ctx, inviterSummary, level, qualifiedAffCount)
-		rebate := roundTo(baseRechargeAmount*(rebateRatePercent/100), 8)
+		rebate := roundTo(baseAmount*(rebateRatePercent/100), 8)
 		if rebate > 0 {
 			rebate, err = s.applyPerInviteeCap(ctx, currentInviterID, inviteeUserID, rebate)
 			if err != nil {
 				return 0, err
 			}
 			if rebate > 0 {
-				applied, err := s.repo.AccrueQuota(ctx, currentInviterID, inviteeUserID, rebate, freezeHours, sourceOrderID, level, rebateRatePercent)
+				applied, err := s.repo.AccrueQuota(ctx, currentInviterID, inviteeUserID, rebate, freezeHours, source, level, rebateRatePercent)
 				if err != nil {
 					return 0, err
 				}

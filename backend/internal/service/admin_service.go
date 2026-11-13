@@ -720,7 +720,6 @@ type adminServiceImpl struct {
 	userSubRepo          UserSubscriptionRepository
 	privacyClientFactory PrivacyClientFactory
 	runtimeBlocker       AccountRuntimeBlocker
-	affiliateService     adminRechargeAffiliateAccruer
 	compositeRouteRepo   CompositeModelRouteRepository
 	compositeResolver    *CompositeRouteResolver
 	// 分组平台变更后用来失效渠道缓存；可为 nil（缓存会在 TTL 到期后自然重建）
@@ -731,10 +730,6 @@ type adminServiceImpl struct {
 // 窄接口，避免 admin 服务依赖整个 ChannelService——与 APIKeyAuthCacheInvalidator 同一思路。
 type ChannelCacheInvalidator interface {
 	InvalidateCache()
-}
-
-type adminRechargeAffiliateAccruer interface {
-	AccrueInviteRebate(ctx context.Context, inviteeUserID int64, baseRechargeAmount float64) (float64, error)
 }
 
 type userGroupRateBatchReader interface {
@@ -762,7 +757,7 @@ func NewAdminService(
 	userSubRepo UserSubscriptionRepository,
 	privacyClientFactory PrivacyClientFactory,
 	runtimeBlocker AccountRuntimeBlocker,
-	affiliateService *AffiliateService,
+	_ *AffiliateService, // 充值不再产生邀请返利；保留参数以免改动依赖注入
 	compositeRouteRepo CompositeModelRouteRepository,
 	compositeResolver *CompositeRouteResolver,
 	channelCacheInvalidator ChannelCacheInvalidator,
@@ -791,7 +786,6 @@ func NewAdminService(
 		userSubRepo:          userSubRepo,
 		privacyClientFactory: privacyClientFactory,
 		runtimeBlocker:       runtimeBlocker,
-		affiliateService:     affiliateService,
 		compositeRouteRepo:   compositeRouteRepo,
 		compositeResolver:    compositeResolver,
 

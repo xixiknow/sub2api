@@ -6,8 +6,6 @@ import (
 	"context"
 	"testing"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/stretchr/testify/require"
 )
 
@@ -216,23 +214,6 @@ func TestUpdatePaymentConfigRechargeBonus(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, repo.updates)
 	})
-}
-
-func TestAffiliateRebateBaseAmountExcludesRechargeBonus(t *testing.T) {
-	require.Equal(t, 100.0, affiliateRebateBaseAmount(&dbent.PaymentOrder{
-		OrderType: payment.OrderTypeBalance, Amount: 130, BonusAmount: 30,
-	}))
-	require.Equal(t, 130.0, affiliateRebateBaseAmount(&dbent.PaymentOrder{
-		OrderType: payment.OrderTypeBalance, Amount: 130,
-	}))
-	// 订阅订单不受 bonus 字段影响
-	require.Equal(t, 50.0, affiliateRebateBaseAmount(&dbent.PaymentOrder{
-		OrderType: payment.OrderTypeSubscription, Amount: 50, BonusAmount: 30,
-	}))
-	// 异常数据：赠送大于总额时钳到 0
-	require.Equal(t, 0.0, affiliateRebateBaseAmount(&dbent.PaymentOrder{
-		OrderType: payment.OrderTypeBalance, Amount: 10, BonusAmount: 30,
-	}))
 }
 
 func TestNormalizeRechargeBonusMode(t *testing.T) {

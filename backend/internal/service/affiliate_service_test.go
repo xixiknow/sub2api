@@ -122,7 +122,7 @@ func (r *affiliateServiceTestRepo) PurchaseRegistrationSeats(context.Context, in
 	return &AffiliateRegistrationSeatPurchaseResult{}, nil
 }
 
-func (r *affiliateServiceTestRepo) AccrueQuota(context.Context, int64, int64, float64, int, *int64, int, float64) (bool, error) {
+func (r *affiliateServiceTestRepo) AccrueQuota(context.Context, int64, int64, float64, int, AffiliateAccrualSource, int, float64) (bool, error) {
 	return false, nil
 }
 

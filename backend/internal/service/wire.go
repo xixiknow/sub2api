@@ -401,6 +401,22 @@ func ProvideUsageCleanupService(repo UsageCleanupRepository, timingWheel *Timing
 	return svc
 }
 
+// ProvideAffiliateConsumptionSettlementService 创建并启动消费返利定时结算任务。
+func ProvideAffiliateConsumptionSettlementService(
+	entClient *dbent.Client,
+	repo AffiliateConsumptionSettlementRepository,
+	affiliateService *AffiliateService,
+	settingService *SettingService,
+	lockCache LeaderLockCache,
+	db *sql.DB,
+	cfg *config.Config,
+) *AffiliateConsumptionSettlementService {
+	svc := NewAffiliateConsumptionSettlementService(entClient, repo, affiliateService, settingService, cfg)
+	svc.SetLeaderLock(lockCache, db)
+	svc.Start()
+	return svc
+}
+
 // ProvideAccountExpiryService creates and starts AccountExpiryService.
 func ProvideAccountExpiryService(accountRepo AccountRepository) *AccountExpiryService {
 	svc := NewAccountExpiryService(accountRepo, time.Minute)
@@ -971,6 +987,7 @@ var ProviderSet = wire.NewSet(
 	ProvideTokenRefreshService,
 	wire.Bind(new(GrokOAuthReconciler), new(*TokenRefreshService)),
 	ProvideAccountExpiryService,
+	ProvideAffiliateConsumptionSettlementService,
 	ProvideOpenAICodexVersionSyncService,
 	ProvideClaudeCodeVersionSyncService,
 	ProvideProxyExpiryService,

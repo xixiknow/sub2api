@@ -148,7 +148,7 @@ func TestAffiliateRepository_AccrueQuota_ReusesOuterTransaction(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, bound, "invitee must bind to inviter")
 
-	applied, err := repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 3.5, 0, nil, 1, 20)
+	applied, err := repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 3.5, 0, service.AffiliateAccrualSource{}, 1, 20)
 	require.NoError(t, err)
 	require.True(t, applied, "AccrueQuota must report applied=true")
 
@@ -777,7 +777,7 @@ func TestAffiliateRepository_ListAffiliateRebateRecords_IncludesNonOrderAccruals
 	invitee := mustCreateAffiliateWithdrawUser(t, client, "invitee")
 	mustSeedAffiliateQuota(t, txCtx, client, inviter.ID, 0, 0, 0)
 
-	applied, err := repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 2, 0, nil)
+	applied, err := repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 2, 0, service.AffiliateAccrualSource{}, 1, 10)
 	require.NoError(t, err)
 	require.True(t, applied)
 

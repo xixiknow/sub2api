@@ -93,6 +93,9 @@ type paymentFulfillmentAffiliateAccrueCall struct {
 	amount        float64
 	freezeHours   int
 	sourceOrderID *int64
+	settlementID  *int64
+	sourceType    string
+	level         int
 }
 
 type paymentFulfillmentAffiliateRepoStub struct {
@@ -122,11 +125,15 @@ func (r *paymentFulfillmentAffiliateRepoStub) BindInviter(context.Context, int64
 	panic("unexpected BindInviter call")
 }
 
-func (r *paymentFulfillmentAffiliateRepoStub) AccrueQuota(_ context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64, _ int, _ float64) (bool, error) {
-	var sourceCopy *int64
-	if sourceOrderID != nil {
-		v := *sourceOrderID
+func (r *paymentFulfillmentAffiliateRepoStub) AccrueQuota(_ context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, source AffiliateAccrualSource, level int, _ float64) (bool, error) {
+	var sourceCopy, settlementCopy *int64
+	if source.OrderID != nil {
+		v := *source.OrderID
 		sourceCopy = &v
+	}
+	if source.SettlementID != nil {
+		v := *source.SettlementID
+		settlementCopy = &v
 	}
 	r.accrueCalls = append(r.accrueCalls, paymentFulfillmentAffiliateAccrueCall{
 		inviterID:     inviterID,
@@ -134,6 +141,9 @@ func (r *paymentFulfillmentAffiliateRepoStub) AccrueQuota(_ context.Context, inv
 		amount:        amount,
 		freezeHours:   freezeHours,
 		sourceOrderID: sourceCopy,
+		settlementID:  settlementCopy,
+		sourceType:    source.Type,
+		level:         level,
 	})
 	return true, nil
 }
@@ -1150,7 +1160,8 @@ func assertPaymentSubscriptionExpiry(t *testing.T, repo *subscriptionUserSubRepo
 	require.True(t, sub.ExpiresAt.Equal(expected), "subscription expiry changed from %s to %s", expected, sub.ExpiresAt)
 }
 
-func TestExecuteSubscriptionFulfillmentAppliesAffiliateRebate(t *testing.T) {
+// 返利改为按被邀请人消费结算后，订单履约不再产生邀请返利。
+func TestExecuteSubscriptionFulfillmentDoesNotApplyAffiliateRebate(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentConfigServiceTestClient(t)
 	ensurePaymentAuditOrderActionUniqueIndex(t, ctx, client)
@@ -1220,20 +1231,14 @@ func TestExecuteSubscriptionFulfillmentAppliesAffiliateRebate(t *testing.T) {
 	reloaded, err := client.PaymentOrder.Get(ctx, order.ID)
 	require.NoError(t, err)
 	require.Equal(t, OrderStatusCompleted, reloaded.Status)
-	require.Len(t, affiliateRepo.accrueCalls, 1)
-	require.Equal(t, inviterID, affiliateRepo.accrueCalls[0].inviterID)
-	require.Equal(t, user.ID, affiliateRepo.accrueCalls[0].inviteeUserID)
-	require.InDelta(t, 1.4985, affiliateRepo.accrueCalls[0].amount, 0.00000001)
-	require.NotNil(t, affiliateRepo.accrueCalls[0].sourceOrderID)
-	require.Equal(t, order.ID, *affiliateRepo.accrueCalls[0].sourceOrderID)
+	require.Empty(t, affiliateRepo.accrueCalls)
 	require.Equal(t, 1, subRepo.createCalls)
 
 	applied, err := client.PaymentAuditLog.Query().
-		Where(paymentauditlog.OrderIDEQ(strconv.FormatInt(order.ID, 10)), paymentauditlog.ActionEQ("AFFILIATE_REBATE_APPLIED")).
-		Only(ctx)
+		Where(paymentauditlog.OrderIDEQ(strconv.FormatInt(order.ID, 10)), paymentauditlog.ActionIn("AFFILIATE_REBATE_APPLIED", "AFFILIATE_REBATE_SKIPPED")).
+		Count(ctx)
 	require.NoError(t, err)
-	require.Contains(t, applied.Detail, `"baseAmount":9.99`)
-	require.Contains(t, applied.Detail, `"rebateAmount":1.4985`)
+	require.Zero(t, applied)
 }
 
 func TestExecuteSubscriptionFulfillmentDoesNotDuplicateWorkAfterLegacySuccessAudit(t *testing.T) {
