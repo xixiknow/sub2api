@@ -2,11 +2,15 @@ package service
 
 import (
 	"fmt"
+	"math"
+	"net"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 const (
@@ -84,31 +88,35 @@ type UpstreamWalletMember struct {
 
 // UpstreamWallet 是一个上游钱包（通常一个账号一个；sub2api 同一用户的多个 key 共用余额）。
 type UpstreamWallet struct {
-	Key              string                    `json:"key"`
-	PrimaryAccountID int64                     `json:"primary_account_id"`
-	Site             string                    `json:"site"`
-	Source           string                    `json:"source,omitempty"`
-	Members          []UpstreamWalletMember    `json:"members"`
-	FetchStatus      string                    `json:"fetch_status"`
-	FetchError       string                    `json:"fetch_error,omitempty"`
-	FetchedAt        *time.Time                `json:"fetched_at,omitempty"`
-	Stale            bool                      `json:"stale"`
-	Balance          *float64                  `json:"balance,omitempty"`
-	Used             *float64                  `json:"used,omitempty"`
-	Limit            *float64                  `json:"limit,omitempty"`
-	Unlimited        bool                      `json:"unlimited"`
-	Currency         string                    `json:"currency,omitempty"`
-	DailyBurn        *float64                  `json:"daily_burn,omitempty"`
-	DailyBurnSource  string                    `json:"daily_burn_source,omitempty"`
-	Burn7d           *float64                  `json:"burn_7d,omitempty"`
-	Burn7dSource     string                    `json:"burn_7d_source,omitempty"`
-	DaysLeft         *float64                  `json:"days_left,omitempty"`
-	ExhaustAt        *time.Time                `json:"exhaust_at,omitempty"`
-	SuggestRecharge  *float64                  `json:"suggest_recharge,omitempty"`
-	TrafficShare     float64                   `json:"traffic_share"`
-	Status           string                    `json:"status"`
-	AlertDisabled    bool                      `json:"alert_disabled"`
-	Thresholds       UpstreamBalanceThresholds `json:"thresholds"`
+	Key              string `json:"key"`
+	PrimaryAccountID int64  `json:"primary_account_id"`
+	Site             string `json:"site"`
+	// Label 是管理员手动指定的钱包标签（accounts.extra.upstream_wallet），相同标签的账号合并为一个钱包。
+	Label           string                 `json:"label,omitempty"`
+	Source          string                 `json:"source,omitempty"`
+	Members         []UpstreamWalletMember `json:"members"`
+	FetchStatus     string                 `json:"fetch_status"`
+	FetchError      string                 `json:"fetch_error,omitempty"`
+	FetchedAt       *time.Time             `json:"fetched_at,omitempty"`
+	Stale           bool                   `json:"stale"`
+	Balance         *float64               `json:"balance,omitempty"`
+	Used            *float64               `json:"used,omitempty"`
+	Limit           *float64               `json:"limit,omitempty"`
+	Unlimited       bool                   `json:"unlimited"`
+	Currency        string                 `json:"currency,omitempty"`
+	DailyBurn       *float64               `json:"daily_burn,omitempty"`
+	DailyBurnSource string                 `json:"daily_burn_source,omitempty"`
+	Burn7d          *float64               `json:"burn_7d,omitempty"`
+	Burn7dSource    string                 `json:"burn_7d_source,omitempty"`
+	DaysLeft        *float64               `json:"days_left,omitempty"`
+	ExhaustAt       *time.Time             `json:"exhaust_at,omitempty"`
+	SuggestRecharge *float64               `json:"suggest_recharge,omitempty"`
+	TrafficShare    float64                `json:"traffic_share"`
+	Status          string                 `json:"status"`
+	AlertDisabled   bool                   `json:"alert_disabled"`
+	// Idle 表示近 24 小时与 7 天都没有消耗：余额低时最多判预警。
+	Idle       bool                      `json:"idle"`
+	Thresholds UpstreamBalanceThresholds `json:"thresholds"`
 
 	snapshotBurn24h *float64
 	snapshotBurn7d  *float64
@@ -150,13 +158,14 @@ func buildUpstreamWallets(in upstreamForecastInput) []UpstreamWallet {
 	byKey := make(map[string]*UpstreamWallet)
 	order := make([]string, 0, len(in.Accounts))
 	snaps := make(map[string]*UpstreamBalanceResult)
+	keys := upstreamWalletKeys(in.Accounts)
 	for _, account := range in.Accounts {
 		snap := DecodeUpstreamBalanceSnapshot(account.Extra)
 		site := upstreamBalanceSite(account.GetCredential("base_url"))
-		key := upstreamWalletKey(account, site, snap)
+		key := keys[account.ID]
 		wallet, ok := byKey[key]
 		if !ok {
-			wallet = &UpstreamWallet{Key: key, PrimaryAccountID: account.ID, Site: site}
+			wallet = &UpstreamWallet{Key: key, PrimaryAccountID: account.ID, Site: site, Label: UpstreamWalletLabel(account.Extra)}
 			byKey[key] = wallet
 			order = append(order, key)
 		}
@@ -254,6 +263,7 @@ func finalizeUpstreamWallet(w *UpstreamWallet, snap *UpstreamBalanceResult, in u
 	}
 	balance := *snap.Balance
 	burn := *w.DailyBurn
+	w.Idle = burn <= 0 && (w.Burn7d == nil || *w.Burn7d <= 0)
 	if balance <= 0 && burn <= 0 {
 		zero := 0.0
 		w.DaysLeft = &zero
@@ -266,14 +276,15 @@ func finalizeUpstreamWallet(w *UpstreamWallet, snap *UpstreamBalanceResult, in u
 		suggest := roundUpstreamBalance(maxFloat(burn*w.Thresholds.TargetDays-balance, 0))
 		w.SuggestRecharge = &suggest
 	}
-	w.Status = upstreamWalletStatus(balance, w.DaysLeft, w.Thresholds)
+	w.Status = upstreamWalletStatus(balance, w.DaysLeft, w.Thresholds, w.Idle)
 }
 
-func upstreamWalletStatus(balance float64, daysLeft *float64, t UpstreamBalanceThresholds) string {
+// upstreamWalletStatus 判定告急级别。闲置（无消耗）的钱包不会很快用完，余额低时最多判预警。
+func upstreamWalletStatus(balance float64, daysLeft *float64, t UpstreamBalanceThresholds, idle bool) string {
 	switch {
 	case balance <= 0:
 		return UpstreamWalletStatusExhausted
-	case (daysLeft != nil && *daysLeft < t.CriticalDays) || balance < t.MinBalance/2:
+	case !idle && ((daysLeft != nil && *daysLeft < t.CriticalDays) || balance < t.MinBalance/2):
 		return UpstreamWalletStatusCritical
 	case (daysLeft != nil && *daysLeft < t.WarnDays) || balance < t.MinBalance:
 		return UpstreamWalletStatusWarn
@@ -426,13 +437,101 @@ func resolveUpstreamThresholds(global UpstreamBalanceThresholds, members []Upstr
 	return out
 }
 
-// upstreamWalletKey 识别共享钱包：sub2api 余额模式（无 key 级限额）下，同站点同余额视为同一用户钱包。
-func upstreamWalletKey(account *Account, site string, snap *UpstreamBalanceResult) string {
-	if snap != nil && snap.Status == UpstreamBalanceStatusOK && snap.Source == UpstreamBalanceSourceSub2API &&
-		snap.Limit == nil && snap.Balance != nil && !snap.Unlimited && site != "" {
-		return fmt.Sprintf("wallet:%s:%s", site, strconv.FormatFloat(*snap.Balance, 'f', 6, 64))
+// UpstreamWalletExtraKey 是账号手动钱包标签（字符串），相同标签的账号强制合并为一个钱包。
+const UpstreamWalletExtraKey = "upstream_wallet"
+
+// upstreamWalletLabelMaxRunes 限制钱包标签长度。
+const upstreamWalletLabelMaxRunes = 64
+
+// UpstreamWalletLabel 读取账号的手动钱包标签。
+func UpstreamWalletLabel(extra map[string]any) string {
+	label, _ := extra[UpstreamWalletExtraKey].(string)
+	return strings.TrimSpace(label)
+}
+
+// upstreamWalletAutoMergeable 是否参与自动合并：sub2api 余额模式（无 key 级限额）下，同一用户的多个 key 共用余额。
+func upstreamWalletAutoMergeable(snap *UpstreamBalanceResult) bool {
+	return snap != nil && snap.Status == UpstreamBalanceStatusOK && snap.Source == UpstreamBalanceSourceSub2API &&
+		snap.Limit == nil && snap.Balance != nil && !snap.Unlimited
+}
+
+// upstreamBalanceSameWallet 判断两次查询的余额是否属于同一钱包：查询时刻不同会有少量消耗差。
+func upstreamBalanceSameWallet(a, b float64) bool {
+	return math.Abs(a-b) <= math.Max(0.02, math.Max(math.Abs(a), math.Abs(b))*0.002)
+}
+
+// upstreamWalletKeys 给每个账号分配钱包 key：
+//  1. 有手动标签的按标签合并（可跨域名）；
+//  2. 可自动合并的按主域名分组，组内余额相近（差 ≤ max($0.02, 0.2%)）的串成一个钱包；
+//  3. 其余每个账号单独一个钱包。
+//
+// key 用组内最小账号 ID 生成，余额变化时保持稳定。
+func upstreamWalletKeys(accounts []*Account) map[int64]string {
+	keys := make(map[int64]string, len(accounts))
+	type candidate struct {
+		id      int64
+		balance float64
 	}
-	return "account:" + strconv.FormatInt(account.ID, 10)
+	byDomain := map[string][]candidate{}
+	for _, account := range accounts {
+		if label := UpstreamWalletLabel(account.Extra); label != "" {
+			keys[account.ID] = "label:" + strings.ToLower(label)
+			continue
+		}
+		keys[account.ID] = "account:" + strconv.FormatInt(account.ID, 10)
+		snap := DecodeUpstreamBalanceSnapshot(account.Extra)
+		domain := upstreamRegistrableDomain(upstreamBalanceSite(account.GetCredential("base_url")))
+		if domain == "" || !upstreamWalletAutoMergeable(snap) {
+			continue
+		}
+		byDomain[domain] = append(byDomain[domain], candidate{id: account.ID, balance: *snap.Balance})
+	}
+	for domain, list := range byDomain {
+		sort.Slice(list, func(i, j int) bool {
+			if list[i].balance != list[j].balance {
+				return list[i].balance < list[j].balance
+			}
+			return list[i].id < list[j].id
+		})
+		for start := 0; start < len(list); {
+			end := start + 1
+			for end < len(list) && upstreamBalanceSameWallet(list[end-1].balance, list[end].balance) {
+				end++
+			}
+			if end-start > 1 {
+				minID := list[start].id
+				for _, c := range list[start:end] {
+					if c.id < minID {
+						minID = c.id
+					}
+				}
+				key := fmt.Sprintf("wallet:%s:%d", domain, minID)
+				for _, c := range list[start:end] {
+					keys[c.id] = key
+				}
+			}
+			start = end
+		}
+	}
+	return keys
+}
+
+// upstreamRegistrableDomain 返回主域名（api.hzapi.vip → hzapi.vip）；IP 与无法识别的保持原样。
+func upstreamRegistrableDomain(host string) string {
+	if host == "" {
+		return ""
+	}
+	hostname := host
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		hostname = h
+	}
+	if net.ParseIP(strings.Trim(hostname, "[]")) != nil {
+		return hostname
+	}
+	if domain, err := publicsuffix.EffectiveTLDPlusOne(hostname); err == nil {
+		return domain
+	}
+	return hostname
 }
 
 func upstreamBalanceSite(baseURL string) string {

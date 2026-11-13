@@ -37,6 +37,8 @@ export interface UpstreamWallet {
   key: string
   primary_account_id: number
   site: string
+  /** 手动钱包标签：相同标签的账号合并为一个钱包。 */
+  label?: string
   source?: string
   members: UpstreamWalletMember[]
   fetch_status: string
@@ -58,6 +60,8 @@ export interface UpstreamWallet {
   traffic_share: number
   status: UpstreamWalletStatus
   alert_disabled: boolean
+  /** 近 24 小时与 7 天都没有消耗。 */
+  idle: boolean
   thresholds: UpstreamBalanceThresholds
 }
 
@@ -88,6 +92,14 @@ export interface UpstreamBalanceHistory {
 
 export type SmsProvider = 'aliyun' | 'tencent'
 
+export type UpstreamBalanceAlertChannel = 'serverchan' | 'sms'
+
+export interface UpstreamBalanceServerChanConfig {
+  /** 仅提交时填写；留空表示保持原值。 */
+  send_keys?: string[]
+  send_keys_count?: number
+}
+
 export interface UpstreamBalanceSMSConfig {
   provider: SmsProvider
   access_key_id: string
@@ -103,6 +115,7 @@ export interface UpstreamBalanceSMSConfig {
 
 export interface UpstreamBalanceAlertConfig {
   enabled: boolean
+  channel: UpstreamBalanceAlertChannel
   warn_days: number
   critical_days: number
   min_balance: number
@@ -114,6 +127,7 @@ export interface UpstreamBalanceAlertConfig {
   quiet_start: string
   quiet_end: string
   sms: UpstreamBalanceSMSConfig
+  serverchan: UpstreamBalanceServerChanConfig
 }
 
 export interface UpstreamBalanceAlert {
@@ -152,6 +166,10 @@ export async function getHistory(accountId: number, days = 7): Promise<UpstreamB
   return data
 }
 
+export async function updateWalletLabel(accountIds: number[], label: string): Promise<void> {
+  await apiClient.put('/admin/upstream-balance/wallet-label', { account_ids: accountIds, label })
+}
+
 export async function updateAccountAlert(accountId: number, override: UpstreamBalanceAlertOverride): Promise<void> {
   await apiClient.put(`/admin/upstream-balance/accounts/${accountId}/alert`, override)
 }
@@ -180,6 +198,7 @@ export const upstreamBalanceAPI = {
   refreshAll,
   getHistory,
   updateAccountAlert,
+  updateWalletLabel,
   getSettings,
   updateSettings,
   sendTestSMS,

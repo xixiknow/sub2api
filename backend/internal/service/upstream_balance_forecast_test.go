@@ -152,20 +152,25 @@ func TestUpstreamWalletStatus(t *testing.T) {
 	cases := []struct {
 		balance float64
 		days    *float64
+		idle    bool
 		want    string
 	}{
-		{0, nil, UpstreamWalletStatusExhausted},
-		{-1, fptr(0), UpstreamWalletStatusExhausted},
-		{100, fptr(0.5), UpstreamWalletStatusCritical},
-		{4, nil, UpstreamWalletStatusCritical},
-		{100, fptr(2), UpstreamWalletStatusWarn},
-		{8, nil, UpstreamWalletStatusWarn},
-		{100, fptr(5), UpstreamWalletStatusOK},
-		{100, nil, UpstreamWalletStatusOK},
+		{0, nil, false, UpstreamWalletStatusExhausted},
+		{-1, fptr(0), false, UpstreamWalletStatusExhausted},
+		{100, fptr(0.5), false, UpstreamWalletStatusCritical},
+		{4, nil, false, UpstreamWalletStatusCritical},
+		{100, fptr(2), false, UpstreamWalletStatusWarn},
+		{8, nil, false, UpstreamWalletStatusWarn},
+		{100, fptr(5), false, UpstreamWalletStatusOK},
+		{100, nil, false, UpstreamWalletStatusOK},
+		// 闲置：余额低最多预警，耗尽仍为耗尽。
+		{4, nil, true, UpstreamWalletStatusWarn},
+		{0, nil, true, UpstreamWalletStatusExhausted},
+		{100, nil, true, UpstreamWalletStatusOK},
 	}
 	for _, c := range cases {
-		if got := upstreamWalletStatus(c.balance, c.days, th); got != c.want {
-			t.Fatalf("status(%v,%v) = %s, want %s", c.balance, c.days, got, c.want)
+		if got := upstreamWalletStatus(c.balance, c.days, th, c.idle); got != c.want {
+			t.Fatalf("status(%v,%v,idle=%v) = %s, want %s", c.balance, c.days, c.idle, got, c.want)
 		}
 	}
 }
@@ -244,7 +249,9 @@ func (r *fakeUpstreamOpsRepo) InsertSnapshot(_ context.Context, _ int64, _ *Upst
 func (r *fakeUpstreamOpsRepo) ListSnapshots(context.Context, []int64, time.Time) (map[int64][]UpstreamBalancePoint, error) {
 	return r.snapshots, nil
 }
-func (r *fakeUpstreamOpsRepo) PruneSnapshots(context.Context, time.Time) (int64, error) { return 0, nil }
+func (r *fakeUpstreamOpsRepo) PruneSnapshots(context.Context, time.Time) (int64, error) {
+	return 0, nil
+}
 func (r *fakeUpstreamOpsRepo) GetAccountUpstreamCost(_ context.Context, _ []int64, since time.Time) (map[int64]float64, error) {
 	return r.cost24h, nil
 }
@@ -263,9 +270,26 @@ func (r *fakeUpstreamOpsRepo) ListAlerts(context.Context, time.Time, int) ([]Ups
 
 type fakeUpstreamAccountRepo struct {
 	AccountRepository
-	accounts []Account
-	paused   map[int64]string
-	cleared  []int64
+	accounts     []Account
+	paused       map[int64]string
+	cleared      []int64
+	extraUpdates map[int64]map[string]any
+}
+
+func (r *fakeUpstreamAccountRepo) GetByID(_ context.Context, id int64) (*Account, error) {
+	for i := range r.accounts {
+		if r.accounts[i].ID == id {
+			return &r.accounts[i], nil
+		}
+	}
+	return nil, ErrAccountNotFound
+}
+func (r *fakeUpstreamAccountRepo) UpdateExtra(_ context.Context, id int64, updates map[string]any) error {
+	if r.extraUpdates == nil {
+		r.extraUpdates = map[int64]map[string]any{}
+	}
+	r.extraUpdates[id] = updates
+	return nil
 }
 
 func (r *fakeUpstreamAccountRepo) ListAllWithFilters(context.Context, string, string, string, string, int64, string) ([]Account, error) {

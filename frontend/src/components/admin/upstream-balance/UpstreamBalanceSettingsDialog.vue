@@ -43,8 +43,33 @@
       <!-- Delivery -->
       <section class="space-y-3">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.upstreamBalanceOps.config.delivery') }}</h4>
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-gray-600 dark:text-gray-300">{{ t('admin.upstreamBalanceOps.config.channel') }}</span>
+          <div class="flex rounded-lg border border-gray-200 p-0.5 dark:border-dark-600">
+            <button
+              v-for="c in channels"
+              :key="c"
+              type="button"
+              class="rounded-md px-3 py-1 text-sm"
+              :class="form.channel === c ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700'"
+              @click="form.channel = c"
+            >
+              {{ t(`admin.upstreamBalanceOps.config.channels.${c}`) }}
+            </button>
+          </div>
+        </div>
         <div class="grid gap-3 md:grid-cols-2">
-          <div>
+          <div v-if="isServerChan">
+            <label class="input-label">{{ t('admin.upstreamBalanceOps.config.sendKeys') }}</label>
+            <textarea
+              v-model="sendKeysText"
+              rows="3"
+              class="input font-mono text-sm"
+              autocomplete="off"
+              :placeholder="form.serverchan.send_keys_count ? t('admin.upstreamBalanceOps.config.sendKeysSet', { count: form.serverchan.send_keys_count }) : 'SCT...'"
+            />
+          </div>
+          <div v-else>
             <label class="input-label">{{ t('admin.upstreamBalanceOps.config.phones') }}</label>
             <textarea v-model="phonesText" rows="3" class="input font-mono text-sm" placeholder="13800000000" />
           </div>
@@ -64,10 +89,16 @@
             </div>
           </div>
         </div>
+        <div v-if="isServerChan" class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800 dark:border-sky-800/50 dark:bg-sky-900/20 dark:text-sky-200">
+          <ul class="list-disc space-y-0.5 pl-4">
+            <li>{{ t('admin.upstreamBalanceOps.config.serverChanHelp1') }}</li>
+            <li>{{ t('admin.upstreamBalanceOps.config.serverChanHelp2') }}</li>
+          </ul>
+        </div>
       </section>
 
       <!-- SMS provider -->
-      <section class="space-y-3">
+      <section v-if="!isServerChan" class="space-y-3">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.upstreamBalanceOps.config.provider') }}</h4>
         <div class="flex rounded-lg border border-gray-200 p-0.5 dark:border-dark-600" style="width: fit-content">
           <button
@@ -144,7 +175,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
-import type { SmsProvider, UpstreamBalanceAlertConfig } from '@/api/admin/upstreamBalance'
+import type { SmsProvider, UpstreamBalanceAlertChannel, UpstreamBalanceAlertConfig } from '@/api/admin/upstreamBalance'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -162,22 +193,26 @@ const ALIYUN_TEMPLATE = '${count}个上游余额告急，最紧急：${name}，�
 const TENCENT_TEMPLATE = '{1}个上游余额告急，最紧急：{2}，余额{3}，约{4}天用完'
 
 const providers: SmsProvider[] = ['aliyun', 'tencent']
+const channels: UpstreamBalanceAlertChannel[] = ['serverchan', 'sms']
 const form = ref<UpstreamBalanceAlertConfig | null>(null)
 const secret = ref('')
 const phonesText = ref('')
+const sendKeysText = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const testing = ref(false)
 
 const isTencent = computed(() => form.value?.sms.provider === 'tencent')
+const isServerChan = computed(() => form.value?.channel === 'serverchan')
 
 async function load() {
   loading.value = true
   try {
     const cfg = await adminAPI.upstreamBalance.getSettings()
-    form.value = cfg
+    form.value = { ...cfg, channel: cfg.channel || 'sms', serverchan: cfg.serverchan ?? { send_keys_count: 0 } }
     phonesText.value = cfg.phones.join('\n')
     secret.value = ''
+    sendKeysText.value = ''
   } catch (err) {
     appStore.showError(extractApiErrorMessage(err, t('admin.upstreamBalanceOps.loadFailed')))
   } finally {
@@ -193,18 +228,24 @@ watch(
   { immediate: true }
 )
 
+function splitList(text: string): string[] {
+  return text.split(/[\n,，\s]+/).map((p) => p.trim()).filter(Boolean)
+}
+
 async function save(): Promise<boolean> {
   if (!form.value) return false
   saving.value = true
   try {
     const payload: UpstreamBalanceAlertConfig = {
       ...form.value,
-      phones: phonesText.value.split(/[\n,，\s]+/).map((p) => p.trim()).filter(Boolean),
-      sms: { ...form.value.sms, access_key_secret: secret.value.trim() || undefined }
+      phones: splitList(phonesText.value),
+      sms: { ...form.value.sms, access_key_secret: secret.value.trim() || undefined },
+      serverchan: { send_keys: splitList(sendKeysText.value) }
     }
     form.value = await adminAPI.upstreamBalance.updateSettings(payload)
     phonesText.value = form.value.phones.join('\n')
     secret.value = ''
+    sendKeysText.value = ''
     appStore.showSuccess(t('admin.upstreamBalanceOps.config.saved'))
     emit('saved')
     return true

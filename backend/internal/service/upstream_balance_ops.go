@@ -12,6 +12,7 @@ import (
 	"time"
 
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/serverchan"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/sms"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 )
@@ -28,6 +29,13 @@ const (
 
 	// 阿里云单个模板变量最长 35 个字符。
 	upstreamBalanceSMSParamMaxLen = 35
+
+	// 通知渠道。空值按短信处理（兼容旧配置）。
+	UpstreamBalanceChannelSMS        = "sms"
+	UpstreamBalanceChannelServerChan = "serverchan"
+	upstreamBalanceServerChanMaxKeys = 10
+	// Server酱 正文最多列出的告急钱包数。
+	upstreamBalanceServerChanMaxItems = 10
 )
 
 var (
@@ -36,6 +44,9 @@ var (
 	ErrUpstreamBalanceRunnerBusy         = infraerrors.Conflict("UPSTREAM_BALANCE_RUNNER_BUSY", "upstream balance refresh is already running")
 	// 加密密钥变更（如未配置 totp.encryption_key 时每次启动随机生成）后旧密文无法解密，需要重新填写。
 	ErrUpstreamBalanceSMSSecretUnreadable = infraerrors.BadRequest("UPSTREAM_BALANCE_SMS_SECRET_UNREADABLE", "stored sms secret cannot be decrypted, please re-enter it")
+
+	ErrUpstreamBalanceServerChanNotConfigured = infraerrors.BadRequest("UPSTREAM_BALANCE_SERVERCHAN_NOT_CONFIGURED", "serverchan SendKey is not configured")
+	ErrUpstreamBalanceServerChanKeyUnreadable = infraerrors.BadRequest("UPSTREAM_BALANCE_SERVERCHAN_KEY_UNREADABLE", "stored serverchan SendKey cannot be decrypted, please re-enter it")
 
 	upstreamBalanceQuietTimeRe = regexp.MustCompile(`^([01]\d|2[0-3]):[0-5]\d$`)
 )
@@ -54,24 +65,35 @@ type UpstreamBalanceSMSConfig struct {
 	Endpoint           string `json:"endpoint,omitempty"`
 }
 
+// UpstreamBalanceServerChanConfig 是 Server酱 配置。SendKeys 只在请求中出现（为空表示保持原值），
+// 存储时以 JSON 数组加密到 SendKeysEnc；SendKeysCount 回传已保存的数量。
+type UpstreamBalanceServerChanConfig struct {
+	SendKeys      []string `json:"send_keys,omitempty"`
+	SendKeysEnc   string   `json:"send_keys_enc,omitempty"`
+	SendKeysCount int      `json:"send_keys_count"`
+}
+
 // UpstreamBalanceAlertConfig 是上游余额维护的全局配置。
 type UpstreamBalanceAlertConfig struct {
-	Enabled                bool                     `json:"enabled"`
-	WarnDays               float64                  `json:"warn_days"`
-	CriticalDays           float64                  `json:"critical_days"`
-	MinBalance             float64                  `json:"min_balance"`
-	TargetDays             float64                  `json:"target_days"`
-	AutoPauseExhausted     bool                     `json:"auto_pause_exhausted"`
-	RefreshIntervalMinutes int                      `json:"refresh_interval_minutes"`
-	Phones                 []string                 `json:"phones"`
-	DailyLimit             int                      `json:"daily_limit"`
-	QuietStart             string                   `json:"quiet_start"`
-	QuietEnd               string                   `json:"quiet_end"`
-	SMS                    UpstreamBalanceSMSConfig `json:"sms"`
+	Enabled                bool                            `json:"enabled"`
+	Channel                string                          `json:"channel"`
+	WarnDays               float64                         `json:"warn_days"`
+	CriticalDays           float64                         `json:"critical_days"`
+	MinBalance             float64                         `json:"min_balance"`
+	TargetDays             float64                         `json:"target_days"`
+	AutoPauseExhausted     bool                            `json:"auto_pause_exhausted"`
+	RefreshIntervalMinutes int                             `json:"refresh_interval_minutes"`
+	Phones                 []string                        `json:"phones"`
+	DailyLimit             int                             `json:"daily_limit"`
+	QuietStart             string                          `json:"quiet_start"`
+	QuietEnd               string                          `json:"quiet_end"`
+	SMS                    UpstreamBalanceSMSConfig        `json:"sms"`
+	ServerChan             UpstreamBalanceServerChanConfig `json:"serverchan"`
 }
 
 func defaultUpstreamBalanceAlertConfig() UpstreamBalanceAlertConfig {
 	return UpstreamBalanceAlertConfig{
+		Channel:                UpstreamBalanceChannelSMS,
 		WarnDays:               3,
 		CriticalDays:           1,
 		MinBalance:             10,
@@ -134,7 +156,9 @@ type UpstreamBalanceOpsService struct {
 	encryptor   SecretEncryptor
 	balance     *UpstreamBalanceService
 	newSMS      func(sms.Config) (sms.Provider, error)
-	now         func() time.Time
+	// sendServerChan 推送一条 Server酱 消息；测试中替换。
+	sendServerChan func(ctx context.Context, key, title, desp string) error
+	now            func() time.Time
 }
 
 func NewUpstreamBalanceOpsService(
@@ -153,6 +177,7 @@ func NewUpstreamBalanceOpsService(
 		newSMS:      sms.New,
 		now:         time.Now,
 	}
+	svc.sendServerChan = serverchan.New().Send
 	if balance != nil {
 		balance.ops = svc
 	}
@@ -215,6 +240,22 @@ func (s *UpstreamBalanceOpsService) UpdateConfig(ctx context.Context, input Upst
 	}
 	next.SMS.AccessKeySecret = ""
 	next.SMS.AccessKeySecretSet = false
+	next.ServerChan.SendKeysEnc = current.ServerChan.SendKeysEnc
+	if len(next.ServerChan.SendKeys) > 0 {
+		if s.encryptor == nil {
+			return nil, ErrUpstreamBalanceAlertConfigInvalid.WithMetadata(map[string]string{"field": "serverchan.send_keys"})
+		}
+		raw, _ := json.Marshal(next.ServerChan.SendKeys)
+		enc, err := s.encryptor.Encrypt(string(raw))
+		if err != nil {
+			return nil, fmt.Errorf("encrypt serverchan keys: %w", err)
+		}
+		next.ServerChan.SendKeysEnc = enc
+		next.ServerChan.SendKeysCount = len(next.ServerChan.SendKeys)
+	} else {
+		next.ServerChan.SendKeysCount = current.ServerChan.SendKeysCount
+	}
+	next.ServerChan.SendKeys = nil
 	data, err := json.Marshal(next)
 	if err != nil {
 		return nil, err
@@ -233,6 +274,14 @@ func sanitizeUpstreamBalanceAlertConfig(cfg UpstreamBalanceAlertConfig) Upstream
 	if cfg.Phones == nil {
 		cfg.Phones = []string{}
 	}
+	if cfg.Channel == "" {
+		cfg.Channel = UpstreamBalanceChannelSMS
+	}
+	if cfg.ServerChan.SendKeysEnc == "" {
+		cfg.ServerChan.SendKeysCount = 0
+	}
+	cfg.ServerChan.SendKeysEnc = ""
+	cfg.ServerChan.SendKeys = nil
 	return cfg
 }
 
@@ -258,6 +307,33 @@ func normalizeUpstreamBalanceAlertConfig(in UpstreamBalanceAlertConfig) (Upstrea
 	if in.DailyLimit < 0 || in.DailyLimit > 1000 {
 		return invalid("daily_limit")
 	}
+	in.Channel = strings.TrimSpace(in.Channel)
+	if in.Channel == "" {
+		in.Channel = UpstreamBalanceChannelSMS
+	}
+	if in.Channel != UpstreamBalanceChannelSMS && in.Channel != UpstreamBalanceChannelServerChan {
+		return invalid("channel")
+	}
+	keys := make([]string, 0, len(in.ServerChan.SendKeys))
+	seenKeys := map[string]struct{}{}
+	for _, key := range in.ServerChan.SendKeys {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if !serverchan.ValidKey(key) {
+			return invalid("serverchan.send_keys")
+		}
+		if _, ok := seenKeys[key]; ok {
+			continue
+		}
+		seenKeys[key] = struct{}{}
+		keys = append(keys, key)
+	}
+	if len(keys) > upstreamBalanceServerChanMaxKeys {
+		return invalid("serverchan.send_keys")
+	}
+	in.ServerChan.SendKeys = keys
 	if (in.QuietStart == "") != (in.QuietEnd == "") ||
 		(in.QuietStart != "" && (!upstreamBalanceQuietTimeRe.MatchString(in.QuietStart) || !upstreamBalanceQuietTimeRe.MatchString(in.QuietEnd))) {
 		return invalid("quiet_hours")
@@ -283,6 +359,9 @@ func normalizeUpstreamBalanceAlertConfig(in UpstreamBalanceAlertConfig) (Upstrea
 	}
 	in.Phones = phones
 	in.SMS.Provider = strings.TrimSpace(in.SMS.Provider)
+	if in.SMS.Provider == "" {
+		in.SMS.Provider = sms.ProviderAliyun
+	}
 	if in.SMS.Provider != sms.ProviderAliyun && in.SMS.Provider != sms.ProviderTencent {
 		return invalid("sms.provider")
 	}
@@ -326,6 +405,32 @@ func (s *UpstreamBalanceOpsService) UpdateAccountOverride(ctx context.Context, a
 		value = override
 	}
 	return s.accountRepo.UpdateExtra(ctx, accountID, map[string]any{UpstreamBalanceAlertExtraKey: value})
+}
+
+// SetWalletLabel 给一组账号设置相同的钱包标签（手动合并跨域名的同一上游）；label 为空表示取消。
+func (s *UpstreamBalanceOpsService) SetWalletLabel(ctx context.Context, accountIDs []int64, label string) error {
+	label = strings.TrimSpace(label)
+	if len(accountIDs) == 0 || len(accountIDs) > 200 || len([]rune(label)) > upstreamWalletLabelMaxRunes {
+		return ErrUpstreamBalanceAlertConfigInvalid.WithMetadata(map[string]string{"field": "wallet_label"})
+	}
+	var value any
+	if label != "" {
+		value = label
+	}
+	for _, id := range accountIDs {
+		if id <= 0 {
+			return ErrUpstreamBalanceAlertConfigInvalid.WithMetadata(map[string]string{"field": "account_ids"})
+		}
+		if _, err := s.accountRepo.GetByID(ctx, id); err != nil {
+			return err
+		}
+	}
+	for _, id := range accountIDs {
+		if err := s.accountRepo.UpdateExtra(ctx, id, map[string]any{UpstreamWalletExtraKey: value}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // refreshInterval 供 runner 读取刷新间隔。
@@ -642,11 +747,6 @@ func (s *UpstreamBalanceOpsService) sendAlerts(ctx context.Context, cfg Upstream
 		slog.Warn("upstream_balance_alert_daily_limit_reached", "sent_today", sentToday, "limit", cfg.DailyLimit)
 		return nil
 	}
-	provider, err := s.smsProvider(cfg)
-	if err != nil {
-		return err
-	}
-	params := upstreamAlertSMSParams(alerting)
 	levels := make(map[string]string, len(alerting))
 	level := UpstreamWalletStatusWarn
 	for _, w := range alerting {
@@ -655,7 +755,69 @@ func (s *UpstreamBalanceOpsService) sendAlerts(ctx context.Context, cfg Upstream
 			level = w.Status
 		}
 	}
-	return s.deliver(ctx, provider, cfg, level, levels, params)
+	if cfg.Channel == UpstreamBalanceChannelServerChan {
+		title, desp := renderUpstreamAlertServerChan(alerting)
+		return s.deliverServerChan(ctx, cfg, level, levels, title, desp)
+	}
+	provider, err := s.smsProvider(cfg)
+	if err != nil {
+		return err
+	}
+	return s.deliver(ctx, provider, cfg, level, levels, upstreamAlertSMSParams(alerting))
+}
+
+func (s *UpstreamBalanceOpsService) serverChanKeys(cfg UpstreamBalanceAlertConfig) ([]string, error) {
+	if cfg.ServerChan.SendKeysEnc == "" || s.encryptor == nil {
+		return nil, ErrUpstreamBalanceServerChanNotConfigured
+	}
+	plain, err := s.encryptor.Decrypt(cfg.ServerChan.SendKeysEnc)
+	if err != nil {
+		slog.Warn("upstream_balance_serverchan_key_decrypt_failed", "error", err)
+		return nil, ErrUpstreamBalanceServerChanKeyUnreadable
+	}
+	var keys []string
+	if err := json.Unmarshal([]byte(plain), &keys); err != nil || len(keys) == 0 {
+		return nil, ErrUpstreamBalanceServerChanKeyUnreadable
+	}
+	return keys, nil
+}
+
+// deliverServerChan 逐个 SendKey 推送；任一成功即记为已发送，失败的写入 Error。
+func (s *UpstreamBalanceOpsService) deliverServerChan(ctx context.Context, cfg UpstreamBalanceAlertConfig, level string, levels map[string]string, title, desp string) error {
+	keys, err := s.serverChanKeys(cfg)
+	if err != nil {
+		return err
+	}
+	var sent, failed, masked []string
+	for _, key := range keys {
+		who := serverchan.MaskKey(key)
+		masked = append(masked, who)
+		if err := s.sendServerChan(ctx, key, title, desp); err != nil {
+			failed = append(failed, who+": "+err.Error())
+			continue
+		}
+		sent = append(sent, who)
+	}
+	alert := &UpstreamBalanceAlert{
+		Level:         level,
+		AccountLevels: levels,
+		Content:       truncateRunes(title+"\n"+desp, 1000),
+		Provider:      UpstreamBalanceChannelServerChan,
+		Phones:        truncateRunes(strings.Join(masked, ","), 500),
+		Status:        UpstreamBalanceAlertStatusSent,
+	}
+	var sendErr error
+	if len(failed) > 0 {
+		alert.Error = truncateRunes(strings.Join(failed, "; "), 500)
+	}
+	if len(sent) == 0 {
+		alert.Status = UpstreamBalanceAlertStatusFailed
+		sendErr = errors.New(alert.Error)
+	}
+	if err := s.repo.InsertAlert(ctx, alert); err != nil {
+		slog.Warn("upstream_balance_alert_record_failed", "error", err)
+	}
+	return sendErr
 }
 
 func (s *UpstreamBalanceOpsService) deliver(ctx context.Context, provider sms.Provider, cfg UpstreamBalanceAlertConfig, level string, levels map[string]string, params []sms.Param) error {
@@ -683,6 +845,17 @@ func (s *UpstreamBalanceOpsService) SendTestSMS(ctx context.Context) error {
 	cfg, err := s.loadConfig(ctx)
 	if err != nil {
 		return err
+	}
+	if cfg.Channel == UpstreamBalanceChannelServerChan {
+		desp := "Server酱 推送已配置成功。上游余额告急时会推送一条汇总，包含余额、预计可用天数和建议充值金额。"
+		if err := s.deliverServerChan(ctx, cfg, UpstreamBalanceAlertLevelTest, map[string]string{}, "上游余额提醒 · 测试", desp); err != nil {
+			var appErr *infraerrors.ApplicationError
+			if errors.As(err, &appErr) {
+				return err
+			}
+			return infraerrors.BadRequest("UPSTREAM_BALANCE_SERVERCHAN_SEND_FAILED", truncateRunes(err.Error(), 300))
+		}
+		return nil
 	}
 	provider, err := s.smsProvider(cfg)
 	if err != nil {
@@ -744,6 +917,52 @@ func renderUpstreamAlertContent(params []sms.Param) string {
 		values[p.Name] = p.Value
 	}
 	return fmt.Sprintf("%s个上游余额告急，最紧急：%s，余额%s，约%s天用完", values["count"], values["name"], values["balance"], values["days"])
+}
+
+var upstreamWalletStatusLabels = map[string]string{
+	UpstreamWalletStatusExhausted: "已耗尽",
+	UpstreamWalletStatusCritical:  "严重",
+	UpstreamWalletStatusWarn:      "预警",
+}
+
+// upstreamWalletDisplayName 是钱包在消息里的名称：钱包标签 > 站点 > 首个账号名。
+func upstreamWalletDisplayName(w UpstreamWallet) string {
+	name := w.Label
+	if name == "" {
+		name = w.Site
+	}
+	if name == "" && len(w.Members) > 0 {
+		name = w.Members[0].Name
+	}
+	return name
+}
+
+// renderUpstreamAlertServerChan 生成 Server酱 标题（单行）与 Markdown 正文；alerting 已按优先级排序。
+func renderUpstreamAlertServerChan(alerting []UpstreamWallet) (string, string) {
+	top := alerting[0]
+	title := fmt.Sprintf("%d 个上游余额告急：%s %s", len(alerting), truncateRunes(upstreamWalletDisplayName(top), 14), upstreamWalletStatusLabels[top.Status])
+	var b strings.Builder
+	for i, w := range alerting {
+		if i >= upstreamBalanceServerChanMaxItems {
+			fmt.Fprintf(&b, "\n…另有 %d 个，请到后台「上游余额」查看\n", len(alerting)-i)
+			break
+		}
+		fmt.Fprintf(&b, "- **[%s] %s**", upstreamWalletStatusLabels[w.Status], upstreamWalletDisplayName(w))
+		if len(w.Members) > 1 {
+			fmt.Fprintf(&b, "（%d 个账号）", len(w.Members))
+		}
+		fmt.Fprintf(&b, "：余额 $%s", formatUpstreamAmount(w.Balance))
+		if w.DaysLeft != nil && w.DailyBurn != nil && *w.DailyBurn > 0 {
+			fmt.Fprintf(&b, "，约 %.1f 天用完", *w.DaysLeft)
+		} else if w.Idle {
+			b.WriteString("，闲置")
+		}
+		if w.SuggestRecharge != nil && *w.SuggestRecharge > 0 {
+			fmt.Fprintf(&b, "，建议充值 $%.2f", *w.SuggestRecharge)
+		}
+		b.WriteString("\n")
+	}
+	return title, b.String()
 }
 
 func formatUpstreamAmount(v *float64) string {

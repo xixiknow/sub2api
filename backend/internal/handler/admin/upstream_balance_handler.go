@@ -75,6 +75,24 @@ func (h *UpstreamBalanceHandler) UpdateAccountAlert(c *gin.Context) {
 	response.Success(c, req)
 }
 
+// UpdateWalletLabel PUT /api/v1/admin/upstream-balance/wallet-label
+// 给一组账号设置相同的钱包标签（手动合并）；label 为空表示取消。
+func (h *UpstreamBalanceHandler) UpdateWalletLabel(c *gin.Context) {
+	var req struct {
+		AccountIDs []int64 `json:"account_ids"`
+		Label      string  `json:"label"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if err := h.opsService.SetWalletLabel(c.Request.Context(), req.AccountIDs, req.Label); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"updated": len(req.AccountIDs)})
+}
+
 // GetSettings GET /api/v1/admin/upstream-balance/settings
 func (h *UpstreamBalanceHandler) GetSettings(c *gin.Context) {
 	cfg, err := h.opsService.GetConfig(c.Request.Context())

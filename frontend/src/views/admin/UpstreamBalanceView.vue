@@ -64,20 +64,17 @@
                 <th class="px-3 py-2">{{ t('admin.upstreamBalanceOps.columns.upstream') }}</th>
                 <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.balance') }}</th>
                 <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.burn24h') }}</th>
-                <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.burn7d') }}</th>
                 <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.daysLeft') }}</th>
-                <th class="px-3 py-2">{{ t('admin.upstreamBalanceOps.columns.exhaustAt') }}</th>
                 <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.suggest') }}</th>
-                <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.share') }}</th>
                 <th class="px-3 py-2 text-right">{{ t('admin.upstreamBalanceOps.columns.actions') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading && !wallets.length">
-                <td colspan="10" class="py-8 text-center"><LoadingSpinner /></td>
+                <td :colspan="COLS" class="py-8 text-center"><LoadingSpinner /></td>
               </tr>
               <tr v-else-if="!wallets.length">
-                <td colspan="10" class="py-8 text-center text-gray-500">{{ t('admin.upstreamBalanceOps.noData') }}</td>
+                <td :colspan="COLS" class="py-8 text-center text-gray-500">{{ t('admin.upstreamBalanceOps.noData') }}</td>
               </tr>
               <template v-for="w in wallets" v-else :key="w.key">
                 <tr
@@ -89,16 +86,18 @@
                       <span class="h-1.5 w-1.5 rounded-full" :class="statusDot(w.status)" />
                       {{ t(`admin.upstreamBalanceOps.status.${w.status}`) }}
                     </span>
+                    <span v-if="w.idle" class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-dark-700 dark:text-gray-400" :title="t('admin.upstreamBalanceOps.idleHint')">
+                      {{ t('admin.upstreamBalanceOps.idle') }}
+                    </span>
                   </td>
-                  <td class="px-3 py-2">
-                    <div class="font-medium text-gray-900 dark:text-white">
-                      {{ w.members.map((m) => m.name).join(' / ') }}
+                  <td class="max-w-xs px-3 py-2">
+                    <div class="flex items-center gap-1.5 truncate font-medium text-gray-900 dark:text-white" :title="w.members.map((m) => m.name).join('\n')">
+                      <Icon :name="expandedKey === w.key ? 'chevronDown' : 'chevronRight'" size="xs" class="shrink-0 text-gray-400" />
+                      <span class="truncate">{{ walletName(w) }}</span>
                     </div>
-                    <div class="flex flex-wrap items-center gap-x-2 text-xs text-gray-400">
-                      <span>{{ w.site || '-' }}</span>
-                      <span v-if="w.members.length > 1" class="text-primary-600 dark:text-primary-400">
-                        {{ t('admin.upstreamBalanceOps.sharedWallet', { count: w.members.length }) }}
-                      </span>
+                    <div class="flex flex-wrap items-center gap-x-2 pl-5 text-xs text-gray-400">
+                      <span v-if="w.label && w.site">{{ w.site }}</span>
+                      <span>{{ w.members.length > 1 ? t('admin.upstreamBalanceOps.sharedWallet', { count: w.members.length }) : w.members[0].name }}</span>
                       <span v-if="w.members.some((m) => m.paused_by_balance)" class="text-red-500">{{ t('admin.upstreamBalanceOps.paused') }}</span>
                       <span v-if="w.stale" class="text-amber-500">{{ t('admin.upstreamBalanceOps.stale') }}</span>
                       <span v-if="w.alert_disabled">{{ t('admin.upstreamBalanceOps.alertOff') }}</span>
@@ -114,19 +113,21 @@
                     {{ w.daily_burn !== undefined ? `$${money(w.daily_burn)}` : '-' }}
                     <span v-if="w.daily_burn_source === 'usage'" class="text-xs text-gray-400">*</span>
                   </td>
-                  <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-300" :title="w.burn_7d_source ? t(`admin.upstreamBalanceOps.source.${w.burn_7d_source}`) : ''">
-                    {{ w.burn_7d !== undefined ? `$${money(w.burn_7d)}` : '-' }}
+                  <td
+                    class="px-3 py-2 text-right font-medium"
+                    :class="daysClass(w)"
+                    :title="w.exhaust_at ? t('admin.upstreamBalanceOps.exhaustAtHint', { time: formatTime(w.exhaust_at) }) : ''"
+                  >
+                    {{ daysText(w) }}
                   </td>
-                  <td class="px-3 py-2 text-right font-medium" :class="daysClass(w)">{{ daysText(w) }}</td>
-                  <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ w.exhaust_at ? formatTime(w.exhaust_at) : '-' }}</td>
                   <td class="px-3 py-2 text-right" :title="t('admin.upstreamBalanceOps.suggestHint', { days: w.thresholds.target_days })">
                     {{ w.suggest_recharge ? `$${money(w.suggest_recharge)}` : '-' }}
                   </td>
-                  <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{{ percent(w.traffic_share) }}</td>
                   <td class="whitespace-nowrap px-3 py-2 text-right" @click.stop>
-                    <button class="btn btn-ghost btn-sm" :disabled="refreshingKey === w.key" @click="refreshWallet(w)">
+                    <button class="btn btn-ghost btn-sm" :title="t('admin.upstreamBalanceOps.actions.refresh')" :disabled="refreshingKey === w.key" @click="refreshWallet(w)">
                       <Icon name="refresh" size="xs" :class="refreshingKey === w.key ? 'animate-spin' : ''" />
                     </button>
+                    <button class="btn btn-ghost btn-sm" @click="openMerge(w)">{{ t('admin.upstreamBalanceOps.actions.merge') }}</button>
                     <button class="btn btn-ghost btn-sm" @click="openOverride(w)">{{ t('admin.upstreamBalanceOps.actions.threshold') }}</button>
                     <router-link class="btn btn-ghost btn-sm" :to="{ path: '/admin/accounts', query: { search: w.members[0].name } }">
                       {{ t('admin.upstreamBalanceOps.actions.account') }}
@@ -134,11 +135,60 @@
                   </td>
                 </tr>
                 <tr v-if="expandedKey === w.key" class="border-b border-gray-100 bg-gray-50/60 dark:border-dark-700 dark:bg-dark-800/60">
-                  <td colspan="10" class="px-4 py-3">
-                    <div class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.upstreamBalanceOps.history') }}</div>
-                    <div v-if="historyLoading" class="flex h-48 items-center justify-center"><LoadingSpinner /></div>
-                    <div v-else-if="historyChart" class="h-56"><Line :data="historyChart" :options="historyOptions" /></div>
-                    <div v-else class="flex h-24 items-center justify-center text-xs text-gray-500">{{ t('admin.upstreamBalanceOps.noHistory') }}</div>
+                  <td :colspan="COLS" class="space-y-4 px-4 py-3">
+                    <!-- Metrics -->
+                    <div>
+                      <div class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.upstreamBalanceOps.detail.metrics') }}</div>
+                      <div class="flex flex-wrap gap-x-8 gap-y-1 text-xs text-gray-600 dark:text-gray-300">
+                        <span :title="w.burn_7d_source ? t(`admin.upstreamBalanceOps.source.${w.burn_7d_source}`) : ''">
+                          {{ t('admin.upstreamBalanceOps.columns.burn7d') }}：{{ w.burn_7d !== undefined ? `$${money(w.burn_7d)}` : '-' }}
+                        </span>
+                        <span>{{ t('admin.upstreamBalanceOps.columns.exhaustAt') }}：{{ w.exhaust_at ? formatTime(w.exhaust_at) : '-' }}</span>
+                        <span>{{ t('admin.upstreamBalanceOps.columns.share') }}：{{ percent(w.traffic_share) }}</span>
+                        <span v-if="w.fetched_at">{{ t('admin.upstreamBalanceOps.fetchedAt', { time: formatTime(w.fetched_at) }) }}</span>
+                      </div>
+                    </div>
+                    <!-- Accounts -->
+                    <div>
+                      <div class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.upstreamBalanceOps.detail.accounts') }}</div>
+                      <table class="min-w-full text-xs">
+                        <thead>
+                          <tr class="text-left text-gray-500 dark:text-dark-400">
+                            <th class="py-1 pr-4 font-normal">{{ t('admin.upstreamBalanceOps.detail.account') }}</th>
+                            <th class="py-1 pr-4 font-normal">{{ t('admin.upstreamBalanceOps.detail.platform') }}</th>
+                            <th class="py-1 pr-4 font-normal">{{ t('admin.upstreamBalanceOps.detail.schedule') }}</th>
+                            <th class="py-1 pr-4 text-right font-normal">{{ t('admin.upstreamBalanceOps.detail.cost24h') }}</th>
+                            <th class="py-1 pr-4 text-right font-normal">{{ t('admin.upstreamBalanceOps.detail.cost7d') }}</th>
+                            <th v-if="w.label" class="py-1" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="m in w.members" :key="m.account_id" class="text-gray-700 dark:text-gray-300">
+                            <td class="py-1 pr-4">{{ m.name }}</td>
+                            <td class="py-1 pr-4">{{ m.platform }}</td>
+                            <td class="py-1 pr-4">
+                              <span v-if="m.paused_by_balance" class="text-red-500">{{ t('admin.upstreamBalanceOps.paused') }}</span>
+                              <span v-else-if="m.schedulable" class="text-emerald-600">{{ t('admin.upstreamBalanceOps.detail.schedulable') }}</span>
+                              <span v-else class="text-gray-400">{{ t('admin.upstreamBalanceOps.detail.unschedulable') }}</span>
+                            </td>
+                            <td class="py-1 pr-4 text-right">${{ money(m.cost_24h) }}</td>
+                            <td class="py-1 pr-4 text-right">${{ money(m.cost_7d) }}</td>
+                            <td v-if="w.label" class="py-1 text-right">
+                              <button class="text-primary-600 hover:underline dark:text-primary-400" :disabled="mergeSaving" @click.stop="removeFromWallet(m.account_id)">
+                                {{ t('admin.upstreamBalanceOps.detail.remove') }}
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <!-- History -->
+                    <div>
+                      <div class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.upstreamBalanceOps.history') }}</div>
+                      <div v-if="historyLoading" class="flex h-48 items-center justify-center"><LoadingSpinner /></div>
+                      <div v-else-if="historyChart" class="h-56"><Line :data="historyChart" :options="historyOptions" /></div>
+                      <div v-else class="flex h-24 items-center justify-center text-xs text-gray-500">{{ t('admin.upstreamBalanceOps.noHistory') }}</div>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -222,6 +272,48 @@
         <div class="flex justify-end gap-2">
           <button class="btn btn-secondary" @click="overrideWallet = null">{{ t('common.cancel') }}</button>
           <button class="btn btn-primary" :disabled="overrideSaving" @click="saveOverride">{{ t('admin.upstreamBalanceOps.config.save') }}</button>
+        </div>
+      </template>
+    </BaseDialog>
+
+    <!-- Merge wallet -->
+    <BaseDialog :show="!!mergeWallet" :title="t('admin.upstreamBalanceOps.merge.title')" @close="mergeWallet = null">
+      <div v-if="mergeWallet" class="space-y-4">
+        <p class="text-xs text-gray-500">{{ t('admin.upstreamBalanceOps.merge.hint') }}</p>
+        <div>
+          <label class="input-label">{{ t('admin.upstreamBalanceOps.merge.label') }}</label>
+          <input v-model="mergeLabel" type="text" maxlength="64" class="input" :placeholder="t('admin.upstreamBalanceOps.merge.placeholder')" />
+          <div v-if="existingLabels.length" class="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="text-gray-500">{{ t('admin.upstreamBalanceOps.merge.existing') }}</span>
+            <button
+              v-for="label in existingLabels"
+              :key="label"
+              type="button"
+              class="rounded-full border px-2 py-0.5"
+              :class="mergeLabel === label ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-gray-200 text-gray-600 hover:bg-gray-100 dark:border-dark-600 dark:text-gray-300 dark:hover:bg-dark-700'"
+              @click="mergeLabel = label"
+            >
+              {{ label }}
+            </button>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500">
+          <div class="mb-1">{{ t('admin.upstreamBalanceOps.merge.members') }}</div>
+          <div class="text-gray-700 dark:text-gray-300">{{ mergeWallet.members.map((m) => m.name).join('、') }}</div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-between gap-2">
+          <button v-if="mergeWallet?.label" class="btn btn-secondary" :disabled="mergeSaving" @click="saveMerge('')">
+            {{ t('admin.upstreamBalanceOps.merge.clear') }}
+          </button>
+          <span v-else />
+          <div class="flex gap-2">
+            <button class="btn btn-secondary" @click="mergeWallet = null">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" :disabled="mergeSaving || !mergeLabel.trim()" @click="saveMerge(mergeLabel)">
+              {{ t('admin.upstreamBalanceOps.config.save') }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseDialog>
@@ -470,7 +562,52 @@ async function saveOverride() {
   }
 }
 
+// ---- wallet merge ----
+const mergeWallet = ref<UpstreamWallet | null>(null)
+const mergeLabel = ref('')
+const mergeSaving = ref(false)
+const existingLabels = computed(() => [...new Set(wallets.value.map((w) => w.label).filter((l): l is string => !!l))].sort())
+
+function openMerge(w: UpstreamWallet) {
+  mergeWallet.value = w
+  mergeLabel.value = w.label ?? ''
+}
+
+async function updateLabel(accountIds: number[], label: string, successKey: string): Promise<boolean> {
+  mergeSaving.value = true
+  try {
+    await adminAPI.upstreamBalance.updateWalletLabel(accountIds, label.trim())
+    appStore.showSuccess(t(successKey))
+    await loadOverview()
+    return true
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('admin.upstreamBalanceOps.merge.failed')))
+    return false
+  } finally {
+    mergeSaving.value = false
+  }
+}
+
+async function saveMerge(label: string) {
+  if (!mergeWallet.value) return
+  const ids = mergeWallet.value.members.map((m) => m.account_id)
+  if (await updateLabel(ids, label, 'admin.upstreamBalanceOps.merge.saved')) {
+    mergeWallet.value = null
+    expandedKey.value = ''
+  }
+}
+
+async function removeFromWallet(accountId: number) {
+  if (await updateLabel([accountId], '', 'admin.upstreamBalanceOps.merge.removed')) {
+    expandedKey.value = ''
+  }
+}
+
 // ---- formatting ----
+const COLS = 7
+function walletName(w: UpstreamWallet): string {
+  return w.label || w.site || w.members[0]?.name || '-'
+}
 function money(v: number): string {
   return v.toFixed(Math.abs(v) >= 100 ? 2 : Math.abs(v) >= 1 ? 2 : 4)
 }
@@ -483,6 +620,7 @@ function formatTime(iso: string): string {
 }
 function daysText(w: UpstreamWallet): string {
   if (w.unlimited) return '∞'
+  if (w.idle && w.balance !== undefined && w.balance > 0) return t('admin.upstreamBalanceOps.idle')
   if (w.days_left !== undefined) return t('admin.upstreamBalanceOps.days', { value: w.days_left.toFixed(1) })
   if (w.balance !== undefined && w.balance > 0) return '∞'
   return '-'
@@ -557,12 +695,13 @@ const kpis = computed(() => {
 })
 
 function exportCSV() {
-  const header = ['status', 'accounts', 'site', 'balance', 'daily_burn', 'daily_burn_source', 'burn_7d', 'days_left', 'exhaust_at', 'suggest_recharge', 'traffic_share']
+  const header = ['status', 'wallet', 'accounts', 'site', 'balance', 'daily_burn', 'daily_burn_source', 'burn_7d', 'days_left', 'exhaust_at', 'suggest_recharge', 'traffic_share']
   const lines = [header.join(',')]
   const q = (s: string) => `"${s.replace(/"/g, '""')}"`
   for (const w of wallets.value) {
     lines.push([
       w.status,
+      q(walletName(w)),
       q(w.members.map((m) => m.name).join(' / ')),
       q(w.site),
       w.balance ?? '',
