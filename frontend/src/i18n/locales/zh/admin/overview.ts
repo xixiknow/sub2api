@@ -427,7 +427,7 @@ export default {
 
     affiliates: {
       invitesDescription: '查看全站邀请关系和被邀请用户累计返利',
-      rebatesDescription: '查看每一笔返利入账，包括充值订单、兑换码和管理员充值产生的返利',
+      rebatesDescription: '查看每一笔返利入账：消费结算产生的返利，以及历史充值订单、兑换码和管理员充值产生的返利',
       transfersDescription: '查看返利额度转入余额与线下提现的流水',
       errors: {
         loadFailed: '加载邀请返利记录失败',
@@ -444,6 +444,7 @@ export default {
         user: '用户',
         affCode: '邀请码',
         order: '订单',
+        consumptionSettlement: '消费结算',
         totalRebate: '累计返利',
         allLevels: '全部层级',
         action: '流水类型',

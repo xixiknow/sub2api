@@ -79,7 +79,10 @@
             <span class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ row.aff_code || '-' }}</span>
           </template>
           <template #cell-order="{ row }">
-            <span v-if="row.order_id == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.order_id == null && row.source_type === 'consumption'" class="badge badge-primary whitespace-nowrap">
+              {{ t('admin.affiliates.records.consumptionSettlement') }}
+            </span>
+            <span v-else-if="row.order_id == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
             <div v-else class="space-y-0.5">
               <div class="font-mono text-sm text-gray-900 dark:text-white">#{{ row.order_id }}</div>
               <div class="max-w-56 truncate text-sm text-gray-500 dark:text-dark-400">{{ row.out_trade_no }}</div>

@@ -427,7 +427,7 @@ export default {
 
     affiliates: {
       invitesDescription: 'View site-wide inviter and invitee relationships',
-      rebatesDescription: 'View every affiliate rebate accrual from recharge orders, redeem codes, and admin recharges',
+      rebatesDescription: 'View every affiliate rebate accrual: hourly spending settlements, plus legacy recharge orders, redeem codes, and admin recharges',
       transfersDescription: 'View affiliate quota transfers into balance and offline withdrawals',
       errors: {
         loadFailed: 'Failed to load affiliate records',
@@ -444,6 +444,7 @@ export default {
         user: 'User',
         affCode: 'Invite Code',
         order: 'Order',
+        consumptionSettlement: 'Spending settlement',
         totalRebate: 'Total Rebate',
         allLevels: 'All Levels',
         action: 'Ledger Type',

@@ -69,6 +69,8 @@ export interface AffiliateRebateRecord {
   rebate_amount: number
   payment_type: string
   order_status: string
+  /** order = recharge order / legacy recharge sources; consumption = hourly invitee spending settlement */
+  source_type?: 'order' | 'consumption' | string
   created_at: string
 }
 
