@@ -893,9 +893,10 @@ export default {
         'When enabled, warmup requests like title generation will return mock responses without consuming upstream tokens',
       autoModelSync: {
         title: 'Auto Sync Upstream Models',
-        desc: 'Periodically fetch the latest model list from this account upstream at the global interval configured in system settings, refresh the model capability snapshot, and automatically append newly discovered models to the model allowlist of the groups this account belongs to (add-only, no removal)',
+        desc: 'Periodically fetch the latest model list from this account upstream at the global interval configured in system settings, refresh the model capability snapshot, append newly discovered models to the model list of this account when it uses a model whitelist, and to the model allowlist of the groups this account belongs to (add-only; existing mappings are kept; passthrough or unrestricted accounts are not changed)',
         lastSyncAt: 'Last sync',
         lastError: 'Error',
+        newAccountModels: '{count} new account models added',
       },
       headerOverride: {
         title: 'Header Override',

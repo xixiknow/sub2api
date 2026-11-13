@@ -1955,6 +1955,9 @@
             <span v-if="autoModelSyncStatus.last_error">
               · {{ t('admin.accounts.autoModelSync.lastError') }}: {{ autoModelSyncStatus.last_error }}
             </span>
+            <span v-else-if="autoModelSyncStatus.last_new_account_models">
+              · {{ t('admin.accounts.autoModelSync.newAccountModels', { count: autoModelSyncStatus.last_new_account_models }) }}
+            </span>
           </p>
         </div>
       </div>
@@ -4136,7 +4139,12 @@ const readAutoModelSyncEnabled = (extra: Record<string, unknown> | undefined): b
 }
 const autoModelSyncStatus = computed(() => {
   const status = props.account?.extra?.auto_model_sync_status as
-    | { last_sync_at?: string; last_error?: string; last_new_models?: number }
+    | {
+        last_sync_at?: string
+        last_error?: string
+        last_new_models?: number
+        last_new_account_models?: number
+      }
     | undefined
   if (!status || !status.last_sync_at) return null
   return status

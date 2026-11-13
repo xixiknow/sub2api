@@ -1001,9 +1001,10 @@ export default {
       interceptWarmupRequestsDesc: '启用后，标题生成等预热请求将返回 mock 响应，不消耗上游 token',
       autoModelSync: {
         title: '自动同步上游模型',
-        desc: '按系统设置的全局间隔定期拉取该账号上游最新模型清单，刷新模型能力快照，并把新增模型自动追加到所属分组的模型白名单（只增不删）',
+        desc: '按系统设置的全局间隔定期拉取该账号上游最新模型清单，刷新模型能力快照；账号已配置模型白名单时把新模型追加到账号模型列表，并追加到所属分组的模型白名单（只增不删，不改已有映射；透传模式或未限制模型时不改账号配置）',
         lastSyncAt: '上次同步',
         lastError: '错误',
+        newAccountModels: '新增 {count} 个账号模型',
       },
       headerOverride: {
         title: '请求头覆写',

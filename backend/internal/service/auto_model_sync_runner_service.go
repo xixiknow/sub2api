@@ -34,6 +34,9 @@ type AutoModelSyncStatus struct {
 	LastSyncAt   string `json:"last_sync_at,omitempty"`
 	LastError    string `json:"last_error,omitempty"`
 	LastNewCount int    `json:"last_new_models,omitempty"`
+	// LastNewAccountModels counts models appended to the account's own
+	// credentials.model_mapping (whitelist mode) during the last sync.
+	LastNewAccountModels int `json:"last_new_account_models,omitempty"`
 }
 
 // AutoModelSyncConfigFromExtra parses the account switch from Extra.
@@ -299,11 +302,13 @@ func (s *AutoModelSyncRunnerService) syncOne(ctx context.Context, account *Accou
 		)
 		return
 	}
+	status.LastNewAccountModels = s.mergeAccountModelMapping(ctx, account, catalog)
 	status.LastNewCount = s.mergeGroupAllowlists(ctx, account, catalog)
 	s.writeStatus(ctx, account.ID, status)
 	slog.Info("auto_model_sync_completed",
 		"account_id", account.ID,
 		"models", len(catalog.Models),
+		"new_account_models", status.LastNewAccountModels,
 		"new_allowlist_models", status.LastNewCount,
 	)
 }
@@ -328,6 +333,93 @@ func (s *AutoModelSyncRunnerService) writeStatus(ctx context.Context, accountID 
 	if err := s.accountRepo.UpdateExtra(ctx, accountID, map[string]any{AutoModelSyncStatusExtraKey: status}); err != nil {
 		slog.Warn("auto_model_sync_status_write_failed", "account_id", accountID, "error", err)
 	}
+}
+
+// mergeAccountModelMapping appends newly discovered upstream models to the
+// account's own credentials.model_mapping as identity entries (model -> model),
+// mirroring the manual "sync upstream models" button in the edit dialog.
+//
+// It only acts when the account is in whitelist mode (non-empty mapping) and
+// not in passthrough mode, and only for live upstream lists (never for the
+// configured-models fallback). Existing entries, including renames, are never
+// changed or removed. Returns the number of appended models.
+func (s *AutoModelSyncRunnerService) mergeAccountModelMapping(ctx context.Context, account *Account, catalog *UpstreamModelCatalog) int {
+	if s.accountRepo == nil || account == nil || catalog == nil || !catalog.liveList || len(catalog.Models) == 0 {
+		return 0
+	}
+	// Credentials are written via the repo's optional UpdateCredentials
+	// (same pattern as persistAccountCredentials); spark shadows never own credentials.
+	updater, ok := s.accountRepo.(accountCredentialsUpdater)
+	if !ok || account.IsCredentialShadow() {
+		return 0
+	}
+	if account.IsOpenAIPassthroughEnabled() || account.IsAnthropicAPIKeyPassthroughEnabled() {
+		return 0
+	}
+	merged, appended := appendModelsToAccountModelMapping(account.Credentials, catalog.Models)
+	if appended == 0 {
+		return 0
+	}
+	credentials := make(map[string]any, len(account.Credentials)+1)
+	for key, value := range account.Credentials {
+		credentials[key] = value
+	}
+	credentials["model_mapping"] = merged
+	if err := updater.UpdateCredentials(ctx, account.ID, credentials); err != nil {
+		slog.Warn("auto_model_sync_account_mapping_update_failed", "account_id", account.ID, "error", err)
+		return 0
+	}
+	account.Credentials = credentials
+	if s.authCacheInvalidator != nil {
+		for _, groupID := range account.GroupIDs {
+			s.authCacheInvalidator.InvalidateAuthCacheByGroupID(ctx, groupID)
+		}
+	}
+	slog.Info("auto_model_sync_account_mapping_appended",
+		"account_id", account.ID,
+		"appended", appended,
+	)
+	return appended
+}
+
+// appendModelsToAccountModelMapping returns a copy of credentials.model_mapping
+// with missing models added as identity entries. Keys are compared
+// case-insensitively; empty and wildcard model IDs are skipped. An empty or
+// missing mapping (all models allowed) is left alone and reports 0.
+func appendModelsToAccountModelMapping(credentials map[string]any, modelIDs []string) (map[string]any, int) {
+	merged := make(map[string]any)
+	switch raw := credentials["model_mapping"].(type) {
+	case map[string]any:
+		for key, value := range raw {
+			merged[key] = value
+		}
+	case map[string]string:
+		for key, value := range raw {
+			merged[key] = value
+		}
+	}
+	if len(merged) == 0 || len(modelIDs) == 0 {
+		return nil, 0
+	}
+	existing := make(map[string]struct{}, len(merged))
+	for key := range merged {
+		existing[strings.ToLower(strings.TrimSpace(key))] = struct{}{}
+	}
+	appended := 0
+	for _, modelID := range modelIDs {
+		modelID = strings.TrimSpace(modelID)
+		if modelID == "" || strings.Contains(modelID, "*") {
+			continue
+		}
+		lower := strings.ToLower(modelID)
+		if _, exists := existing[lower]; exists {
+			continue
+		}
+		existing[lower] = struct{}{}
+		merged[modelID] = modelID
+		appended++
+	}
+	return merged, appended
 }
 
 // mergeGroupAllowlists appends newly discovered model IDs to every enabled

@@ -47,7 +47,7 @@ export default {
         },
         autoModelSync: {
           title: 'Account Auto Model Sync',
-          description: 'Periodically fetch the latest model list from upstreams for accounts with "Auto Sync Upstream Models" enabled, refresh capability snapshots, and append new models to group allowlists (add-only, no removal).',
+          description: 'Periodically fetch the latest model list from upstreams for accounts with "Auto Sync Upstream Models" enabled, refresh capability snapshots, and append new models to the model list of the account (when it uses a model whitelist) and to group allowlists (add-only, no removal).',
           interval: 'Sync interval (hours)',
           intervalHint: 'Applies uniformly to all accounts with auto sync enabled. Range 1 – 720 hours, default 24 hours.',
         },

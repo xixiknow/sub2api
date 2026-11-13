@@ -58,6 +58,10 @@ type UpstreamModelCatalog struct {
 	Warnings             []UpstreamModelSyncWarning       `json:"warnings,omitempty"`
 	DiscoverySource      string                           `json:"discovery_source,omitempty"`
 	GrokModelDiagnostics *GrokModelDiagnostics            `json:"grok_model_diagnostics,omitempty"`
+
+	// liveList reports whether Models came from the upstream live /models list
+	// (true) or from the account's configured models as a fallback (false).
+	liveList bool
 }
 
 // upstreamModelListFetchResult is the live model list plus an optional Grok
@@ -260,7 +264,7 @@ func (s *AccountTestService) SyncUpstreamModelCatalog(ctx context.Context, accou
 	} else if saveErr := s.saveGrokCatalogObservation(ctx, account, grokObservation); saveErr != nil {
 		return nil, newUpstreamModelSyncInternalError("Failed to save upstream model catalog", saveErr)
 	}
-	catalog := &UpstreamModelCatalog{Models: models, Metadata: make(map[string]UpstreamModelMetadata)}
+	catalog := &UpstreamModelCatalog{Models: models, Metadata: make(map[string]UpstreamModelMetadata), liveList: liveListAvailable}
 	if account != nil && account.IsGrok() {
 		if grokObservation != nil && grokObservation.Attempt.Status == grokCatalogStatusConfiguredFallback {
 			catalog.DiscoverySource = "configured_fallback"

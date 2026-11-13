@@ -17,10 +17,21 @@ import (
 // --- stubs ---
 
 type autoModelSyncAccountRepoStub struct {
-	mu        sync.Mutex
-	accounts  []Account
-	listErr   error
-	extraLog  map[int64][]map[string]any
+	mu       sync.Mutex
+	accounts []Account
+	listErr  error
+	extraLog map[int64][]map[string]any
+	credLog  map[int64][]map[string]any
+}
+
+func (s *autoModelSyncAccountRepoStub) UpdateCredentials(_ context.Context, id int64, credentials map[string]any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.credLog == nil {
+		s.credLog = make(map[int64][]map[string]any)
+	}
+	s.credLog[id] = append(s.credLog[id], credentials)
+	return nil
 }
 
 func (s *autoModelSyncAccountRepoStub) ListAllWithFilters(_ context.Context, _, _, _, _ string, _ int64, _ string) ([]Account, error) {
@@ -38,9 +49,9 @@ func (s *autoModelSyncAccountRepoStub) UpdateExtra(_ context.Context, id int64, 
 }
 
 type autoModelSyncGroupRepoStub struct {
-	mu       sync.Mutex
-	groups   map[int64]*Group
-	updates  []*Group
+	mu        sync.Mutex
+	groups    map[int64]*Group
+	updates   []*Group
 	updateErr error
 }
 
@@ -66,7 +77,8 @@ type autoModelSyncAuthCacheInvalidatorStub struct {
 	groupIDs []int64
 }
 
-func (s *autoModelSyncAuthCacheInvalidatorStub) InvalidateAuthCacheByKey(_ context.Context, _ string) {}
+func (s *autoModelSyncAuthCacheInvalidatorStub) InvalidateAuthCacheByKey(_ context.Context, _ string) {
+}
 func (s *autoModelSyncAuthCacheInvalidatorStub) InvalidateAuthCacheByUserID(_ context.Context, _ int64) {
 }
 func (s *autoModelSyncAuthCacheInvalidatorStub) InvalidateAuthCacheByGroupID(_ context.Context, groupID int64) {
@@ -254,4 +266,116 @@ func TestSyncOneSkipsDisabledAllowlistGroups(t *testing.T) {
 	require.Empty(t, groupRepo.updates)
 	updates := accountRepo.extraLog[42]
 	require.Len(t, updates, 1)
+}
+
+// --- account model_mapping merge ---
+
+func autoModelSyncOKUpstream(body string) *httpUpstreamRecorder {
+	return &httpUpstreamRecorder{resp: &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}}
+}
+
+func autoModelSyncLastStatus(t *testing.T, repo *autoModelSyncAccountRepoStub, id int64) AutoModelSyncStatus {
+	t.Helper()
+	updates := repo.extraLog[id]
+	require.NotEmpty(t, updates)
+	status, ok := updates[len(updates)-1][AutoModelSyncStatusExtraKey].(AutoModelSyncStatus)
+	require.True(t, ok)
+	return status
+}
+
+func TestAppendModelsToAccountModelMapping(t *testing.T) {
+	creds := map[string]any{"model_mapping": map[string]any{"GPT-5": "gpt-5", "alias": "gpt-4o"}}
+	merged, n := appendModelsToAccountModelMapping(creds, []string{"gpt-5", " ", "gpt-*", "gpt-4o", "gpt-4o"})
+	require.Equal(t, 1, n)
+	require.Equal(t, map[string]any{"GPT-5": "gpt-5", "alias": "gpt-4o", "gpt-4o": "gpt-4o"}, merged)
+	// Source map must not be mutated.
+	require.Len(t, creds["model_mapping"].(map[string]any), 2)
+
+	_, n = appendModelsToAccountModelMapping(map[string]any{}, []string{"gpt-5"})
+	require.Zero(t, n)
+	_, n = appendModelsToAccountModelMapping(map[string]any{"model_mapping": map[string]any{}}, []string{"gpt-5"})
+	require.Zero(t, n)
+}
+
+func TestSyncOneAppendsToAccountWhitelistMapping(t *testing.T) {
+	upstream := autoModelSyncOKUpstream(`{"data":[{"id":"gpt-5"},{"id":"gpt-5.1"},{"id":"o3"}]}`)
+	accountRepo := &autoModelSyncAccountRepoStub{}
+	groupRepo := &autoModelSyncGroupRepoStub{groups: map[int64]*Group{}}
+	invalidator := &autoModelSyncAuthCacheInvalidatorStub{}
+	runner := newAutoModelSyncTestService(accountRepo, groupRepo, upstream, invalidator)
+
+	account := autoModelSyncTestAccount()
+	account.Credentials["model_mapping"] = map[string]any{"gpt-5": "gpt-5", "fast": "o3"}
+	runner.syncOne(context.Background(), account)
+
+	require.Len(t, accountRepo.credLog[42], 1)
+	written := accountRepo.credLog[42][0]
+	require.Equal(t, "key", written["api_key"])
+	require.Equal(t, map[string]any{
+		"gpt-5":   "gpt-5",
+		"fast":    "o3", // rename preserved
+		"gpt-5.1": "gpt-5.1",
+		"o3":      "o3",
+	}, written["model_mapping"])
+	require.Equal(t, []int64{7}, invalidator.groupIDs)
+	require.Equal(t, 2, autoModelSyncLastStatus(t, accountRepo, 42).LastNewAccountModels)
+}
+
+func TestSyncOneLeavesEmptyAccountMappingAlone(t *testing.T) {
+	upstream := autoModelSyncOKUpstream(`{"data":[{"id":"gpt-5"}]}`)
+	accountRepo := &autoModelSyncAccountRepoStub{}
+	runner := newAutoModelSyncTestService(accountRepo, &autoModelSyncGroupRepoStub{}, upstream, &autoModelSyncAuthCacheInvalidatorStub{})
+
+	runner.syncOne(context.Background(), autoModelSyncTestAccount())
+
+	require.Empty(t, accountRepo.credLog)
+	require.Zero(t, autoModelSyncLastStatus(t, accountRepo, 42).LastNewAccountModels)
+}
+
+func TestSyncOneSkipsAccountMappingInPassthrough(t *testing.T) {
+	upstream := autoModelSyncOKUpstream(`{"data":[{"id":"gpt-5.1"}]}`)
+	accountRepo := &autoModelSyncAccountRepoStub{}
+	runner := newAutoModelSyncTestService(accountRepo, &autoModelSyncGroupRepoStub{}, upstream, &autoModelSyncAuthCacheInvalidatorStub{})
+
+	account := autoModelSyncTestAccount()
+	account.Extra["openai_passthrough"] = true
+	account.Credentials["model_mapping"] = map[string]any{"gpt-5": "gpt-5"}
+	runner.syncOne(context.Background(), account)
+
+	require.Empty(t, accountRepo.credLog)
+}
+
+func TestSyncOneFailureKeepsAccountMapping(t *testing.T) {
+	upstream := &httpUpstreamRecorder{resp: &http.Response{
+		StatusCode: http.StatusInternalServerError,
+		Body:       io.NopCloser(strings.NewReader(`{"error":"boom"}`)),
+	}}
+	accountRepo := &autoModelSyncAccountRepoStub{}
+	runner := newAutoModelSyncTestService(accountRepo, &autoModelSyncGroupRepoStub{}, upstream, &autoModelSyncAuthCacheInvalidatorStub{})
+
+	account := autoModelSyncTestAccount()
+	account.Credentials["model_mapping"] = map[string]any{"gpt-5": "gpt-5"}
+	runner.syncOne(context.Background(), account)
+
+	require.Empty(t, accountRepo.credLog)
+	require.NotEmpty(t, autoModelSyncLastStatus(t, accountRepo, 42).LastError)
+}
+
+func TestMergeAccountModelMappingSkipsConfiguredFallback(t *testing.T) {
+	accountRepo := &autoModelSyncAccountRepoStub{}
+	runner := newAutoModelSyncTestService(accountRepo, &autoModelSyncGroupRepoStub{}, nil, &autoModelSyncAuthCacheInvalidatorStub{})
+
+	account := autoModelSyncTestAccount()
+	account.Credentials["model_mapping"] = map[string]any{"gpt-5": "gpt-5"}
+	fallback := &UpstreamModelCatalog{Models: []string{"gpt-5", "gpt-5.1"}, liveList: false}
+
+	require.Zero(t, runner.mergeAccountModelMapping(context.Background(), account, fallback))
+	require.Empty(t, accountRepo.credLog)
+
+	live := &UpstreamModelCatalog{Models: []string{"gpt-5", "gpt-5.1"}, liveList: true}
+	require.Equal(t, 1, runner.mergeAccountModelMapping(context.Background(), account, live))
+	require.Len(t, accountRepo.credLog[42], 1)
 }
