@@ -20,9 +20,12 @@ import (
 // Beijing has no DST. Calendar dates are independent of the server timezone.
 var checkinZone = time.FixedZone("Asia/Shanghai", 8*60*60)
 
+// CheckinPrize is one wheel tier; the reward is uniform within [MinCents, MaxCents].
 type CheckinPrize struct {
-	Cents       int     `json:"cents"`
+	MinCents    int     `json:"min_cents"`
+	MaxCents    int     `json:"max_cents"`
 	Probability float64 `json:"probability"` // percentage, all prizes sum to 100
+	Cents       int     `json:"cents,omitempty"` // fixed amount of version 1 snapshots, read only
 }
 
 type CheckinSnapshot struct {
@@ -50,6 +53,7 @@ type CheckinStatus struct {
 	NextResetAt time.Time       `json:"next_reset_at"`
 	CheckedIn   bool            `json:"checked_in"`
 	RewardCents int             `json:"reward_cents"`
+	RewardTier  int             `json:"reward_tier"` // wheel tier index of RewardCents
 	Snapshot    CheckinSnapshot `json:"snapshot"`
 	History     []CheckinRecord `json:"history"` // last 30 claims
 }
@@ -110,7 +114,7 @@ func checkinSpendScore(amount float64) float64 {
 func calculateCheckinSnapshot(active, streak int, spend float64, recharge bool) CheckinSnapshot {
 	active = max(0, min(7, active))
 	streak = max(1, min(7, streak))
-	s := CheckinSnapshot{Version: 1, ActiveDays: active, StreakDays: streak, Spend: math.Max(0, spend), HasRecharge: recharge}
+	s := CheckinSnapshot{Version: 2, ActiveDays: active, StreakDays: streak, Spend: math.Max(0, spend), HasRecharge: recharge}
 	s.ActivityScore = 40 * float64(active) / 7
 	s.StreakScore = 40 * float64(streak) / 7
 	s.SpendScore = checkinSpendScore(spend)
@@ -126,29 +130,50 @@ func checkinPrizes(score float64) []CheckinPrize {
 	score = math.Max(0, math.Min(100, score))
 	prizes := make([]CheckinPrize, 0, 5)
 	// Integer millionths preserve an exact total and avoid boundary ambiguity.
-	base := []int64{650000, 250000, 80000, 15000, 5000}
-	full := []int64{250000, 300000, 300000, 120000, 30000}
-	cents := []int{1, 3, 10, 50, 100}
+	base := []int64{700000, 220000, 65000, 13000, 2000}
+	full := []int64{300000, 320000, 260000, 100000, 20000}
+	mins := []int{1, 3, 8, 30, 100}
+	maxs := []int{2, 7, 20, 80, 300}
 	remaining := int64(1000000)
-	for i := range cents {
+	for i := range mins {
 		weight := int64(math.Round(float64(base[i]) + float64(full[i]-base[i])*score/100))
-		if i == len(cents)-1 {
+		if i == len(mins)-1 {
 			weight = remaining
 		}
 		remaining -= weight
-		prizes = append(prizes, CheckinPrize{cents[i], float64(weight) / 10000})
+		prizes = append(prizes, CheckinPrize{MinCents: mins[i], MaxCents: maxs[i], Probability: float64(weight) / 10000})
 	}
 	return prizes
 }
 
-func checkinReward(prizes []CheckinPrize, ticket int64) int {
-	for _, p := range prizes {
+// checkinTier maps a ticket in [0, 1000000) to a prize tier index.
+func checkinTier(prizes []CheckinPrize, ticket int64) int {
+	for i, p := range prizes {
 		ticket -= int64(math.Round(p.Probability * 10000))
 		if ticket < 0 {
-			return p.Cents
+			return i
 		}
 	}
-	return prizes[len(prizes)-1].Cents
+	return len(prizes) - 1
+}
+
+// normalizeCheckinSnapshot upgrades fixed-amount version 1 prizes to ranges.
+func normalizeCheckinSnapshot(s *CheckinSnapshot) {
+	if s.Version >= 2 {
+		return
+	}
+	for i := range s.Prizes {
+		s.Prizes[i].MinCents, s.Prizes[i].MaxCents = s.Prizes[i].Cents, s.Prizes[i].Cents
+	}
+}
+
+func checkinRewardTier(prizes []CheckinPrize, cents int) int {
+	for i, p := range prizes {
+		if cents >= p.MinCents && cents <= p.MaxCents {
+			return i
+		}
+	}
+	return 0
 }
 
 var ErrCheckinDisabled = infraerrors.Forbidden("CHECKIN_DISABLED", "Check-in is disabled")
@@ -194,6 +219,8 @@ func readCheckinStatus(ctx context.Context, db checkinDB, userID int64, now time
 				rows.Close()
 				return nil, err
 			}
+			normalizeCheckinSnapshot(&status.Snapshot)
+			status.RewardTier = checkinRewardTier(status.Snapshot.Prizes, r.RewardCents)
 		}
 	}
 	err = rows.Err()
@@ -259,7 +286,13 @@ func (s *CheckinService) Claim(ctx context.Context, userID int64, captchaHash st
 		if err != nil {
 			return nil, err
 		}
-		cents := checkinReward(status.Snapshot.Prizes, ticket)
+		tier := checkinTier(status.Snapshot.Prizes, ticket)
+		prize := status.Snapshot.Prizes[tier]
+		offset, err := s.draw(int64(prize.MaxCents - prize.MinCents + 1))
+		if err != nil {
+			return nil, err
+		}
+		cents := prize.MinCents + int(offset)
 		snapshot, err := json.Marshal(status.Snapshot)
 		if err != nil {
 			return nil, err
@@ -281,6 +314,7 @@ func (s *CheckinService) Claim(ctx context.Context, userID int64, captchaHash st
 		}
 		status.CheckedIn = true
 		status.RewardCents = cents
+		status.RewardTier = tier
 		status.History = append([]CheckinRecord{{Date: status.Date, RewardCents: cents, CreatedAt: now}}, status.History...)
 		if len(status.History) > 30 {
 			status.History = status.History[:30]

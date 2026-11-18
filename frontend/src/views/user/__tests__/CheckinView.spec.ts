@@ -9,7 +9,7 @@ vi.mock('@/stores/app', () => ({ useAppStore: () => ({ fetchPublicSettings }) })
 vi.mock('@/components/CaptchaChallenge.vue', () => ({ default: { template: '<div class="captcha-test" />', setup: (_: unknown, { expose }: { expose: (value: unknown) => void }) => { expose({ verifyAction, reset: resetCaptcha }) } } }))
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 vi.mock('@/components/layout/AppLayout.vue', () => ({ default: { template: '<div><slot /></div>' } }))
-const sample = (checked = false) => ({ date: '2026-09-18', next_reset_at: '2026-09-19T00:00:00+08:00', checked_in: checked, reward_cents: checked ? 10 : 0, history: checked ? [{ date: '2026-09-18', reward_cents: 10, created_at: '2026-09-18T01:00:00Z' }] : [], snapshot: { version: 1, active_days: 0, streak_days: 1, spend: 0, has_recharge: false, activity_score: 0, streak_score: 40 / 7, spend_score: 0, recharge_score: 0, score: 40 / 7, prizes: [1, 3, 10, 50, 100].map(cents => ({ cents, probability: 20 })) } })
+const sample = (checked = false) => ({ date: '2026-09-18', next_reset_at: '2026-09-19T00:00:00+08:00', checked_in: checked, reward_cents: checked ? 10 : 0, reward_tier: checked ? 2 : 0, history: checked ? [{ date: '2026-09-18', reward_cents: 10, created_at: '2026-09-18T01:00:00Z' }] : [], snapshot: { version: 2, active_days: 0, streak_days: 1, spend: 0, has_recharge: false, activity_score: 0, streak_score: 40 / 7, spend_score: 0, recharge_score: 0, score: 40 / 7, prizes: [[1, 2], [3, 7], [8, 20], [30, 80], [100, 300]].map(([min_cents, max_cents]) => ({ min_cents, max_cents, probability: 20 })) } })
 
 describe('daily check-in', () => {
   beforeEach(() => {

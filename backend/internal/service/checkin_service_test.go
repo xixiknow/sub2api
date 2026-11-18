@@ -24,20 +24,28 @@ func TestCheckinSpendThresholds(t *testing.T) {
 }
 
 func TestCheckinProbabilityEndpointsAndEveryTicket(t *testing.T) {
-	require.Equal(t, []CheckinPrize{{1, 65}, {3, 25}, {10, 8}, {50, 1.5}, {100, 0.5}}, checkinPrizes(0))
-	require.Equal(t, []CheckinPrize{{1, 25}, {3, 30}, {10, 30}, {50, 12}, {100, 3}}, checkinPrizes(100))
-	require.InDelta(t, 1.75, checkinPrizes(50)[4].Probability, 1e-9)
+	tiers := func(probs ...float64) []CheckinPrize {
+		mins, maxs := []int{1, 3, 8, 30, 100}, []int{2, 7, 20, 80, 300}
+		out := make([]CheckinPrize, len(probs))
+		for i, p := range probs {
+			out[i] = CheckinPrize{MinCents: mins[i], MaxCents: maxs[i], Probability: p}
+		}
+		return out
+	}
+	require.Equal(t, tiers(70, 22, 6.5, 1.3, 0.2), checkinPrizes(0))
+	require.Equal(t, tiers(30, 32, 26, 10, 2), checkinPrizes(100))
+	require.InDelta(t, 1.1, checkinPrizes(50)[4].Probability, 1e-9)
 	for _, score := range []float64{0, 5.7142857, 50, 68.142857, 100} {
 		prizes := checkinPrizes(score)
 		counts := map[int]int64{}
 		// Exhaust the sample space: tests distribution and every boundary without flaky randomness.
 		for ticket := int64(0); ticket < 1000000; ticket++ {
-			counts[checkinReward(prizes, ticket)]++
+			counts[checkinTier(prizes, ticket)]++
 		}
-		for _, p := range prizes {
-			require.Equal(t, int64(math.Round(p.Probability*10000)), counts[p.Cents])
+		for i, p := range prizes {
+			require.Equal(t, int64(math.Round(p.Probability*10000)), counts[i])
 		}
-		require.LessOrEqual(t, prizes[4].Probability, 3.0)
+		require.LessOrEqual(t, prizes[4].Probability, 2.0)
 	}
 }
 
@@ -48,7 +56,7 @@ func TestCheckinScoreCapsAndStreakOnly(t *testing.T) {
 	require.Equal(t, 7, full.StreakDays)
 	streak := calculateCheckinSnapshot(0, 7, 0, false)
 	require.Equal(t, 40.0, streak.Score)
-	require.Equal(t, 1.5, streak.Prizes[4].Probability)
+	require.InDelta(t, 0.92, streak.Prizes[4].Probability, 1e-9)
 	// First claim includes today, giving 40/7 streak points.
 	require.InDelta(t, 40.0/7, calculateCheckinSnapshot(0, 1, 0, false).Score, 1e-9)
 }
@@ -67,7 +75,7 @@ func newCheckinTestService(t *testing.T) (*CheckinService, sqlmock.Sqlmock) {
 	s := NewCheckinService(db, nil, nil, nil, nil)
 	s.settings = checkinSwitchStub(true)
 	s.now = func() time.Time { return time.Date(2026, 9, 18, 10, 0, 0, 0, checkinZone) }
-	s.draw = func(n int64) (int64, error) { require.Equal(t, int64(1000000), n); return 0, nil }
+	s.draw = func(int64) (int64, error) { return 0, nil }
 	return s, mock
 }
 
@@ -186,5 +194,48 @@ func TestCheckinRejectsReusedCaptchaBeforeCredit(t *testing.T) {
 	mock.ExpectRollback()
 	_, err := s.Claim(t.Context(), 42, checkinTestHash)
 	require.ErrorIs(t, err, ErrCheckinCaptchaRequired)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckinClaimDrawsAmountWithinTier(t *testing.T) {
+	for _, tc := range []struct {
+		offset int64
+		want   int
+	}{{0, 100}, {200, 300}} {
+		s, mock := newCheckinTestService(t)
+		var sizes []int64
+		s.draw = func(n int64) (int64, error) {
+			sizes = append(sizes, n)
+			if len(sizes) == 1 {
+				return n - 1, nil // last ticket always lands in the jackpot tier
+			}
+			return tc.offset, nil
+		}
+		expectCheckinLock(mock)
+		mock.ExpectQuery("SELECT checkin_date::text").WillReturnRows(checkinHistoryRows())
+		expectCheckinMetrics(mock, s.now())
+		mock.ExpectQuery("INSERT INTO daily_checkins").WithArgs(int64(42), "2026-09-18", tc.want, sqlmock.AnyArg(), s.now(), checkinTestHash).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(101))
+		mock.ExpectExec(`UPDATE users SET balance=balance\+`).WithArgs(int64(42), tc.want, s.now()).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("INSERT INTO redeem_codes").WithArgs("CHECKIN-101", tc.want, int64(42), s.now()).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		status, err := s.Claim(t.Context(), 42, checkinTestHash)
+		require.NoError(t, err)
+		require.Equal(t, []int64{1000000, 201}, sizes)
+		require.Equal(t, tc.want, status.RewardCents)
+		require.Equal(t, 4, status.RewardTier)
+		require.Equal(t, 2, status.Snapshot.Version)
+		require.NoError(t, mock.ExpectationsWereMet())
+	}
+}
+
+func TestCheckinVersionOneSnapshotStillReadable(t *testing.T) {
+	s, mock := newCheckinTestService(t)
+	raw := `{"version":1,"prizes":[{"cents":1,"probability":65},{"cents":3,"probability":25},{"cents":10,"probability":8},{"cents":50,"probability":1.5},{"cents":100,"probability":0.5}]}`
+	mock.ExpectQuery("SELECT checkin_date::text").WillReturnRows(checkinHistoryRows().AddRow("2026-09-18", 10, s.now(), raw))
+	status, err := s.Status(t.Context(), 42)
+	require.NoError(t, err)
+	require.True(t, status.CheckedIn)
+	require.Equal(t, 2, status.RewardTier)
+	require.Equal(t, CheckinPrize{MinCents: 50, MaxCents: 50, Probability: 1.5, Cents: 50}, status.Snapshot.Prizes[3])
 	require.NoError(t, mock.ExpectationsWereMet())
 }

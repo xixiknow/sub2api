@@ -19,10 +19,10 @@
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('checkin.wheel') }}</h2>
               <span class="text-sm text-gray-500 dark:text-dark-400">{{ prizeRange }}</span>
             </div>
-            <div class="wheel" role="img" :aria-label="t('checkin.wheel') + ': ' + status.snapshot.prizes.map(p => money(p.cents)).join(', ')">
+            <div class="wheel" role="img" :aria-label="t('checkin.wheel') + ': ' + status.snapshot.prizes.map(prizeLabel).join(', ')">
               <div class="pointer" />
               <div class="disc" :style="{ transform: `rotate(${rotation}deg)` }">
-                <span v-for="(prize, index) in status.snapshot.prizes" :key="prize.cents" class="prize" :class="{ jackpot: prize.cents === 100 }" :style="prizeStyle(index)">{{ money(prize.cents) }}</span>
+                <span v-for="(prize, index) in status.snapshot.prizes" :key="index" class="prize" :class="{ jackpot: index === status.snapshot.prizes.length - 1 }" :style="prizeStyle(index)">{{ prizeLabel(prize) }}</span>
               </div>
               <div class="hub">{{ t('checkin.title') }}</div>
             </div>
@@ -102,7 +102,7 @@
         <details class="card p-5 text-sm text-gray-500 dark:text-dark-400">
           <summary class="cursor-pointer font-medium text-primary-700 dark:text-primary-300">{{ t('checkin.rules') }}</summary>
           <p class="mt-3">{{ t('checkin.rulesBody') }}</p>
-          <div class="my-3 flex flex-wrap gap-2"><span v-for="prize in status.snapshot.prizes" :key="prize.cents" class="badge badge-primary">{{ money(prize.cents) }} · {{ prize.probability.toFixed(2) }}%</span></div>
+          <div class="my-3 flex flex-wrap gap-2"><span v-for="(prize, index) in status.snapshot.prizes" :key="index" class="badge badge-primary">{{ prizeLabel(prize) }} · {{ prize.probability.toFixed(2) }}%</span></div>
           <p>{{ t('checkin.thresholds') }}</p>
           <p class="mt-2">{{ t('checkin.frozen') }}</p>
         </details>
@@ -124,7 +124,7 @@ import CaptchaChallenge from '@/components/CaptchaChallenge.vue'
 import { useAppStore } from '@/stores/app'
 import type { ActionCaptchaRequestProof, PublicSettings } from '@/types'
 import { useAuthStore } from '@/stores/auth'
-import { claimCheckin, getCheckin, type CheckinStatus } from '@/api/checkin'
+import { claimCheckin, getCheckin, type CheckinPrize, type CheckinStatus } from '@/api/checkin'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -151,10 +151,13 @@ let animationTimer: ReturnType<typeof setTimeout> | undefined
 let resetTimer: ReturnType<typeof setInterval> | undefined
 let finishAnimation: (() => void) | undefined
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
+// Whole-dollar bounds read shorter on the wheel: $1–3 instead of $1.00–3.00.
+const bound = (cents: number) => cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2)
+const prizeLabel = (p: CheckinPrize) => p.min_cents === p.max_cents ? money(p.min_cents) : `$${bound(p.min_cents)}–${bound(p.max_cents)}`
 const prizeStyle = (index: number) => ({ left: `${50 + 34 * Math.sin(index * 2 * Math.PI / 5)}%`, top: `${50 - 34 * Math.cos(index * 2 * Math.PI / 5)}%`, transform: `translate(-50%, -50%) rotate(${-rotation.value}deg)` })
 const prizeRange = computed(() => {
-  const cents = status.value?.snapshot.prizes.map(p => p.cents) ?? []
-  return cents.length ? `${money(Math.min(...cents))} — ${money(Math.max(...cents))}` : ''
+  const prizes = status.value?.snapshot.prizes ?? []
+  return prizes.length ? `${money(Math.min(...prizes.map(p => p.min_cents)))} — ${money(Math.max(...prizes.map(p => p.max_cents)))}` : ''
 })
 const factors = computed(() => {
   if (!status.value) return []
@@ -197,7 +200,7 @@ async function load() {
     if (!disposed) {
       captchaSettings.value = settings
       status.value = result
-      if (result.checked_in) rotation.value = (360 - result.snapshot.prizes.findIndex(p => p.cents === result.reward_cents) * 72) % 360
+      if (result.checked_in) rotation.value = (360 - result.reward_tier * 72) % 360
     }
   } catch { if (!disposed) error.value = t('checkin.loadError') }
   finally { loading.value = false }
@@ -224,8 +227,7 @@ async function spin() {
     // Server commits the award before the visual animation starts.
     const result = await claimCheckin(proof)
     if (disposed) return
-    const index = result.snapshot.prizes.findIndex(p => p.cents === result.reward_cents)
-    rotation.value = Math.ceil(rotation.value / 360) * 360 + 1440 + (360 - index * 72) % 360
+    rotation.value = Math.ceil(rotation.value / 360) * 360 + 1440 + (360 - result.reward_tier * 72) % 360
     await new Promise<void>(resolve => {
       finishAnimation = resolve
       animationTimer = setTimeout(resolve, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 3300)
@@ -265,10 +267,10 @@ onUnmounted(() => {
 .wheel { --wheel-panel: #fffaf4; --wheel-line: #ded5c6; --wheel-accent: #345740; position: relative; width: min(100%, 310px); aspect-ratio: 1; margin: 24px auto; }
 :global(.dark) .wheel { --wheel-panel: #1a211b; --wheel-line: #3d463c; --wheel-accent: #abc595; }
 .disc { position: absolute; inset: 6px; border: 8px solid var(--wheel-panel); outline: 2px solid var(--wheel-line); border-radius: 50%; background: conic-gradient(from -36deg, #e4eddd 0deg 72deg, #f4ead6 72deg 144deg, #ccdcbc 144deg 216deg, #e7d2a9 216deg 288deg, #345740 288deg 360deg); transition: transform 3.2s cubic-bezier(.14, .65, .12, 1); box-shadow: 0 8px 22px #23362918; }
-.prize { position: absolute; transform: translate(-50%, -50%); font: 600 22px Literata, Georgia, 'Songti SC', serif; color: #2e3230; transition: transform 3.2s cubic-bezier(.14, .65, .12, 1); }
+.prize { position: absolute; transform: translate(-50%, -50%); font: 600 15px Literata, Georgia, 'Songti SC', serif; color: #2e3230; transition: transform 3.2s cubic-bezier(.14, .65, .12, 1); }
 .prize.jackpot { color: #fffaf4; }
 .pointer { position: absolute; top: -5px; left: calc(50% - 11px); border-left: 11px solid transparent; border-right: 11px solid transparent; border-top: 27px solid #705c30; z-index: 2; }
 .hub { position: absolute; inset: 36%; border-radius: 50%; background: var(--wheel-panel); border: 1px solid var(--wheel-line); display: flex; align-items: center; justify-content: center; color: var(--wheel-accent); font: 600 15px Literata, Georgia, 'Songti SC', serif; }
-@media (max-width: 700px) { .prize { font-size: 19px; } }
+@media (max-width: 700px) { .prize { font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .disc, .prize { transition: none; } }
 </style>
