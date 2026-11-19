@@ -712,12 +712,18 @@ func (s *ChannelMonitorService) runChecksConcurrent(ctx context.Context, m *Chan
 		BodyOverride:     m.BodyOverride,
 	}
 
+	rt := s.probeRuntime(ctx)
+	policy := normalizeMonitorProbeRetryPolicy(rt.ProbeMaxRetries, rt.ProbeRetryBudgetSeconds)
+
 	var eg errgroup.Group
 	var mu sync.Mutex
 	for i, model := range models {
 		i, model := i, model
 		eg.Go(func() error {
-			r := runCheckForModel(ctx, m.Provider, m.Endpoint, m.APIKey, model, opts)
+			// fork：换账号重试 + 优选上轮最佳账号（见 channel_monitor_retry.go）。
+			r := runCheckWithRetry(ctx, m.ID, model, m.APIKey, opts, policy, func(attemptCtx context.Context, attemptOpts *CheckOptions) *CheckResult {
+				return runCheckForModel(attemptCtx, m.Provider, m.Endpoint, m.APIKey, model, attemptOpts)
+			})
 			r.PingLatencyMs = pingMs
 			mu.Lock()
 			results[i] = r

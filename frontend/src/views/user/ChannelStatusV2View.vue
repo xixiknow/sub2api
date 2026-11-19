@@ -1,6 +1,12 @@
 <template>
   <AppLayout>
-    <div class="space-y-6 pb-12">
+    <!-- fork: 默认卡片视图；详细视图需管理员开启（管理员始终可切换） -->
+    <ChannelStatusCardBoard v-if="viewMode === 'cards'">
+      <template v-if="canUseDetail" #actions>
+        <MonitorViewSwitch v-model="viewMode" />
+      </template>
+    </ChannelStatusCardBoard>
+    <div v-else class="space-y-6 pb-12">
       <!-- Ops-style elevated shell: title toolbar + filters (mirrors OpsDashboardHeader) -->
       <section
         class="card sticky top-0 z-20 !rounded-3xl !border-0 p-0 shadow-sm ring-1 ring-gray-900/5 backdrop-blur-sm dark:!bg-dark-800 dark:ring-dark-700 supports-[backdrop-filter]:bg-white/95 dark:supports-[backdrop-filter]:bg-dark-800/95"
@@ -43,6 +49,8 @@
               </span>
             </div>
           </div>
+          <div class="flex items-center gap-2">
+          <MonitorViewSwitch v-model="viewMode" />
           <button
             class="btn btn-secondary btn-icon flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600"
             type="button"
@@ -52,6 +60,7 @@
           >
             <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
           </button>
+          </div>
         </header>
 
         <!-- First-upgrade silent backfill: show until 30d product window is covered -->
@@ -470,10 +479,17 @@ import MetricCell from '@/features/channel-monitor-v2/MetricCell.vue'
 import MonitorRankBadge from '@/features/channel-monitor-v2/MonitorRankBadge.vue'
 import MonitorTrendChart from '@/features/channel-monitor-v2/MonitorTrendChart.vue'
 import RelayPulseMatrix from '@/features/channel-monitor-v2/RelayPulseMatrix.vue'
+import ChannelStatusCardBoard from '@/features/channel-monitor-v2/ChannelStatusCardBoard.vue'
+import MonitorViewSwitch from '@/features/channel-monitor-v2/MonitorViewSwitch.vue'
+import type { BoardViewMode as MonitorViewMode } from '@/components/user/monitor/status-board/types'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
-import { isChannelMonitorThroughputHidden, isChannelMonitorUserRankingHidden } from '@/utils/featureFlags'
+import {
+  isChannelMonitorDetailViewEnabled,
+  isChannelMonitorThroughputHidden,
+  isChannelMonitorUserRankingHidden,
+} from '@/utils/featureFlags'
 import * as api from '@/api/channelMonitorV2'
 import type {
   HealthState,
@@ -515,6 +531,11 @@ const isAdmin = computed(() => authStore.isAdmin)
 const showThroughput = computed(() => isAdmin.value || !isChannelMonitorThroughputHidden())
 /** Admins always see ranking; users honor the hide-user-ranking system setting. */
 const showUserRanking = computed(() => isAdmin.value || !isChannelMonitorUserRankingHidden())
+/** fork: users only reach the detail view when the admin switch allows it. */
+const canUseDetail = computed(() => isAdmin.value || isChannelMonitorDetailViewEnabled())
+const viewMode = ref<MonitorViewMode>(
+  route.query.view === 'detail' && canUseDetail.value ? 'detail' : 'cards',
+)
 
 const ranges = computed(() => [
   { value: '90m' as MonitorRange, label: t('channelMonitorV2.ranges.90m') },
@@ -700,6 +721,7 @@ function syncQuery() {
       health_mode: healthMode.value,
       trend_view: trendView.value === 'line' ? 'line' : undefined,
       tab: activeTab.value,
+      view: 'detail',
     },
   })
 }
@@ -924,7 +946,26 @@ watch(showUserRanking, (allowed) => {
     activeTab.value = 'models'
   }
 })
-onMounted(() => void reload(false))
+watch(canUseDetail, (allowed) => {
+  if (!allowed) viewMode.value = 'cards'
+})
+watch(viewMode, (mode) => {
+  if (mode === 'detail') {
+    syncQuery()
+    void reload(false)
+    return
+  }
+  // Leaving the detail view: stop its polling/requests; the card board owns its own.
+  controller?.abort()
+  if (autoRefreshTimer) {
+    window.clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
+  void router.replace({ query: { range: ['24h', '7d', '30d'].includes(filter.value.range) ? filter.value.range : undefined } })
+})
+onMounted(() => {
+  if (viewMode.value === 'detail') void reload(false)
+})
 onBeforeUnmount(() => {
   controller?.abort()
   if (autoRefreshTimer) window.clearInterval(autoRefreshTimer)

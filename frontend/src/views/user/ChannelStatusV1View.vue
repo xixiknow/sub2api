@@ -3,10 +3,8 @@
     <MonitorHero
       :overall-status="overallStatus"
       :interval-seconds="DEFAULT_INTERVAL_SECONDS"
-      :window="currentWindow"
       :loading="loading"
       :auto-refresh="autoRefresh"
-      @update:window="handleWindowChange"
       @refresh="refresh()"
     />
 
@@ -18,6 +16,7 @@
       :detail-cache="detailCache"
       :groups-by-id="groupsById"
       :user-group-rates="userGroupRates"
+      @update:window="handleWindowChange"
       @card-click="openDetail"
     />
 

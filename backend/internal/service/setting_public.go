@@ -237,6 +237,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyChannelMonitorHideThroughput,
 		SettingKeyChannelMonitorShowQuota,
 		SettingKeyChannelMonitorHideUserRanking,
+		SettingKeyChannelMonitorDetailViewEnabled,
 		SettingKeyAvailableChannelsEnabled,
 		SettingKeySubscriptionEnabled,
 		SettingKeyModelPlazaEnabled,
@@ -373,6 +374,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ChannelMonitorHideThroughput:         !isFalseSettingValue(settings[SettingKeyChannelMonitorHideThroughput]),
 		ChannelMonitorShowQuota:              settings[SettingKeyChannelMonitorShowQuota] == "true",
 		ChannelMonitorHideUserRanking:        isTrueSettingValue(settings[SettingKeyChannelMonitorHideUserRanking]),
+		ChannelMonitorDetailViewEnabled:      isTrueSettingValue(settings[SettingKeyChannelMonitorDetailViewEnabled]),
 
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
 
@@ -453,6 +455,9 @@ type ChannelMonitorRuntime struct {
 	// HideUserRanking: when true, user-facing V2 views hide the user ranking tab
 	// and the /users payload. Parsed fail-open (only literal "true" hides it).
 	HideUserRanking bool
+	// fork：探测换号重试预算（0 值由 normalizeMonitorProbeRetryPolicy 兜底为默认）。
+	ProbeMaxRetries         int
+	ProbeRetryBudgetSeconds int
 }
 
 // ActiveProbesAllowed reports whether V1 active provider probes may run.
@@ -470,10 +475,12 @@ func (r ChannelMonitorRuntime) PassiveAggregationAllowed() bool {
 func (s *SettingService) GetChannelMonitorRuntime(ctx context.Context) ChannelMonitorRuntime {
 	if s == nil || s.settingRepo == nil {
 		return ChannelMonitorRuntime{
-			Enabled:                true,
-			Mode:                   defaultChannelMonitorMode,
-			DefaultIntervalSeconds: channelMonitorIntervalFallback,
-			HideThroughput:         true,
+			Enabled:                 true,
+			Mode:                    defaultChannelMonitorMode,
+			DefaultIntervalSeconds:  channelMonitorIntervalFallback,
+			HideThroughput:          true,
+			ProbeMaxRetries:         defaultMonitorProbeMaxRetries,
+			ProbeRetryBudgetSeconds: defaultMonitorProbeBudgetSeconds,
 		}
 	}
 	vals, err := s.settingRepo.GetMultiple(ctx, []string{
@@ -483,22 +490,28 @@ func (s *SettingService) GetChannelMonitorRuntime(ctx context.Context) ChannelMo
 		SettingKeyChannelMonitorHideThroughput,
 		SettingKeyChannelMonitorShowQuota,
 		SettingKeyChannelMonitorHideUserRanking,
+		SettingKeyChannelMonitorProbeMaxRetries,
+		SettingKeyChannelMonitorProbeRetryBudgetSeconds,
 	})
 	if err != nil {
 		return ChannelMonitorRuntime{
-			Enabled:                true,
-			Mode:                   defaultChannelMonitorMode,
-			DefaultIntervalSeconds: channelMonitorIntervalFallback,
-			HideThroughput:         true,
+			Enabled:                 true,
+			Mode:                    defaultChannelMonitorMode,
+			DefaultIntervalSeconds:  channelMonitorIntervalFallback,
+			HideThroughput:          true,
+			ProbeMaxRetries:         defaultMonitorProbeMaxRetries,
+			ProbeRetryBudgetSeconds: defaultMonitorProbeBudgetSeconds,
 		}
 	}
 	return ChannelMonitorRuntime{
-		Enabled:                !isFalseSettingValue(vals[SettingKeyChannelMonitorEnabled]),
-		Mode:                   normalizeChannelMonitorMode(vals[SettingKeyChannelMonitorMode]),
-		DefaultIntervalSeconds: parseChannelMonitorInterval(vals[SettingKeyChannelMonitorDefaultIntervalSeconds]),
-		HideThroughput:         !isFalseSettingValue(vals[SettingKeyChannelMonitorHideThroughput]),
-		ShowQuota:              vals[SettingKeyChannelMonitorShowQuota] == "true",
-		HideUserRanking:        isTrueSettingValue(vals[SettingKeyChannelMonitorHideUserRanking]),
+		Enabled:                 !isFalseSettingValue(vals[SettingKeyChannelMonitorEnabled]),
+		Mode:                    normalizeChannelMonitorMode(vals[SettingKeyChannelMonitorMode]),
+		DefaultIntervalSeconds:  parseChannelMonitorInterval(vals[SettingKeyChannelMonitorDefaultIntervalSeconds]),
+		HideThroughput:          !isFalseSettingValue(vals[SettingKeyChannelMonitorHideThroughput]),
+		ShowQuota:               vals[SettingKeyChannelMonitorShowQuota] == "true",
+		HideUserRanking:         isTrueSettingValue(vals[SettingKeyChannelMonitorHideUserRanking]),
+		ProbeMaxRetries:         parseMonitorProbeMaxRetries(vals[SettingKeyChannelMonitorProbeMaxRetries]),
+		ProbeRetryBudgetSeconds: parseMonitorProbeBudgetSeconds(vals[SettingKeyChannelMonitorProbeRetryBudgetSeconds]),
 	}
 }
 
@@ -651,18 +664,21 @@ type PublicSettingsInjectionPayload struct {
 	// ChannelMonitorHideUserRanking hides the user ranking tab and /users payload
 	// from non-admin channel-monitor v2 viewers; default false (visible).
 	ChannelMonitorHideUserRanking bool `json:"channel_monitor_hide_user_ranking"`
-	ChannelMonitorShowQuota       bool `json:"channel_monitor_show_quota"`
-	AvailableChannelsEnabled      bool `json:"available_channels_enabled"`
-	SubscriptionEnabled           bool `json:"subscription_enabled"`
-	ModelPlazaEnabled             bool `json:"model_plaza_enabled"`
-	ModelPlazaRequireAuth         bool `json:"model_plaza_require_auth"`
-	PluginManagementEnabled       bool `json:"plugin_management_enabled"`
-	AffiliateEnabled              bool `json:"affiliate_enabled"`
-	CheckinEnabled                bool `json:"checkin_enabled"`
-	ImageWorkbenchEnabled         bool `json:"image_workbench_enabled"`
-	ContactPageEnabled            bool `json:"contact_page_enabled"`
-	RiskControlEnabled            bool `json:"risk_control_enabled"`
-	AllowUserViewErrorRequests    bool `json:"allow_user_view_error_requests"`
+	// ChannelMonitorDetailViewEnabled lets non-admin users switch the channel
+	// status page from the card board to the detailed V2 view; default false.
+	ChannelMonitorDetailViewEnabled bool `json:"channel_monitor_detail_view_enabled"`
+	ChannelMonitorShowQuota         bool `json:"channel_monitor_show_quota"`
+	AvailableChannelsEnabled        bool `json:"available_channels_enabled"`
+	SubscriptionEnabled             bool `json:"subscription_enabled"`
+	ModelPlazaEnabled               bool `json:"model_plaza_enabled"`
+	ModelPlazaRequireAuth           bool `json:"model_plaza_require_auth"`
+	PluginManagementEnabled         bool `json:"plugin_management_enabled"`
+	AffiliateEnabled                bool `json:"affiliate_enabled"`
+	CheckinEnabled                  bool `json:"checkin_enabled"`
+	ImageWorkbenchEnabled           bool `json:"image_workbench_enabled"`
+	ContactPageEnabled              bool `json:"contact_page_enabled"`
+	RiskControlEnabled              bool `json:"risk_control_enabled"`
+	AllowUserViewErrorRequests      bool `json:"allow_user_view_error_requests"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -743,6 +759,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ChannelMonitorHideThroughput:         settings.ChannelMonitorHideThroughput,
 		ChannelMonitorShowQuota:              settings.ChannelMonitorShowQuota,
 		ChannelMonitorHideUserRanking:        settings.ChannelMonitorHideUserRanking,
+		ChannelMonitorDetailViewEnabled:      settings.ChannelMonitorDetailViewEnabled,
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
 		SubscriptionEnabled:                  settings.SubscriptionEnabled,
 		ModelPlazaEnabled:                    settings.ModelPlazaEnabled,

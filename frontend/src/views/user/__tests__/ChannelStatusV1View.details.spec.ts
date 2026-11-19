@@ -28,13 +28,16 @@ function mountView() {
   return shallowMount(ChannelStatusV1View, {
     global: { stubs: {
       AppLayout: { template: '<div><slot /></div>' },
-      MonitorHero: { props: ['loading'], emits: ['update:window', 'refresh'], template: `<div :data-loading="loading">
-        <button class="fifteen" @click="$emit('update:window', '15d')">15d</button>
-        <button class="thirty" @click="$emit('update:window', '30d')">30d</button>
+      MonitorHero: { props: ['loading'], emits: ['refresh'], template: `<div :data-loading="loading">
         <button class="refresh" @click="$emit('refresh')">Refresh</button>
       </div>` },
       MonitorCardGrid: false,
-      MonitorCard: { props: ['availabilityValue'], template: '<output>{{ availabilityValue }}</output>' }
+      // 时间窗口已移入卡片工具栏；可用率显示在卡片第二个指标格。
+      StatusBoardToolbar: { emits: ['update:range'], template: `<div>
+        <button class="fifteen" @click="$emit('update:range', '15d')">15d</button>
+        <button class="thirty" @click="$emit('update:range', '30d')">30d</button>
+      </div>` },
+      StatusCardGrid: { props: ['cards'], template: '<output>{{ cards[0]?.metrics[1].value }}</output>' }
     } }
   })
 }
@@ -45,11 +48,11 @@ describe('channel monitor automatic detail refresh', () => {
     await flushPromises()
     await wrapper.get('.' + tab).trigger('click')
     await flushPromises()
-    expect(wrapper.get('output').text()).toBe('90')
+    expect(wrapper.get('output').text()).toBe('90.00')
     mocks.status.mockResolvedValue(detail(98))
     await vi.advanceTimersByTimeAsync(30000)
     await flushPromises()
-    expect(wrapper.get('output').text()).toBe('98')
+    expect(wrapper.get('output').text()).toBe('98.00')
     expect(mocks.status).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-loading]').attributes('data-loading')).toBe('false')
   })
@@ -61,7 +64,7 @@ describe('channel monitor automatic detail refresh', () => {
     await flushPromises()
     expect(mocks.list).toHaveBeenCalledTimes(2)
     expect(mocks.status).not.toHaveBeenCalled()
-    expect(wrapper.get('output').text()).toBe('99')
+    expect(wrapper.get('output').text()).toBe('99.00')
   })
 
   it('still refreshes cached availability on manual reload', async () => {
@@ -72,6 +75,6 @@ describe('channel monitor automatic detail refresh', () => {
     mocks.status.mockResolvedValue(detail(98))
     await wrapper.get('.refresh').trigger('click')
     await flushPromises()
-    expect(wrapper.get('output').text()).toBe('98')
+    expect(wrapper.get('output').text()).toBe('98.00')
   })
 })

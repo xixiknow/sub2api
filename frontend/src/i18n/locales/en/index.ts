@@ -6,6 +6,7 @@ import checkin from './checkin'
 import contact from './contact'
 import dashboard from './dashboard'
 import channelMonitorV2 from './channelMonitorV2'
+import channelStatusBoard from './channelStatusBoard'
 import batchImage from './batchImage'
 import imageWorkbench from './imageWorkbench'
 import admin from './admin'
@@ -21,6 +22,7 @@ export default {
   ...contact,
   ...dashboard,
   ...channelMonitorV2,
+  ...channelStatusBoard,
   ...batchImage,
   ...imageWorkbench,
   admin,

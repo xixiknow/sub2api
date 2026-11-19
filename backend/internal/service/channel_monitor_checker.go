@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,6 +51,11 @@ type CheckOptions struct {
 	// BodyOverride 在 merge 模式下做浅合并（key 命中黑名单时静默丢弃），
 	// 在 replace 模式下直接当作完整 body。
 	BodyOverride map[string]any
+
+	// probeHeaders fork：签名探测头（不受用户 header 黑名单过滤，由重试循环按次生成）。
+	probeHeaders map[string]string
+	// servedAccountID fork：输出参数，网关回传的实际服务账号 ID（0 = 未知）。
+	servedAccountID int64
 }
 
 // runCheckForModel 对单个 (provider, model) 做一次完整检测。
@@ -305,8 +311,18 @@ func callProvider(ctx context.Context, provider, endpoint, apiKey, model, prompt
 		return "", "", 0, err
 	}
 	headers := mergeHeaders(adapter.buildHeaders(apiKey), opts)
+	if opts != nil && len(opts.probeHeaders) > 0 {
+		for k, v := range opts.probeHeaders {
+			headers[k] = v
+		}
+	}
 	full := joinURL(endpoint, monitorRequestPath(provider, endpoint, adapter, model))
-	respBytes, status, err := postRawJSON(ctx, full, body, headers)
+	respBytes, status, respHeader, err := postRawJSON(ctx, full, body, headers)
+	if opts != nil && respHeader != nil {
+		if id, perr := strconv.ParseInt(strings.TrimSpace(respHeader.Get(ProbeHeaderServedAccount)), 10, 64); perr == nil && id > 0 {
+			opts.servedAccountID = id
+		}
+	}
 	if err != nil {
 		return "", "", status, err
 	}
@@ -598,10 +614,10 @@ func hasNonEmptyBodyValue(v any) bool {
 
 // postRawJSON 发送 POST + 已序列化好的 JSON 字节，限制响应体大小，返回响应字节、HTTP status、错误。
 // adapter 自行 marshal 是为了精确控制字段顺序与类型，所以这里直接收 []byte 而不是 any。
-func postRawJSON(ctx context.Context, fullURL string, payload []byte, headers map[string]string) ([]byte, int, error) {
+func postRawJSON(ctx context.Context, fullURL string, payload []byte, headers map[string]string) ([]byte, int, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(payload))
 	if err != nil {
-		return nil, 0, fmt.Errorf("build request: %w", err)
+		return nil, 0, nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
@@ -611,15 +627,15 @@ func postRawJSON(ctx context.Context, fullURL string, payload []byte, headers ma
 
 	resp, err := monitorHTTPClient.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("do request: %w", err)
+		return nil, 0, nil, fmt.Errorf("do request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, monitorResponseMaxBytes))
 	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)
+		return nil, resp.StatusCode, resp.Header, fmt.Errorf("read body: %w", err)
 	}
-	return respBody, resp.StatusCode, nil
+	return respBody, resp.StatusCode, resp.Header, nil
 }
 
 // monitorRequestPath 返回探测请求路径。智谱按 endpoint 区分：

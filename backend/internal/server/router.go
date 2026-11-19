@@ -69,6 +69,9 @@ func SetupRouter(
 		return nil
 	}))
 	r.Use(middleware2.ServerTiming(cfg.Server.EnableServerTiming))
+	// fork: 渠道监控签名探测头（选号提示 + 回传服务账号）；无探测头时直接放行。
+	service.InitChannelMonitorProbeSigner(cfg.JWT.Secret)
+	r.Use(middleware2.ChannelMonitorProbe())
 
 	// Serve embedded frontend with settings injection if available
 	if web.HasEmbeddedFrontend() {

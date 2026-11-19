@@ -244,3 +244,9 @@ export function isChannelMonitorUserRankingHidden(): boolean {
   const appStore = useAppStore()
   return Boolean(appStore.cachedPublicSettings?.channel_monitor_hide_user_ranking)
 }
+
+/** Allow non-admin users to switch the channel status page to the V2 detail view. */
+export function isChannelMonitorDetailViewEnabled(): boolean {
+  const appStore = useAppStore()
+  return Boolean(appStore.cachedPublicSettings?.channel_monitor_detail_view_enabled)
+}
