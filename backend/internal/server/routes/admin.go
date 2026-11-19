@@ -122,6 +122,7 @@ func RegisterAdminRoutes(
 
 		// 定时测试计划
 		registerScheduledTestRoutes(admin, h)
+		registerIQTestRoutes(admin, h)
 
 		// 渠道管理
 		registerChannelRoutes(admin, h)
@@ -444,6 +445,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAu
 		accounts.GET("/:id/today-stats", h.Admin.Account.GetTodayStats)
 		accounts.POST("/usage/batch", h.Admin.Account.GetBatchUsage)
 		accounts.POST("/today-stats/batch", h.Admin.Account.GetBatchTodayStats)
+		accounts.POST("/health/batch", h.Admin.Account.GetBatchHealth)
 		accounts.POST("/:id/clear-rate-limit", h.Admin.Account.ClearRateLimit)
 		accounts.POST("/:id/reset-quota", h.Admin.Account.ResetQuota)
 		accounts.GET("/:id/temp-unschedulable", h.Admin.Account.GetTempUnschedulable)
@@ -887,6 +889,14 @@ func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		affiliates.GET("/rebates", h.Admin.Affiliate.ListRebateRecords)
 		affiliates.GET("/transfers", h.Admin.Affiliate.ListTransferRecords)
 
+		withdrawals := affiliates.Group("/withdrawals")
+		{
+			withdrawals.GET("", h.Admin.Affiliate.ListWithdrawRequests)
+			withdrawals.GET("/:id", h.Admin.Affiliate.GetWithdrawRequest)
+			withdrawals.POST("/:id/paid", h.Admin.Affiliate.MarkWithdrawPaid)
+			withdrawals.POST("/:id/reject", h.Admin.Affiliate.RejectWithdrawRequest)
+		}
+
 		users := affiliates.Group("/users")
 		{
 			users.GET("", h.Admin.Affiliate.ListUsers)
@@ -959,4 +969,29 @@ func channelMonitorModeV2Guard(settingService *service.SettingService) gin.Handl
 		}
 		c.Next()
 	}
+}
+
+// registerIQTestRoutes 模型智力测试（fork 扩展）。
+func registerIQTestRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	if h.Admin.IQTest == nil {
+		return
+	}
+	iq := admin.Group("/iq")
+	{
+		iq.GET("/questions", h.Admin.IQTest.ListQuestions)
+		iq.POST("/questions", h.Admin.IQTest.SaveQuestion)
+		iq.DELETE("/questions/:slug", h.Admin.IQTest.DeleteQuestion)
+		iq.GET("/questions/:slug/samples", h.Admin.IQTest.ListSamples)
+		iq.POST("/questions/:slug/samples", h.Admin.IQTest.UploadSamples)
+		iq.DELETE("/questions/:slug/samples/:id", h.Admin.IQTest.DeleteSample)
+		iq.POST("/questions/:slug/classifier/retrain", h.Admin.IQTest.RetrainClassifier)
+		iq.GET("/results", h.Admin.IQTest.ListResults)
+		iq.POST("/results/:id/label", h.Admin.IQTest.LabelResult)
+		iq.PUT("/plans/:id", h.Admin.IQTest.UpdatePlan)
+		iq.DELETE("/plans/:id", h.Admin.IQTest.DeletePlan)
+		iq.POST("/plans/:id/run", h.Admin.IQTest.RunPlan)
+	}
+	admin.POST("/accounts/:id/iq-test", h.Admin.IQTest.RunAccount)
+	admin.GET("/accounts/:id/iq-plans", h.Admin.IQTest.ListPlans)
+	admin.POST("/accounts/:id/iq-plans", h.Admin.IQTest.CreatePlan)
 }

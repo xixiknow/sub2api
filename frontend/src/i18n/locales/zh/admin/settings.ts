@@ -37,6 +37,15 @@ export default {
           hideUserRanking: '对用户隐藏用户排行',
           hideUserRankingHint:
             '开启后，用户端渠道监控 V2 不再显示「用户排行」页，用户 API 也不返回排行数据。管理员仍可查看。',
+          detailViewEnabled: '允许用户查看详细视图',
+          detailViewEnabledHint:
+            '渠道状态页默认只展示状态卡片。开启后，用户可切换到详细视图（总览指标、健康矩阵、模型/错误明细）。管理员始终可切换。',
+          probeMaxRetries: '探测失败最多重试次数',
+          probeMaxRetriesHint:
+            '单个模型探测结果非正常（慢 / 答错 / 报错）时，排除表现差的账号换号重试；分组只有一个账号时原样重试。0 表示不重试，范围 0 – 5。',
+          probeRetryBudget: '单次探测总耗时预算（秒）',
+          probeRetryBudgetHint:
+            '单个模型所有重试尝试的总耗时上限，超出后取已有最好的结果。范围 30 – 300 秒，建议小于检测间隔。',
         },
         availableChannels: {
           title: '可用渠道',
@@ -124,6 +133,10 @@ export default {
           perInviteeCapDesc: '每个被邀请用户最多产生的返利总额。0 = 无上限。',
           registrationSeatCost: '注册邀请码名额单价',
           registrationSeatCostDesc: '用户购买 1 个注册邀请码名额需要扣除的余额。支持 0，表示免费领取名额。',
+          withdrawEnabled: '开放支付宝提现',
+          withdrawEnabledHint: '开启后用户可提交支付宝提现申请（填写账号并上传收款码），由管理员在「邀请返利 → 提现审核」人工打款。关闭后只保留转入余额。',
+          withdrawMinAmount: '最低提现金额',
+          withdrawMinAmountDesc: '单笔提现不得低于该金额。0 = 不限。每位用户同时只能有一笔待审核申请。',
           customUsers: {
             title: '专属用户配置',
             description: '为指定用户设置专属邀请码或专属返利比例。仅展示已设置过专属配置的用户。',

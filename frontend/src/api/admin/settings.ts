@@ -459,6 +459,8 @@ export interface SystemSettings {
   affiliate_rebate_per_invitee_cap: number;
   affiliate_registration_seat_cost: number;
   affiliate_admin_recharge_enabled: boolean;
+  affiliate_withdraw_enabled: boolean;
+  affiliate_withdraw_min_amount: number;
   default_concurrency: number;
   default_user_rpm_limit: number;
   default_subscriptions: DefaultSubscriptionSetting[];
@@ -768,6 +770,9 @@ export interface SystemSettings {
   channel_monitor_hide_throughput?: boolean;
   channel_monitor_show_quota?: boolean;
   channel_monitor_hide_user_ranking?: boolean;
+  channel_monitor_detail_view_enabled?: boolean;
+  channel_monitor_probe_max_retries?: number;
+  channel_monitor_probe_retry_budget_seconds?: number;
 
   // Auto upstream model sync (admin settings)
   auto_model_sync_interval_hours: number;
@@ -826,6 +831,8 @@ export interface UpdateSettingsRequest {
   affiliate_rebate_per_invitee_cap?: number;
   affiliate_registration_seat_cost?: number;
   affiliate_admin_recharge_enabled?: boolean;
+  affiliate_withdraw_enabled?: boolean;
+  affiliate_withdraw_min_amount?: number;
   default_concurrency?: number;
   default_user_rpm_limit?: number;
   default_subscriptions?: DefaultSubscriptionSetting[];
@@ -1094,6 +1101,9 @@ export interface UpdateSettingsRequest {
   channel_monitor_hide_throughput?: boolean;
   channel_monitor_show_quota?: boolean;
   channel_monitor_hide_user_ranking?: boolean;
+  channel_monitor_detail_view_enabled?: boolean;
+  channel_monitor_probe_max_retries?: number;
+  channel_monitor_probe_retry_budget_seconds?: number;
 
   // Auto upstream model sync (admin settings)
   auto_model_sync_interval_hours?: number;

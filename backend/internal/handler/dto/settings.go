@@ -177,6 +177,8 @@ type SystemSettings struct {
 	AffiliateRebatePerInviteeCap  float64                      `json:"affiliate_rebate_per_invitee_cap"`
 	AffiliateRegistrationSeatCost float64                      `json:"affiliate_registration_seat_cost"`
 	AdminRechargeRebateEnabled    bool                         `json:"affiliate_admin_recharge_enabled"`
+	AffiliateWithdrawEnabled      bool                         `json:"affiliate_withdraw_enabled"`
+	AffiliateWithdrawMinAmount    float64                      `json:"affiliate_withdraw_min_amount"`
 	DefaultUserRPMLimit           int                          `json:"default_user_rpm_limit"`
 	DefaultSubscriptions          []DefaultSubscriptionSetting `json:"default_subscriptions"`
 
@@ -322,6 +324,10 @@ type SystemSettings struct {
 	ChannelMonitorHideThroughput         bool   `json:"channel_monitor_hide_throughput"`
 	ChannelMonitorShowQuota              bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        bool   `json:"channel_monitor_hide_user_ranking"`
+	ChannelMonitorDetailViewEnabled      bool   `json:"channel_monitor_detail_view_enabled"`
+	// fork：探测换号重试预算
+	ChannelMonitorProbeMaxRetries         int `json:"channel_monitor_probe_max_retries"`
+	ChannelMonitorProbeRetryBudgetSeconds int `json:"channel_monitor_probe_retry_budget_seconds"`
 
 	// Auto upstream model sync (admin settings)
 	AutoModelSyncIntervalHours int `json:"auto_model_sync_interval_hours"`
@@ -457,6 +463,7 @@ type PublicSettings struct {
 	ChannelMonitorHideThroughput         bool   `json:"channel_monitor_hide_throughput"`
 	ChannelMonitorShowQuota              bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        bool   `json:"channel_monitor_hide_user_ranking"`
+	ChannelMonitorDetailViewEnabled      bool   `json:"channel_monitor_detail_view_enabled"`
 
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 

@@ -188,6 +188,8 @@ type SystemSettings struct {
 	AffiliateRebatePerInviteeCap  float64
 	AffiliateRegistrationSeatCost float64
 	AdminRechargeRebateEnabled    bool
+	AffiliateWithdrawEnabled      bool
+	AffiliateWithdrawMinAmount    float64
 	DefaultUserRPMLimit           int
 	DefaultSubscriptions          []DefaultSubscriptionSetting
 
@@ -215,6 +217,10 @@ type SystemSettings struct {
 	ChannelMonitorHideThroughput         bool   `json:"channel_monitor_hide_throughput"`
 	ChannelMonitorShowQuota              bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        bool   `json:"channel_monitor_hide_user_ranking"`
+	ChannelMonitorDetailViewEnabled      bool   `json:"channel_monitor_detail_view_enabled"`
+	// fork：探测换号重试预算
+	ChannelMonitorProbeMaxRetries         int `json:"channel_monitor_probe_max_retries"`
+	ChannelMonitorProbeRetryBudgetSeconds int `json:"channel_monitor_probe_retry_budget_seconds"`
 
 	// Auto upstream model sync (admin settings): global polling interval in hours.
 	AutoModelSyncIntervalHours int `json:"auto_model_sync_interval_hours"`
@@ -414,6 +420,7 @@ type PublicSettings struct {
 	ChannelMonitorHideThroughput         bool   `json:"channel_monitor_hide_throughput"`
 	ChannelMonitorShowQuota              bool   `json:"channel_monitor_show_quota"`
 	ChannelMonitorHideUserRanking        bool   `json:"channel_monitor_hide_user_ranking"`
+	ChannelMonitorDetailViewEnabled      bool   `json:"channel_monitor_detail_view_enabled"`
 
 	// Grok model mapping policy (admin settings).
 	GrokDefaultTextModel           string `json:"grok_default_text_model"`

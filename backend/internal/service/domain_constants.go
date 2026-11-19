@@ -39,6 +39,8 @@ const (
 	AffiliateLevel2UnlockInviteCount     = 3     // 邀请达到 3 人后解锁二级返现
 	AffiliateLevel3UnlockInviteCount     = 10    // 邀请达到 10 人后解锁三级返现
 	AdminRechargeRebateEnabledDefault    = false // 管理员充值默认不产生返利
+	AffiliateWithdrawEnabledDefault      = false // 支付宝提现默认关闭
+	AffiliateWithdrawMinAmountDefault    = 50.0  // 默认满 50 才能提现
 )
 
 // Platform constants
@@ -247,6 +249,8 @@ const (
 	SettingKeyAffiliateRebatePerInviteeCap        = "affiliate_rebate_per_invitee_cap" // 单人返利上限（0=无上限）
 	SettingKeyAffiliateRegistrationSeatCost       = "affiliate_registration_seat_cost" // 返佣注册链接注册名额单价
 	SettingKeyAffiliateAdminRechargeEnabled       = "affiliate_admin_recharge_enabled" // 管理员充值是否产生返利
+	SettingKeyAffiliateWithdrawEnabled            = "affiliate_withdraw_enabled"       // 返利支付宝提现开关
+	SettingKeyAffiliateWithdrawMinAmount          = "affiliate_withdraw_min_amount"    // 返利提现最低金额
 	SettingKeyRiskControlEnabled                  = "risk_control_enabled"             // 是否启用风控中心入口与审计链路
 	SettingKeyContentModerationConfig             = "content_moderation_config"        // 内容审计配置（JSON）
 	SettingKeyCyberSessionBlockEnabled            = "cyber_session_block_enabled"      // cyber 命中后会话级自动屏蔽总开关(默认关)
@@ -531,6 +535,14 @@ const (
 	// /users payload from non-admin channel-monitor v2 viewers.
 	// Default false (keep the current ranking tab). Admin endpoints always keep it.
 	SettingKeyChannelMonitorHideUserRanking = "channel_monitor_hide_user_ranking"
+	// SettingKeyChannelMonitorDetailViewEnabled fork：允许普通用户在渠道状态页从卡片视图
+	// 切换到 V2 详细视图（KPI/矩阵/明细表）。默认 false，管理员始终可切换。
+	SettingKeyChannelMonitorDetailViewEnabled = "channel_monitor_detail_view_enabled"
+
+	// SettingKeyChannelMonitorProbeMaxRetries fork：单个模型探测表现不佳时的最多换号重试次数（0-5，默认 3）。
+	SettingKeyChannelMonitorProbeMaxRetries = "channel_monitor_probe_max_retries"
+	// SettingKeyChannelMonitorProbeRetryBudgetSeconds fork：单个模型所有尝试的总耗时预算（30-300 秒，默认 90）。
+	SettingKeyChannelMonitorProbeRetryBudgetSeconds = "channel_monitor_probe_retry_budget_seconds"
 
 	// SettingKeyAutoModelSyncIntervalHours is the global polling interval (hours)
 	// for accounts with auto upstream model sync enabled. Range: [1, 720]. Default 24.

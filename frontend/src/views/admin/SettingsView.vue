@@ -7300,6 +7300,39 @@
                 </p>
               </div>
 
+              <div v-if="form.channel_monitor_mode === 'v1'" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="input-label">
+                    {{ t('admin.settings.features.channelMonitor.probeMaxRetries') }}
+                  </label>
+                  <input
+                    v-model.number="form.channel_monitor_probe_max_retries"
+                    type="number"
+                    min="0"
+                    max="5"
+                    class="input"
+                  />
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t('admin.settings.features.channelMonitor.probeMaxRetriesHint') }}
+                  </p>
+                </div>
+                <div>
+                  <label class="input-label">
+                    {{ t('admin.settings.features.channelMonitor.probeRetryBudget') }}
+                  </label>
+                  <input
+                    v-model.number="form.channel_monitor_probe_retry_budget_seconds"
+                    type="number"
+                    min="30"
+                    max="300"
+                    class="input"
+                  />
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t('admin.settings.features.channelMonitor.probeRetryBudgetHint') }}
+                  </p>
+                </div>
+              </div>
+
               <div v-if="form.channel_monitor_mode === 'v2'" class="space-y-4">
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
@@ -7322,6 +7355,17 @@
                     </p>
                   </div>
                   <Toggle v-model="form.channel_monitor_hide_user_ranking" />
+                </div>
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ t('admin.settings.features.channelMonitor.detailViewEnabled') }}
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.channelMonitor.detailViewEnabledHint') }}
+                    </p>
+                  </div>
+                  <Toggle v-model="form.channel_monitor_detail_view_enabled" />
                 </div>
               </div>
 
@@ -7769,6 +7813,36 @@
                 <p class="mt-1 text-xs text-gray-400">
                   {{ t('admin.settings.features.affiliate.registrationSeatCostDesc') }}
                 </p>
+              </div>
+
+              <!-- 支付宝提现 -->
+              <div class="space-y-4 rounded-lg border border-gray-100 p-4 dark:border-dark-700">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.features.affiliate.withdrawEnabled') }}
+                    </label>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.withdrawEnabledHint') }}
+                    </p>
+                  </div>
+                  <Toggle v-model="form.affiliate_withdraw_enabled" />
+                </div>
+                <div v-if="form.affiliate_withdraw_enabled">
+                  <label class="input-label">
+                    {{ t('admin.settings.features.affiliate.withdrawMinAmount') }}
+                  </label>
+                  <input
+                    v-model.number="form.affiliate_withdraw_min_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="input"
+                  />
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t('admin.settings.features.affiliate.withdrawMinAmountDesc') }}
+                  </p>
+                </div>
               </div>
 
               <!-- 专属用户管理 -->
@@ -9890,6 +9964,9 @@ type SettingsForm = Omit<
   channel_monitor_hide_throughput: boolean;
   channel_monitor_show_quota: boolean;
   channel_monitor_hide_user_ranking: boolean;
+  channel_monitor_detail_view_enabled: boolean;
+  channel_monitor_probe_max_retries: number;
+  channel_monitor_probe_retry_budget_seconds: number;
   smtp_password: string;
   turnstile_secret_key: string;
   tencent_captcha_app_secret_key: string;
@@ -9974,6 +10051,8 @@ const form = reactive<SettingsForm>({
   affiliate_rebate_per_invitee_cap: 0,
   affiliate_registration_seat_cost: 1,
   affiliate_admin_recharge_enabled: false,
+  affiliate_withdraw_enabled: false,
+  affiliate_withdraw_min_amount: 50,
   default_concurrency: 1,
   default_subscriptions: [],
   force_email_on_third_party_signup: false,
@@ -10230,6 +10309,9 @@ const form = reactive<SettingsForm>({
   channel_monitor_hide_throughput: false,
   channel_monitor_show_quota: false,
   channel_monitor_hide_user_ranking: false,
+  channel_monitor_detail_view_enabled: false,
+  channel_monitor_probe_max_retries: 3,
+  channel_monitor_probe_retry_budget_seconds: 90,
   // Auto upstream model sync
   auto_model_sync_interval_hours: 24,
   // Available Channels feature switch
@@ -11281,7 +11363,16 @@ async function loadSettings() {
     );
     form.channel_monitor_hide_user_ranking = Boolean(
       settings.channel_monitor_hide_user_ranking
+    )
+    form.channel_monitor_detail_view_enabled = Boolean(
+      settings.channel_monitor_detail_view_enabled
     );
+    form.channel_monitor_probe_max_retries =
+      typeof settings.channel_monitor_probe_max_retries === 'number'
+        ? settings.channel_monitor_probe_max_retries
+        : 3;
+    form.channel_monitor_probe_retry_budget_seconds =
+      settings.channel_monitor_probe_retry_budget_seconds || 90;
     form.login_agreement_updated_at =
       settings.login_agreement_updated_at || "2026-03-31";
     form.login_agreement_documents =
@@ -11713,6 +11804,8 @@ async function saveSettings() {
       affiliate_rebate_per_invitee_cap: Math.max(0, Number(form.affiliate_rebate_per_invitee_cap) || 0),
       affiliate_registration_seat_cost: Math.max(0, Number(form.affiliate_registration_seat_cost) || 0),
       affiliate_admin_recharge_enabled: form.affiliate_admin_recharge_enabled,
+      affiliate_withdraw_enabled: Boolean(form.affiliate_withdraw_enabled),
+      affiliate_withdraw_min_amount: Math.max(0, Number(form.affiliate_withdraw_min_amount) || 0),
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,
@@ -12001,6 +12094,15 @@ async function saveSettings() {
       channel_monitor_hide_throughput: Boolean(form.channel_monitor_hide_throughput),
       channel_monitor_show_quota: Boolean(form.channel_monitor_show_quota),
       channel_monitor_hide_user_ranking: Boolean(form.channel_monitor_hide_user_ranking),
+      channel_monitor_detail_view_enabled: Boolean(form.channel_monitor_detail_view_enabled),
+      channel_monitor_probe_max_retries: Math.min(
+        5,
+        Math.max(0, Math.trunc(Number(form.channel_monitor_probe_max_retries) || 0))
+      ),
+      channel_monitor_probe_retry_budget_seconds: Math.min(
+        300,
+        Math.max(30, Math.trunc(Number(form.channel_monitor_probe_retry_budget_seconds) || 90))
+      ),
       // Auto upstream model sync
       auto_model_sync_interval_hours:
         Number(form.auto_model_sync_interval_hours) || 24,

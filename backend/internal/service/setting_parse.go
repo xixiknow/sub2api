@@ -132,6 +132,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyAffiliateRebateFreezeHours:                strconv.Itoa(AffiliateRebateFreezeHoursDefault),
 		SettingKeyAffiliateRebateDurationDays:               strconv.Itoa(AffiliateRebateDurationDaysDefault),
 		SettingKeyAffiliateRebatePerInviteeCap:              strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
+		SettingKeyAffiliateWithdrawMinAmount:                strconv.FormatFloat(AffiliateWithdrawMinAmountDefault, 'f', 2, 64),
 		SettingKeyDefaultUserRPMLimit:                       "0",
 		SettingKeyDefaultSubscriptions:                      "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:             "0",
@@ -189,12 +190,15 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyOpsMetricsIntervalSeconds:    "60",
 
 		// Channel monitor defaults (enabled, 60s)
-		SettingKeyChannelMonitorEnabled:                "true",
-		SettingKeyChannelMonitorMode:                   ChannelMonitorModeV1,
-		SettingKeyChannelMonitorDefaultIntervalSeconds: "60",
-		SettingKeyChannelMonitorHideThroughput:         "true",
-		SettingKeyChannelMonitorShowQuota:              "false",
-		SettingKeyChannelMonitorHideUserRanking:        "false",
+		SettingKeyChannelMonitorEnabled:                 "true",
+		SettingKeyChannelMonitorMode:                    ChannelMonitorModeV1,
+		SettingKeyChannelMonitorDefaultIntervalSeconds:  "60",
+		SettingKeyChannelMonitorHideThroughput:          "true",
+		SettingKeyChannelMonitorShowQuota:               "false",
+		SettingKeyChannelMonitorHideUserRanking:         "false",
+		SettingKeyChannelMonitorDetailViewEnabled:       "false",
+		SettingKeyChannelMonitorProbeMaxRetries:         "3",
+		SettingKeyChannelMonitorProbeRetryBudgetSeconds: "90",
 
 		// Auto model sync defaults (24h interval)
 		SettingKeyAutoModelSyncIntervalHours: strconv.Itoa(AutoModelSyncIntervalHoursDefault),
@@ -223,6 +227,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyImageWorkbenchEnabled:         "false",
 		SettingKeyContactPageEnabled:            "false",
 		SettingKeyAffiliateAdminRechargeEnabled: strconv.FormatBool(AdminRechargeRebateEnabledDefault),
+		SettingKeyAffiliateWithdrawEnabled:      strconv.FormatBool(AffiliateWithdrawEnabledDefault),
 
 		// 风控中心功能（默认关闭，显式启用）
 		SettingKeyRiskControlEnabled: "false",
@@ -441,6 +446,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
 	}
 	result.AdminRechargeRebateEnabled = settings[SettingKeyAffiliateAdminRechargeEnabled] == "true"
+	result.AffiliateWithdrawEnabled = settings[SettingKeyAffiliateWithdrawEnabled] == "true"
+	result.AffiliateWithdrawMinAmount = parseAffiliateWithdrawMinAmount(settings[SettingKeyAffiliateWithdrawMinAmount])
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 
 	// 敏感信息直接返回，方便测试连接时使用
@@ -831,6 +838,9 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// （与 setting_public.go 公开读取路径保持一致）。
 	result.ChannelMonitorShowQuota = settings[SettingKeyChannelMonitorShowQuota] == "true"
 	result.ChannelMonitorHideUserRanking = isTrueSettingValue(settings[SettingKeyChannelMonitorHideUserRanking])
+	result.ChannelMonitorDetailViewEnabled = isTrueSettingValue(settings[SettingKeyChannelMonitorDetailViewEnabled])
+	result.ChannelMonitorProbeMaxRetries = parseMonitorProbeMaxRetries(settings[SettingKeyChannelMonitorProbeMaxRetries])
+	result.ChannelMonitorProbeRetryBudgetSeconds = parseMonitorProbeBudgetSeconds(settings[SettingKeyChannelMonitorProbeRetryBudgetSeconds])
 
 	// Auto model sync interval (default 24h, bounded [1,720])
 	result.AutoModelSyncIntervalHours = clampAutoModelSyncIntervalHours(

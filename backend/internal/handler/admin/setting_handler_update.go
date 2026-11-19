@@ -182,6 +182,8 @@ type UpdateSettingsRequest struct {
 	AffiliateRebatePerInviteeCap              *float64                          `json:"affiliate_rebate_per_invitee_cap"`
 	AffiliateRegistrationSeatCost             *float64                          `json:"affiliate_registration_seat_cost"`
 	AdminRechargeRebateEnabled                *bool                             `json:"affiliate_admin_recharge_enabled"`
+	AffiliateWithdrawEnabled                  *bool                             `json:"affiliate_withdraw_enabled"`
+	AffiliateWithdrawMinAmount                *float64                          `json:"affiliate_withdraw_min_amount"`
 	DefaultUserRPMLimit                       int                               `json:"default_user_rpm_limit"`
 	DefaultSubscriptions                      []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
 	AuthSourceDefaultEmailBalance             *float64                          `json:"auth_source_default_email_balance"`
@@ -341,12 +343,15 @@ type UpdateSettingsRequest struct {
 	PaymentAlipayMobilePrecreateDeepLink *bool `json:"payment_alipay_mobile_precreate_deep_link"`
 
 	// Channel Monitor feature switch
-	ChannelMonitorEnabled                *bool   `json:"channel_monitor_enabled"`
-	ChannelMonitorMode                   *string `json:"channel_monitor_mode"`
-	ChannelMonitorDefaultIntervalSeconds *int    `json:"channel_monitor_default_interval_seconds"`
-	ChannelMonitorHideThroughput         *bool   `json:"channel_monitor_hide_throughput"`
-	ChannelMonitorShowQuota              *bool   `json:"channel_monitor_show_quota"`
-	ChannelMonitorHideUserRanking        *bool   `json:"channel_monitor_hide_user_ranking"`
+	ChannelMonitorEnabled                 *bool   `json:"channel_monitor_enabled"`
+	ChannelMonitorMode                    *string `json:"channel_monitor_mode"`
+	ChannelMonitorDefaultIntervalSeconds  *int    `json:"channel_monitor_default_interval_seconds"`
+	ChannelMonitorHideThroughput          *bool   `json:"channel_monitor_hide_throughput"`
+	ChannelMonitorShowQuota               *bool   `json:"channel_monitor_show_quota"`
+	ChannelMonitorHideUserRanking         *bool   `json:"channel_monitor_hide_user_ranking"`
+	ChannelMonitorDetailViewEnabled       *bool   `json:"channel_monitor_detail_view_enabled"`
+	ChannelMonitorProbeMaxRetries         *int    `json:"channel_monitor_probe_max_retries"`
+	ChannelMonitorProbeRetryBudgetSeconds *int    `json:"channel_monitor_probe_retry_budget_seconds"`
 
 	// Auto upstream model sync (admin settings)
 	AutoModelSyncIntervalHours *int `json:"auto_model_sync_interval_hours"`
@@ -637,6 +642,17 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	adminRechargeRebateEnabled := previousSettings.AdminRechargeRebateEnabled
 	if req.AdminRechargeRebateEnabled != nil {
 		adminRechargeRebateEnabled = *req.AdminRechargeRebateEnabled
+	}
+	affiliateWithdrawEnabled := previousSettings.AffiliateWithdrawEnabled
+	if req.AffiliateWithdrawEnabled != nil {
+		affiliateWithdrawEnabled = *req.AffiliateWithdrawEnabled
+	}
+	affiliateWithdrawMinAmount := previousSettings.AffiliateWithdrawMinAmount
+	if req.AffiliateWithdrawMinAmount != nil {
+		affiliateWithdrawMinAmount = *req.AffiliateWithdrawMinAmount
+	}
+	if affiliateWithdrawMinAmount < 0 {
+		affiliateWithdrawMinAmount = service.AffiliateWithdrawMinAmountDefault
 	}
 	// 通用表格配置：兼容旧客户端未传字段时保留当前值。
 	if req.TableDefaultPageSize <= 0 {
@@ -1717,6 +1733,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebatePerInviteeCap:           affiliateRebatePerInviteeCap,
 		AffiliateRegistrationSeatCost:          affiliateRegistrationSeatCost,
 		AdminRechargeRebateEnabled:             adminRechargeRebateEnabled,
+		AffiliateWithdrawEnabled:               affiliateWithdrawEnabled,
+		AffiliateWithdrawMinAmount:             affiliateWithdrawMinAmount,
 		DefaultUserRPMLimit:                    req.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    req.EnableModelFallback,
@@ -2014,6 +2032,24 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.ChannelMonitorHideUserRanking
 			}
 			return previousSettings.ChannelMonitorHideUserRanking
+		}(),
+		ChannelMonitorDetailViewEnabled: func() bool {
+			if req.ChannelMonitorDetailViewEnabled != nil {
+				return *req.ChannelMonitorDetailViewEnabled
+			}
+			return previousSettings.ChannelMonitorDetailViewEnabled
+		}(),
+		ChannelMonitorProbeMaxRetries: func() int {
+			if req.ChannelMonitorProbeMaxRetries != nil {
+				return *req.ChannelMonitorProbeMaxRetries
+			}
+			return previousSettings.ChannelMonitorProbeMaxRetries
+		}(),
+		ChannelMonitorProbeRetryBudgetSeconds: func() int {
+			if req.ChannelMonitorProbeRetryBudgetSeconds != nil {
+				return *req.ChannelMonitorProbeRetryBudgetSeconds
+			}
+			return previousSettings.ChannelMonitorProbeRetryBudgetSeconds
 		}(),
 		AutoModelSyncIntervalHours: func() int {
 			if req.AutoModelSyncIntervalHours != nil {
@@ -2404,6 +2440,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebatePerInviteeCap:                           updatedSettings.AffiliateRebatePerInviteeCap,
 		AffiliateRegistrationSeatCost:                          updatedSettings.AffiliateRegistrationSeatCost,
 		AdminRechargeRebateEnabled:                             updatedSettings.AdminRechargeRebateEnabled,
+		AffiliateWithdrawEnabled:                               updatedSettings.AffiliateWithdrawEnabled,
+		AffiliateWithdrawMinAmount:                             updatedSettings.AffiliateWithdrawMinAmount,
 		DefaultUserRPMLimit:                                    updatedSettings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                                   updatedDefaultSubscriptions,
 		EnableModelFallback:                                    updatedSettings.EnableModelFallback,
@@ -2509,12 +2547,15 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentAlipayForceQRCode:                               updatedPaymentCfg.AlipayForceQRCode,
 		PaymentAlipayMobilePrecreateDeepLink:                   updatedPaymentCfg.AlipayMobilePrecreateDeepLink,
 
-		ChannelMonitorEnabled:                updatedSettings.ChannelMonitorEnabled,
-		ChannelMonitorMode:                   updatedSettings.ChannelMonitorMode,
-		ChannelMonitorDefaultIntervalSeconds: updatedSettings.ChannelMonitorDefaultIntervalSeconds,
-		ChannelMonitorHideThroughput:         updatedSettings.ChannelMonitorHideThroughput,
-		ChannelMonitorShowQuota:              updatedSettings.ChannelMonitorShowQuota,
-		ChannelMonitorHideUserRanking:        updatedSettings.ChannelMonitorHideUserRanking,
+		ChannelMonitorEnabled:                 updatedSettings.ChannelMonitorEnabled,
+		ChannelMonitorMode:                    updatedSettings.ChannelMonitorMode,
+		ChannelMonitorDefaultIntervalSeconds:  updatedSettings.ChannelMonitorDefaultIntervalSeconds,
+		ChannelMonitorHideThroughput:          updatedSettings.ChannelMonitorHideThroughput,
+		ChannelMonitorShowQuota:               updatedSettings.ChannelMonitorShowQuota,
+		ChannelMonitorHideUserRanking:         updatedSettings.ChannelMonitorHideUserRanking,
+		ChannelMonitorDetailViewEnabled:       updatedSettings.ChannelMonitorDetailViewEnabled,
+		ChannelMonitorProbeMaxRetries:         updatedSettings.ChannelMonitorProbeMaxRetries,
+		ChannelMonitorProbeRetryBudgetSeconds: updatedSettings.ChannelMonitorProbeRetryBudgetSeconds,
 
 		AutoModelSyncIntervalHours: updatedSettings.AutoModelSyncIntervalHours,
 

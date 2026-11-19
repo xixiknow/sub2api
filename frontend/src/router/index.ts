@@ -621,6 +621,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/iq-tests',
+    name: 'AdminIQTests',
+    component: () => import('@/views/admin/IQTestBankView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'IQ Test',
+      titleKey: 'admin.iqTest.bank.title',
+      descriptionKey: 'admin.iqTest.bank.description'
+    }
+  },
+  {
     path: '/admin/marketing-email',
     name: 'AdminMarketingEmail',
     component: () => import('@/views/admin/MarketingEmailView.vue'),
@@ -756,6 +768,18 @@ const routes: RouteRecordRaw[] = [
       title: 'Affiliate Transfer Records',
       titleKey: 'nav.affiliateTransferRecords',
       descriptionKey: 'admin.affiliates.transfersDescription'
+    }
+  },
+  {
+    path: '/admin/affiliates/withdrawals',
+    name: 'AdminAffiliateWithdrawals',
+    component: () => import('@/views/admin/affiliates/AdminAffiliateWithdrawalsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Affiliate Withdrawal Review',
+      titleKey: 'nav.affiliateWithdrawals',
+      descriptionKey: 'admin.affiliates.withdrawalsDescription'
     }
   },
 

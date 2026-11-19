@@ -37,6 +37,15 @@ export default {
           hideUserRanking: 'Hide user ranking from users',
           hideUserRankingHint:
             'When on, the user Channel Monitor V2 page hides the user ranking tab and the user API returns no ranking rows. Admins still see the ranking.',
+          detailViewEnabled: 'Allow users to open the detail view',
+          detailViewEnabledHint:
+            'The channel status page shows status cards by default. When on, users can switch to the detail view (overview KPIs, health matrix, model/error breakdown). Admins can always switch.',
+          probeMaxRetries: 'Max probe retries',
+          probeMaxRetriesHint:
+            'When a model probe is not healthy (slow / wrong answer / error), retry on another account with the poor one excluded; single-account groups retry the same account. 0 disables retries. Range 0 – 5.',
+          probeRetryBudget: 'Probe time budget (seconds)',
+          probeRetryBudgetHint:
+            'Total time cap for all retry attempts of one model; once exceeded the best result so far is kept. Range 30 – 300 seconds, keep it below the check interval.',
         },
         availableChannels: {
           title: 'Available Channels',
@@ -124,6 +133,10 @@ export default {
           perInviteeCapDesc: 'Maximum total rebate from a single invitee. 0 = no limit.',
           registrationSeatCost: 'Registration Seat Cost',
           registrationSeatCostDesc: 'Balance deducted when a user purchases one registration invite seat. Supports 0 for free seats.',
+          withdrawEnabled: 'Allow Alipay Withdrawals',
+          withdrawEnabledHint: 'Users can submit Alipay withdrawal requests (account + payment QR code); admins pay manually from Affiliate → Withdrawal Review. When off, only transfer to balance is available.',
+          withdrawMinAmount: 'Minimum Withdrawal Amount',
+          withdrawMinAmountDesc: 'Each withdrawal must be at least this amount. 0 = no minimum. Each user can have only one pending request at a time.',
           customUsers: {
             title: 'Per-User Overrides',
             description: 'Set a custom invite code or exclusive rebate rate for specific users. Lists only users that have an override applied.',

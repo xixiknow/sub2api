@@ -392,6 +392,25 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
 	updates[SettingKeyAffiliateAdminRechargeEnabled] = strconv.FormatBool(settings.AdminRechargeRebateEnabled)
+	if settings.AffiliateLevelRates != nil {
+		levelRates := defaultAffiliateLevelRates()
+		for i := 0; i < len(settings.AffiliateLevelRates) && i < AffiliateLevelsMax; i++ {
+			levelRates[i] = clampAffiliateRebateRate(settings.AffiliateLevelRates[i])
+		}
+		settings.AffiliateLevelRates = levelRates
+		levelRatesJSON, err := json.Marshal(levelRates)
+		if err != nil {
+			return nil, fmt.Errorf("marshal affiliate level rates: %w", err)
+		}
+		updates[SettingKeyAffiliateLevelRates] = string(levelRatesJSON)
+	}
+	if settings.AffiliateRegistrationSeatCost < 0 || math.IsNaN(settings.AffiliateRegistrationSeatCost) || math.IsInf(settings.AffiliateRegistrationSeatCost, 0) {
+		settings.AffiliateRegistrationSeatCost = AffiliateRegistrationSeatCostDefault
+	}
+	updates[SettingKeyAffiliateRegistrationSeatCost] = strconv.FormatFloat(settings.AffiliateRegistrationSeatCost, 'f', 8, 64)
+	updates[SettingKeyAffiliateWithdrawEnabled] = strconv.FormatBool(settings.AffiliateWithdrawEnabled)
+	settings.AffiliateWithdrawMinAmount = sanitizeAffiliateWithdrawMinAmount(settings.AffiliateWithdrawMinAmount)
+	updates[SettingKeyAffiliateWithdrawMinAmount] = strconv.FormatFloat(settings.AffiliateWithdrawMinAmount, 'f', 8, 64)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -427,6 +446,9 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyChannelMonitorHideThroughput] = strconv.FormatBool(settings.ChannelMonitorHideThroughput)
 	updates[SettingKeyChannelMonitorShowQuota] = strconv.FormatBool(settings.ChannelMonitorShowQuota)
 	updates[SettingKeyChannelMonitorHideUserRanking] = strconv.FormatBool(settings.ChannelMonitorHideUserRanking)
+	updates[SettingKeyChannelMonitorDetailViewEnabled] = strconv.FormatBool(settings.ChannelMonitorDetailViewEnabled)
+	updates[SettingKeyChannelMonitorProbeMaxRetries] = strconv.Itoa(normalizeMonitorProbeRetryPolicy(settings.ChannelMonitorProbeMaxRetries, defaultMonitorProbeBudgetSeconds).MaxRetries)
+	updates[SettingKeyChannelMonitorProbeRetryBudgetSeconds] = strconv.Itoa(parseMonitorProbeBudgetSeconds(strconv.Itoa(settings.ChannelMonitorProbeRetryBudgetSeconds)))
 
 	// Auto upstream model sync interval (bounded [1,720] hours)
 	updates[SettingKeyAutoModelSyncIntervalHours] = strconv.Itoa(clampAutoModelSyncIntervalHoursInt(
