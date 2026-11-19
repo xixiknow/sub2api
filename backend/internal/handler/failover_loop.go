@@ -204,6 +204,10 @@ func (s *FailoverState) HandleFailoverError(
 		return FailoverCanceled
 	}
 	s.LastFailoverErr = failoverErr
+	if failoverErr != nil && !failoverErr.RequestScopedTransient {
+		// fork 扩展：账号原因的上游失败计入健康分
+		service.ReportAccountHealth(accountID, false, nil)
+	}
 	if failoverErr == nil || !failoverErr.ShouldRetryNextAccount() {
 		return FailoverExhausted
 	}

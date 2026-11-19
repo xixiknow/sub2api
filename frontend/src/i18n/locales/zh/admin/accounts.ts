@@ -94,6 +94,14 @@ export default {
       schedulableEnabled: '调度已开启',
       schedulableDisabled: '调度已关闭',
       failedToToggleSchedulable: '切换调度状态失败',
+      health: {
+        title: '健康分',
+        hint: '同优先级内按健康分加权分配流量（实时错误率、首字延迟、智力测试惩罚）',
+        errorRate: '错误率',
+        ttft: '首字延迟',
+        samples: '样本数',
+        penalty: '惩罚',
+      },
       priorityQuick: {
         raise: '提高优先级（数值 -1）',
         lower: '降低优先级（数值 +1）',

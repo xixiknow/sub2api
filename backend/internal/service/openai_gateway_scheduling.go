@@ -1131,6 +1131,11 @@ func (s *OpenAIGatewayService) isBetterAccount(candidate, current *Account) bool
 
 // SelectAccountWithLoadAwareness selects an account with load-awareness and wait plan.
 func (s *OpenAIGatewayService) SelectAccountWithLoadAwareness(ctx context.Context, groupID *int64, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}) (*AccountSelectionResult, error) {
+	if st := probeSelectionStateFrom(ctx); st != nil { // fork: 渠道监控探测选号提示
+		return selectWithProbeHints(ctx, st, s.accountRepo, groupID, excludedIDs, func(ctx context.Context, excluded map[int64]struct{}) (*AccountSelectionResult, error) {
+			return s.SelectAccountWithLoadAwareness(ctx, groupID, sessionHash, requestedModel, excluded)
+		})
+	}
 	ctx = s.withOpenAIQuotaAutoPauseContext(ctx)
 	ctx = s.withOpenAIGroupPrivacyRequirement(ctx, groupID)
 	// 分组利润控制：legacy 公共入口同样装门，保证不经
@@ -1362,6 +1367,10 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 			}
 		})
 		shuffleWithinSortGroups(available)
+		if !s.schedulingConfig().HealthAwareDisabled {
+			// fork 扩展：同 priority 段内按健康分加权重排
+			reorderByHealthWithinPriority(available)
+		}
 		if rateOrder.enabled {
 			sort.SliceStable(available, func(i, j int) bool {
 				return rateOrder.compare(available[i].account, available[j].account) < 0

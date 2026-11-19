@@ -585,6 +585,27 @@ export async function getBatchTodayStats(accountIds: number[]): Promise<BatchTod
   return data
 }
 
+export interface AccountHealthSnapshot {
+  account_id: number
+  score: number
+  error_rate: number
+  ttft_ms?: number
+  samples: number
+  penalty_factor: number
+  penalty_reason?: string
+  penalty_until?: string
+}
+
+/**
+ * 批量获取账号实时健康分（进程内 EWMA，多实例时仅反映当前实例）
+ */
+export async function getBatchHealth(accountIds: number[]): Promise<Record<string, AccountHealthSnapshot>> {
+  const { data } = await apiClient.post<{ health: Record<string, AccountHealthSnapshot> }>('/admin/accounts/health/batch', {
+    account_ids: accountIds
+  })
+  return data.health ?? {}
+}
+
 /**
  * Set account schedulable status
  * @param id - Account ID
@@ -1156,6 +1177,7 @@ export const accountsAPI = {
   getBatchUsage,
   getTodayStats,
   getBatchTodayStats,
+  getBatchHealth,
   clearRateLimit,
   recoverState,
   resetAccountQuota,

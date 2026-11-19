@@ -96,6 +96,14 @@ export default {
       schedulableEnabled: 'Scheduling enabled',
       schedulableDisabled: 'Scheduling disabled',
       failedToToggleSchedulable: 'Failed to toggle scheduling status',
+      health: {
+        title: 'Health',
+        hint: 'Within the same priority, traffic is weighted by health (live error rate, TTFT, IQ test penalty)',
+        errorRate: 'Error rate',
+        ttft: 'TTFT',
+        samples: 'Samples',
+        penalty: 'Penalty',
+      },
       priorityQuick: {
         raise: 'Raise priority (value -1)',
         lower: 'Lower priority (value +1)',

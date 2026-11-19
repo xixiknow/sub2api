@@ -311,6 +311,7 @@
           <template #cell-status="{ row }">
             <div class="flex items-center gap-1.5">
               <AccountStatusIndicator :account="row" @show-temp-unsched="handleShowTempUnsched" />
+              <AccountHealthBadge :health="healthByAccountId[String(row.id)] ?? null" />
             </div>
           </template>
           <template #cell-schedulable="{ row }">
@@ -484,7 +485,8 @@
     <AccountTestModal :show="showTest" :account="testingAcc" @close="closeTestModal" />
     <AccountStatsModal :show="showStats" :account="statsAcc" @close="closeStatsModal" />
     <ScheduledTestsPanel :show="showSchedulePanel" :account-id="scheduleAcc?.id ?? null" :model-options="scheduleModelOptions" @close="closeSchedulePanel" />
-    <AccountActionMenu :show="menu.show" :account="menu.acc" :anchor-rect="menu.anchorRect" @close="menu.show = false" @test="handleTest" @stats="handleViewStats" @schedule="handleSchedule" @duplicate="handleDuplicateAccount" @reauth="handleReAuth" @refresh-token="handleRefresh" @recover-state="handleRecoverState" @reset-quota="handleResetQuota" @set-privacy="handleSetPrivacy" @create-spark-shadow="handleCreateSparkShadow" />
+    <IQTestModal :show="showIQTest" :account="iqTestAcc" :model-options="iqModelOptions" @close="closeIQTest" />
+    <AccountActionMenu :show="menu.show" :account="menu.acc" :anchor-rect="menu.anchorRect" @close="menu.show = false" @test="handleTest" @stats="handleViewStats" @schedule="handleSchedule" @iq-test="handleIQTest" @duplicate="handleDuplicateAccount" @reauth="handleReAuth" @refresh-token="handleRefresh" @recover-state="handleRecoverState" @reset-quota="handleResetQuota" @set-privacy="handleSetPrivacy" @create-spark-shadow="handleCreateSparkShadow" />
     <SyncFromCrsModal :show="showSync" @close="showSync = false" @synced="reload" />
     <ImportDataModal :show="showImportData" @close="showImportData = false" @imported="handleDataImported" />
     <BulkEditAccountModal
@@ -542,8 +544,11 @@ import ReAuthAccountModal from '@/components/admin/account/ReAuthAccountModal.vu
 import AccountTestModal from '@/components/admin/account/AccountTestModal.vue'
 import AccountStatsModal from '@/components/admin/account/AccountStatsModal.vue'
 import ScheduledTestsPanel from '@/components/admin/account/ScheduledTestsPanel.vue'
+import IQTestModal from '@/components/admin/account/IQTestModal.vue'
 import type { SelectOption } from '@/components/common/Select.vue'
 import AccountStatusIndicator from '@/components/account/AccountStatusIndicator.vue'
+import AccountHealthBadge from '@/components/admin/account/AccountHealthBadge.vue'
+import type { AccountHealthSnapshot } from '@/api/admin/accounts'
 import AccountUsageCell from '@/components/account/AccountUsageCell.vue'
 import AccountTodayStatsCell from '@/components/account/AccountTodayStatsCell.vue'
 import AccountGroupsCell from '@/components/account/AccountGroupsCell.vue'
@@ -804,6 +809,18 @@ const todayStatsByAccountId = ref<Record<string, WindowStats>>({})
 const todayStatsLoading = ref(false)
 const todayStatsError = ref<string | null>(null)
 const todayStatsReqSeq = ref(0)
+const healthByAccountId = ref<Record<string, AccountHealthSnapshot>>({})
+const refreshHealthBatch = async (accountIDs: number[]) => {
+  if (accountIDs.length === 0) {
+    healthByAccountId.value = {}
+    return
+  }
+  try {
+    healthByAccountId.value = await adminAPI.accounts.getBatchHealth(accountIDs)
+  } catch (error) {
+    console.error('Failed to load account health:', error)
+  }
+}
 const pendingTodayStatsRefresh = ref(false)
 const usageManualRefreshToken = ref(0)
 
@@ -977,6 +994,7 @@ const refreshTodayStatsBatch = async () => {
   }
 
   const accountIDs = accounts.value.map(account => account.id)
+  void refreshHealthBatch(accountIDs)
   const reqSeq = ++todayStatsReqSeq.value
   if (accountIDs.length === 0) {
     todayStatsByAccountId.value = {}
@@ -2447,6 +2465,21 @@ const handleSchedule = async (a: Account) => {
   }
 }
 const closeSchedulePanel = () => { showSchedulePanel.value = false; scheduleAcc.value = null; scheduleModelOptions.value = [] }
+const showIQTest = ref(false)
+const iqTestAcc = ref<Account | null>(null)
+const iqModelOptions = ref<SelectOption[]>([])
+const handleIQTest = async (a: Account) => {
+  iqTestAcc.value = a
+  iqModelOptions.value = []
+  showIQTest.value = true
+  try {
+    const models = await adminAPI.accounts.getAvailableModels(a.id)
+    iqModelOptions.value = models.map((m: ClaudeModel) => ({ value: m.id, label: m.display_name || m.id }))
+  } catch {
+    iqModelOptions.value = []
+  }
+}
+const closeIQTest = () => { showIQTest.value = false; iqTestAcc.value = null }
 const handleReAuth = (a: Account) => { reAuthAcc.value = a; showReAuth.value = true }
 const duplicatingAccountIDs = new Set<number>()
 const handleDuplicateAccount = async (a: Account) => {

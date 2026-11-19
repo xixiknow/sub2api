@@ -658,6 +658,10 @@ func writeUsageLogBestEffort(ctx context.Context, repo UsageLogRepository, usage
 
 // RecordUsage 记录使用量并扣费（或更新订阅用量）
 func (s *GatewayService) RecordUsage(ctx context.Context, input *RecordUsageInput) error {
+	if input != nil && input.Account != nil && input.Result != nil {
+		// fork 扩展：成功转发计入账号健康分（错误率 / 首字延迟）
+		ReportAccountHealth(input.Account.ID, true, input.Result.FirstTokenMs)
+	}
 	return s.recordUsageCore(ctx, &recordUsageCoreInput{
 		Result:             input.Result,
 		APIKey:             input.APIKey,

@@ -98,6 +98,9 @@ func (s *GatewayService) SelectAccountForModelWithExclusions(ctx context.Context
 // metadataUserID: 用于客户端亲和调度，从中提取客户端 ID
 // sub2apiUserID: 系统用户 ID，用于二维亲和调度
 func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, groupID *int64, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}, metadataUserID string, sub2apiUserID int64) (*AccountSelectionResult, error) {
+	if st := probeSelectionStateFrom(ctx); st != nil { // fork: 渠道监控探测选号提示
+		return s.selectAccountWithLoadAwarenessProbe(ctx, st, groupID, sessionHash, requestedModel, excludedIDs, metadataUserID, sub2apiUserID)
+	}
 	// 调试日志：记录调度入口参数
 	excludedIDsList := make([]int64, 0, len(excludedIDs))
 	for id := range excludedIDs {
@@ -477,6 +480,9 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 					}
 				})
 				shuffleWithinSortGroups(routingAvailable)
+				if !cfg.HealthAwareDisabled {
+					reorderByHealthWithinPriority(routingAvailable)
+				}
 
 				// 4. 尝试获取槽位
 				for _, item := range routingAvailable {
@@ -743,10 +749,15 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 			if cfg.PreferSoonestReset {
 				candidates = filterBySoonestReset(candidates)
 			}
-			// 3. 取负载率最低的集合
-			candidates = filterByMinLoadRate(candidates)
-			// 4. LRU 选择最久未用的账号
-			selected := selectByLRU(candidates, preferOAuth)
+			// 3+4. 健康分加权（fork 扩展）；健康分无差异时回落到「负载率最低 → LRU」
+			var selected *accountWithLoad
+			if !cfg.HealthAwareDisabled {
+				selected = selectByHealthWeighted(candidates)
+			}
+			if selected == nil {
+				candidates = filterByMinLoadRate(candidates)
+				selected = selectByLRU(candidates, preferOAuth)
+			}
 			if selected == nil {
 				break
 			}
