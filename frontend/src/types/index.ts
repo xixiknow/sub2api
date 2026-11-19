@@ -209,11 +209,49 @@ export interface UserAffiliateDetail {
   level_rebates: AffiliateLevelRebateSummary[]
   level_details: AffiliateLevelDetail[]
   invitees: AffiliateInvitee[]
+  /** 支付宝提现是否开放（返利总开关与提现开关同时开启） */
+  withdraw_enabled?: boolean
+  /** 提现最低金额，0 表示不限 */
+  withdraw_min_amount?: number
+  /** 当前待审核的提现申请 */
+  pending_withdraw?: AffiliatePendingWithdraw | null
 }
 
 export interface AffiliateTransferResponse {
   transferred_quota: number
   balance: number
+}
+
+export type AffiliateWithdrawStatus = 'pending' | 'paid' | 'rejected' | 'cancelled'
+
+export interface AffiliatePendingWithdraw {
+  id: number
+  amount: number
+  created_at: string
+}
+
+/** 支付宝提现申请。qr_image 只在管理端详情中返回。 */
+export interface AffiliateWithdrawRequest {
+  id: number
+  user_id: number
+  user_email?: string
+  username?: string
+  amount: number
+  alipay_account: string
+  qr_image?: string
+  status: AffiliateWithdrawStatus
+  admin_note?: string
+  reviewed_by?: number | null
+  reviewed_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SubmitAffiliateWithdrawPayload {
+  amount: number
+  alipay_account: string
+  /** data:image/(png|jpeg|webp);base64,... */
+  qr_image: string
 }
 
 export interface AffiliateRegistrationSeatPurchaseResponse {
@@ -332,6 +370,7 @@ export interface PublicSettings {
   channel_monitor_show_quota?: boolean
   /** When true, user monitor hides the user ranking tab and /users payload. */
   channel_monitor_hide_user_ranking?: boolean
+  channel_monitor_detail_view_enabled?: boolean
   available_channels_enabled: boolean
   /** When false, the whole user-facing subscription surface is hidden. Default true. */
   subscription_enabled: boolean

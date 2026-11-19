@@ -94,7 +94,7 @@
           </template>
           <!-- rebates 与 transfers 共用 action 列：rebates 展示返佣动作，transfers 展示流出类型 -->
           <template v-if="props.type === 'transfers'" #cell-action="{ row }">
-            <span :class="['badge whitespace-nowrap', row.action === 'withdraw' ? 'badge-warning' : 'badge-primary']">
+            <span :class="['badge whitespace-nowrap', outflowTypeClass(row.action)]">
               {{ outflowTypeLabel(row.action) }}
             </span>
           </template>
@@ -371,9 +371,26 @@ function handleWithdrawSuccess() {
 }
 
 function outflowTypeLabel(action: string | null | undefined): string {
-  return action === 'withdraw'
-    ? t('admin.affiliates.outflowTypes.withdraw')
-    : t('admin.affiliates.outflowTypes.transfer')
+  switch (action) {
+    case 'withdraw':
+    case 'withdraw_request':
+    case 'withdraw_reverse':
+      return t(`admin.affiliates.outflowTypes.${action}`)
+    default:
+      return t('admin.affiliates.outflowTypes.transfer')
+  }
+}
+
+function outflowTypeClass(action: string | null | undefined): string {
+  switch (action) {
+    case 'withdraw':
+    case 'withdraw_request':
+      return 'badge-warning'
+    case 'withdraw_reverse':
+      return 'badge-gray'
+    default:
+      return 'badge-primary'
+  }
 }
 
 function formatAmount(value: number | null | undefined): string {

@@ -161,6 +161,45 @@ func (s *SettingService) GetAffiliateLevelRates(ctx context.Context) []float64 {
 	return parseAffiliateLevelRates(raw)
 }
 
+// IsAffiliateWithdrawEnabled 返回返利支付宝提现开关。
+func (s *SettingService) IsAffiliateWithdrawEnabled(ctx context.Context) bool {
+	if s == nil || s.settingRepo == nil {
+		return AffiliateWithdrawEnabledDefault
+	}
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateWithdrawEnabled)
+	if err != nil {
+		return AffiliateWithdrawEnabledDefault
+	}
+	return strings.TrimSpace(raw) == "true"
+}
+
+// GetAffiliateWithdrawMinAmount 返回返利提现最低金额（0 表示不限）。
+func (s *SettingService) GetAffiliateWithdrawMinAmount(ctx context.Context) float64 {
+	if s == nil || s.settingRepo == nil {
+		return AffiliateWithdrawMinAmountDefault
+	}
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateWithdrawMinAmount)
+	if err != nil {
+		return AffiliateWithdrawMinAmountDefault
+	}
+	return parseAffiliateWithdrawMinAmount(raw)
+}
+
+func parseAffiliateWithdrawMinAmount(raw string) float64 {
+	v, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+	if err != nil || v < 0 || math.IsNaN(v) || math.IsInf(v, 0) {
+		return AffiliateWithdrawMinAmountDefault
+	}
+	return v
+}
+
+func sanitizeAffiliateWithdrawMinAmount(v float64) float64 {
+	if v < 0 || math.IsNaN(v) || math.IsInf(v, 0) {
+		return AffiliateWithdrawMinAmountDefault
+	}
+	return roundTo(v, 8)
+}
+
 func (s *SettingService) GetAffiliateRegistrationSeatCost(ctx context.Context) float64 {
 	if s == nil || s.settingRepo == nil {
 		return AffiliateRegistrationSeatCostDefault

@@ -66,7 +66,7 @@ func TestAffiliateTransferRecordsQueryIncludesOfflineWithdrawals(t *testing.T) {
 	require.NoError(t, err)
 	content := string(source)
 
-	require.Contains(t, content, "WHERE ual.action IN ('transfer', 'withdraw')")
+	require.Contains(t, content, "WHERE ual.action IN ('transfer', 'withdraw', 'withdraw_request', 'withdraw_reverse')")
 }
 
 // TestAffiliateWithdrawClaimsOperationBeforeDeducting 锁定线下提现的幂等形态：

@@ -3,15 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AffiliateView from '../AffiliateView.vue'
 
-const { copyToClipboard, getAffiliateDetail } = vi.hoisted(() => ({
+const { copyToClipboard, getAffiliateDetail, listAffiliateWithdraws } = vi.hoisted(() => ({
   copyToClipboard: vi.fn(),
   getAffiliateDetail: vi.fn(),
+  listAffiliateWithdraws: vi.fn(),
 }))
 
 vi.mock('@/api/user', () => ({
   default: {
     getAffiliateDetail,
+    listAffiliateWithdraws,
     transferAffiliateQuota: vi.fn(),
+    submitAffiliateWithdraw: vi.fn(),
+    cancelAffiliateWithdraw: vi.fn(),
   },
 }))
 
@@ -48,6 +52,7 @@ describe('AffiliateView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     copyToClipboard.mockResolvedValue(true)
+    listAffiliateWithdraws.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 10, pages: 0 })
     getAffiliateDetail.mockResolvedValue({
       user_id: 1,
       aff_code: affiliateCode,
@@ -112,5 +117,68 @@ describe('AffiliateView', () => {
       `${window.location.origin}/register?aff=${encodeURIComponent(affiliateCode)}`,
       'affiliate.linkCopied',
     )
+  })
+
+  const mountView = () => mount(AffiliateView, {
+    global: {
+      stubs: {
+        AppLayout: { template: '<main><slot /></main>' },
+        Icon: true,
+        Teleport: true,
+      },
+    },
+  })
+
+  const baseDetail = {
+    user_id: 1,
+    aff_code: 'CODE1234',
+    inviter_id: null,
+    aff_count: 3,
+    aff_quota: 80,
+    aff_frozen_quota: 5,
+    aff_history_quota: 120,
+    effective_rebate_rate_percent: 8,
+    invitees: [],
+  }
+
+  it('enables Alipay withdraw when allowed and shows history', async () => {
+    getAffiliateDetail.mockResolvedValue({ ...baseDetail, withdraw_enabled: true, withdraw_min_amount: 50 })
+    const wrapper = mountView()
+    await flushPromises()
+
+    const withdraw = wrapper.get('[data-test="assets-withdraw"]')
+    expect(withdraw.attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-test="assets-withdraw-hint"]').exists()).toBe(false)
+    expect(listAffiliateWithdraws).toHaveBeenCalledWith(1, 10)
+  })
+
+  it('disables withdraw below the minimum amount', async () => {
+    getAffiliateDetail.mockResolvedValue({ ...baseDetail, aff_quota: 20, withdraw_enabled: true, withdraw_min_amount: 50 })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="assets-withdraw"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="assets-withdraw-hint"]').text()).toBe('affiliate.assets.withdrawMinHint')
+  })
+
+  it('disables withdraw while a request is pending or the feature is off', async () => {
+    getAffiliateDetail.mockResolvedValue({
+      ...baseDetail,
+      withdraw_enabled: true,
+      withdraw_min_amount: 0,
+      pending_withdraw: { id: 7, amount: 60, created_at: '2026-11-19T10:00:00Z' },
+    })
+    const pending = mountView()
+    await flushPromises()
+    expect(pending.get('[data-test="assets-withdraw"]').attributes('disabled')).toBeDefined()
+    expect(pending.find('[data-test="assets-pending"]').exists()).toBe(true)
+
+    getAffiliateDetail.mockResolvedValue({ ...baseDetail, withdraw_enabled: false })
+    listAffiliateWithdraws.mockClear()
+    const off = mountView()
+    await flushPromises()
+    expect(off.get('[data-test="assets-withdraw"]').attributes('disabled')).toBeDefined()
+    expect(off.get('[data-test="assets-withdraw-hint"]').text()).toBe('affiliate.assets.withdrawDisabled')
+    expect(listAffiliateWithdraws).not.toHaveBeenCalled()
   })
 })

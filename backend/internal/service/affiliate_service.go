@@ -159,6 +159,10 @@ type AffiliateDetail struct {
 	LevelRebates               []AffiliateLevelRebateSummary `json:"level_rebates"`
 	LevelDetails               []AffiliateLevelDetail        `json:"level_details"`
 	Invitees                   []AffiliateInvitee            `json:"invitees"`
+	// 支付宝提现：开关、最低金额与当前待审核申请（无则为 nil）。
+	WithdrawEnabled   bool                      `json:"withdraw_enabled"`
+	WithdrawMinAmount float64                   `json:"withdraw_min_amount"`
+	PendingWithdraw   *AffiliatePendingWithdraw `json:"pending_withdraw,omitempty"`
 }
 
 type AffiliateLevelRebateSummary struct {
@@ -337,6 +341,8 @@ type AffiliateService struct {
 	settingService       *SettingService
 	authCacheInvalidator APIKeyAuthCacheInvalidator
 	billingCacheService  *BillingCacheService
+	// withdrawRepo 为空时回退为对 repo 做类型断言（生产环境 affiliateRepository 同时实现两者）。
+	withdrawRepo AffiliateWithdrawRequestRepository
 }
 
 func NewAffiliateService(repo AffiliateRepository, settingService *SettingService, authCacheInvalidator APIKeyAuthCacheInvalidator, billingCacheService *BillingCacheService) *AffiliateService {
@@ -411,6 +417,9 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 		LevelRebates:               levelRebates,
 		LevelDetails:               levelDetails,
 		Invitees:                   invitees,
+		WithdrawEnabled:            s.IsWithdrawEnabled(ctx),
+		WithdrawMinAmount:          s.withdrawMinAmount(ctx),
+		PendingWithdraw:            s.pendingWithdraw(ctx, userID),
 	}, nil
 }
 

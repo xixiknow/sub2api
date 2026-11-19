@@ -1472,7 +1472,7 @@ func (r *affiliateRepository) ListAffiliateTransferRecords(ctx context.Context, 
 	baseJoin := `
 FROM user_affiliate_ledger ual
 JOIN users u ON u.id = ual.user_id
-WHERE ual.action IN ('transfer', 'withdraw')`
+WHERE ual.action IN ('transfer', 'withdraw', 'withdraw_request', 'withdraw_reverse')`
 	if where != "" {
 		where = strings.Replace(where, "WHERE ", " AND ", 1)
 	}

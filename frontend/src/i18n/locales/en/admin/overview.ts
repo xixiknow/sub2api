@@ -429,10 +429,56 @@ export default {
       invitesDescription: 'View site-wide inviter and invitee relationships',
       rebatesDescription: 'View every affiliate rebate accrual: hourly spending settlements, plus legacy recharge orders, redeem codes, and admin recharges',
       transfersDescription: 'View affiliate quota transfers into balance and offline withdrawals',
+      withdrawalsDescription: 'Review Alipay withdrawal requests: pay manually by scanning the QR code or using the account, then mark as paid. Rejecting returns the quota.',
+      withdrawals: {
+        status: 'Status',
+        allStatus: 'All Statuses',
+        searchPlaceholder: 'Email, username, user ID, Alipay account',
+        user: 'User',
+        amount: 'Amount',
+        alipayAccount: 'Alipay Account',
+        createdAt: 'Requested At',
+        reviewedAt: 'Processed At',
+        note: 'Note',
+        actions: 'Actions',
+        view: 'View',
+        detailTitle: 'Withdrawal Request #{id}',
+        qrImage: 'Alipay Payment QR Code',
+        qrMissing: 'Failed to load QR code',
+        copyAccount: 'Copy Account',
+        accountCopied: 'Alipay account copied',
+        copyAmount: 'Copy Amount',
+        amountCopied: 'Amount copied',
+        payHint: 'Scan the QR code with Alipay or transfer {amount} to the account, then click "Mark as Paid".',
+        markPaid: 'Mark as Paid',
+        markPaidTitle: 'Confirm Payment',
+        markPaidMessage: 'Confirm that {amount} has been transferred to {account}? This cannot be undone.',
+        paidNote: 'Note (optional)',
+        paidNotePlaceholder: 'e.g. Alipay transaction number',
+        reject: 'Reject',
+        rejectTitle: 'Reject Withdrawal',
+        rejectMessage: 'After rejection, {amount} will be returned to the user\'s available rebate quota.',
+        rejectReason: 'Reason',
+        rejectReasonPlaceholder: 'Visible to the user, e.g. QR code cannot be recognized',
+        rejectReasonRequired: 'Please enter a rejection reason',
+        paidSuccess: 'Marked as paid',
+        rejectSuccess: 'Rejected; quota returned to the user',
+        empty: 'No withdrawal requests',
+        statuses: {
+          pending: 'Pending',
+          paid: 'Paid',
+          rejected: 'Rejected',
+          cancelled: 'Cancelled'
+        }
+      },
       errors: {
         loadFailed: 'Failed to load affiliate records',
         AFFILIATE_QUOTA_INSUFFICIENT: 'Insufficient available affiliate quota',
-        AFFILIATE_WITHDRAW_AMOUNT_INVALID: 'Invalid withdrawal amount'
+        AFFILIATE_WITHDRAW_AMOUNT_INVALID: 'Invalid withdrawal amount',
+        AFFILIATE_WITHDRAW_NOT_FOUND: 'Withdrawal request not found',
+        AFFILIATE_WITHDRAW_NOT_PENDING: 'This request has already been processed; please refresh',
+        AFFILIATE_WITHDRAW_REASON_REQUIRED: 'Please enter a rejection reason',
+        AFFILIATE_WITHDRAW_NOTE_TOO_LONG: 'Note is too long (max 500 characters)'
       },
       records: {
         search: 'Search',
@@ -472,7 +518,9 @@ export default {
       },
       outflowTypes: {
         transfer: 'To Balance',
-        withdraw: 'Offline Withdrawal'
+        withdraw: 'Offline Withdrawal',
+        withdraw_request: 'Withdrawal Hold',
+        withdraw_reverse: 'Withdrawal Returned'
       },
       withdraw: {
         button: 'Record Offline Withdrawal',

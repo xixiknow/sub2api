@@ -429,10 +429,56 @@ export default {
       invitesDescription: '查看全站邀请关系和被邀请用户累计返利',
       rebatesDescription: '查看每一笔返利入账：消费结算产生的返利，以及历史充值订单、兑换码和管理员充值产生的返利',
       transfersDescription: '查看返利额度转入余额与线下提现的流水',
+      withdrawalsDescription: '审核用户的支付宝提现申请：扫码或按账号人工打款后标记已打款，驳回会退回额度',
+      withdrawals: {
+        status: '状态',
+        allStatus: '全部状态',
+        searchPlaceholder: '邮箱、用户名、用户 ID、支付宝账号',
+        user: '用户',
+        amount: '提现金额',
+        alipayAccount: '支付宝账号',
+        createdAt: '申请时间',
+        reviewedAt: '处理时间',
+        note: '备注',
+        actions: '操作',
+        view: '查看',
+        detailTitle: '提现申请 #{id}',
+        qrImage: '支付宝收款码',
+        qrMissing: '收款码加载失败',
+        copyAccount: '复制账号',
+        accountCopied: '支付宝账号已复制',
+        copyAmount: '复制金额',
+        amountCopied: '金额已复制',
+        payHint: '请用支付宝扫描收款码或按账号转账 {amount}，完成后点击「标记已打款」。',
+        markPaid: '标记已打款',
+        markPaidTitle: '确认已打款',
+        markPaidMessage: '确认已向 {account} 转账 {amount}？标记后无法撤销。',
+        paidNote: '备注（可选）',
+        paidNotePlaceholder: '如支付宝转账单号',
+        reject: '驳回',
+        rejectTitle: '驳回提现申请',
+        rejectMessage: '驳回后 {amount} 会退回到用户的可用返利额度。',
+        rejectReason: '驳回原因',
+        rejectReasonPlaceholder: '用户可以看到这条原因，例如：收款码无法识别',
+        rejectReasonRequired: '请填写驳回原因',
+        paidSuccess: '已标记为已打款',
+        rejectSuccess: '已驳回，额度已退回用户',
+        empty: '暂无提现申请',
+        statuses: {
+          pending: '待审核',
+          paid: '已打款',
+          rejected: '已驳回',
+          cancelled: '已撤销'
+        }
+      },
       errors: {
         loadFailed: '加载邀请返利记录失败',
         AFFILIATE_QUOTA_INSUFFICIENT: '可提取返利额度不足',
-        AFFILIATE_WITHDRAW_AMOUNT_INVALID: '提现金额无效'
+        AFFILIATE_WITHDRAW_AMOUNT_INVALID: '提现金额无效',
+        AFFILIATE_WITHDRAW_NOT_FOUND: '提现申请不存在',
+        AFFILIATE_WITHDRAW_NOT_PENDING: '该申请已被处理，请刷新',
+        AFFILIATE_WITHDRAW_REASON_REQUIRED: '请填写驳回原因',
+        AFFILIATE_WITHDRAW_NOTE_TOO_LONG: '备注过长（最多 500 字）'
       },
       records: {
         search: '搜索',
@@ -472,7 +518,9 @@ export default {
       },
       outflowTypes: {
         transfer: '转入余额',
-        withdraw: '线下提现'
+        withdraw: '线下提现',
+        withdraw_request: '提现申请（冻结）',
+        withdraw_reverse: '提现退回'
       },
       withdraw: {
         button: '登记线下提现',

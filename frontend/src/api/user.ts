@@ -17,6 +17,9 @@ import type {
   UserAffiliateDetail,
   AffiliateTransferResponse,
   AffiliateRegistrationSeatPurchaseResponse,
+  AffiliateWithdrawRequest,
+  SubmitAffiliateWithdrawPayload,
+  PaginatedResponse,
   PlatformQuotasResponse
 } from '@/types'
 
@@ -197,6 +200,29 @@ export async function purchaseAffiliateRegistrationSeats(
   return data
 }
 
+export async function submitAffiliateWithdraw(
+  payload: SubmitAffiliateWithdrawPayload
+): Promise<AffiliateWithdrawRequest> {
+  const { data } = await apiClient.post<AffiliateWithdrawRequest>('/user/aff/withdrawals', payload)
+  return data
+}
+
+export async function listAffiliateWithdraws(
+  page = 1,
+  pageSize = 10
+): Promise<PaginatedResponse<AffiliateWithdrawRequest>> {
+  const { data } = await apiClient.get<PaginatedResponse<AffiliateWithdrawRequest>>(
+    '/user/aff/withdrawals',
+    { params: { page, page_size: pageSize } }
+  )
+  return data
+}
+
+export async function cancelAffiliateWithdraw(id: number): Promise<AffiliateWithdrawRequest> {
+  const { data } = await apiClient.post<AffiliateWithdrawRequest>(`/user/aff/withdrawals/${id}/cancel`)
+  return data
+}
+
 /**
  * 获取当前用户的平台限额 + 用量。
  */
@@ -221,6 +247,9 @@ export const userAPI = {
   getAffiliateDetail,
   transferAffiliateQuota,
   purchaseAffiliateRegistrationSeats,
+  submitAffiliateWithdraw,
+  listAffiliateWithdraws,
+  cancelAffiliateWithdraw,
   getMyPlatformQuotas
 }
 

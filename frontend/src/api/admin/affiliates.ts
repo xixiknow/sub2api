@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from '../client'
-import type { PaginatedResponse } from '@/types'
+import type { AffiliateWithdrawRequest, AffiliateWithdrawStatus, PaginatedResponse } from '@/types'
 
 export interface AffiliateAdminEntry {
   user_id: number
@@ -75,7 +75,7 @@ export interface AffiliateRebateRecord {
 }
 
 /** transfer = user moved quota into balance; withdraw = admin-recorded offline withdrawal. */
-export type AffiliateOutflowAction = 'transfer' | 'withdraw'
+export type AffiliateOutflowAction = 'transfer' | 'withdraw' | 'withdraw_request' | 'withdraw_reverse'
 
 /** One affiliate quota outflow: a transfer into balance or an offline withdrawal. */
 export interface AffiliateTransferRecord {
@@ -273,6 +273,57 @@ export async function withdrawUserQuota(
   }
 }
 
+export interface ListAffiliateWithdrawRequestsParams {
+  page?: number
+  page_size?: number
+  status?: AffiliateWithdrawStatus | ''
+  search?: string
+  start_at?: string
+  end_at?: string
+  timezone?: string
+}
+
+export async function listWithdrawRequests(
+  params: ListAffiliateWithdrawRequestsParams = {},
+): Promise<PaginatedResponse<AffiliateWithdrawRequest>> {
+  const { data } = await apiClient.get<PaginatedResponse<AffiliateWithdrawRequest>>(
+    '/admin/affiliates/withdrawals',
+    {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+        status: params.status || undefined,
+        search: params.search || undefined,
+        start_at: params.start_at || undefined,
+        end_at: params.end_at || undefined,
+        timezone: params.timezone || undefined,
+      },
+    },
+  )
+  return data
+}
+
+export async function getWithdrawRequest(id: number): Promise<AffiliateWithdrawRequest> {
+  const { data } = await apiClient.get<AffiliateWithdrawRequest>(`/admin/affiliates/withdrawals/${id}`)
+  return data
+}
+
+export async function markWithdrawPaid(id: number, note = ''): Promise<AffiliateWithdrawRequest> {
+  const { data } = await apiClient.post<AffiliateWithdrawRequest>(
+    `/admin/affiliates/withdrawals/${id}/paid`,
+    { note },
+  )
+  return data
+}
+
+export async function rejectWithdrawRequest(id: number, note: string): Promise<AffiliateWithdrawRequest> {
+  const { data } = await apiClient.post<AffiliateWithdrawRequest>(
+    `/admin/affiliates/withdrawals/${id}/reject`,
+    { note },
+  )
+  return data
+}
+
 export const affiliatesAPI = {
   listUsers,
   lookupUsers,
@@ -284,6 +335,10 @@ export const affiliatesAPI = {
   listTransferRecords,
   getUserOverview,
   withdrawUserQuota,
+  listWithdrawRequests,
+  getWithdrawRequest,
+  markWithdrawPaid,
+  rejectWithdrawRequest,
 }
 
 export default affiliatesAPI
