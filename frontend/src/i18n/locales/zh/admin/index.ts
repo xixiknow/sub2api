@@ -9,6 +9,7 @@ import promptAudit from './promptAudit'
 import plugins from './plugins'
 import accountInsights from './accountInsights'
 import marketingEmail from './marketingEmail'
+import iqTest from './iqTest'
 
 export default {
   ...overview,
@@ -22,4 +23,5 @@ export default {
   ...plugins,
   ...accountInsights,
   ...marketingEmail,
+  ...iqTest,
 }

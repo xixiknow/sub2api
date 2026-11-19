@@ -675,6 +675,18 @@ func ProvideScheduledTestService(
 	return NewScheduledTestService(planRepo, resultRepo)
 }
 
+// ProvideIQTestService creates and starts IQTestService (fork: 模型智力测试).
+func ProvideIQTestService(
+	repo IQTestRepository,
+	accountRepo AccountRepository,
+	accountTestSvc *AccountTestService,
+	cfg *config.Config,
+) *IQTestService {
+	svc := NewIQTestService(repo, accountRepo, accountTestSvc, cfg)
+	svc.Start()
+	return svc
+}
+
 // ProvideScheduledTestRunnerService creates and starts ScheduledTestRunnerService.
 func ProvideScheduledTestRunnerService(
 	planRepo ScheduledTestPlanRepository,
@@ -1013,6 +1025,7 @@ var ProviderSet = wire.NewSet(
 	ProvideIdempotencyCleanupService,
 	ProvideScheduledTestService,
 	ProvideScheduledTestRunnerService,
+	ProvideIQTestService,
 	ProvideAutoModelSyncRunnerService,
 	NewGroupCapacityService,
 	NewChannelService,
